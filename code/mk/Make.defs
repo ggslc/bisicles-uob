@@ -71,11 +71,14 @@ LIBFLAGS+=$(PYTHON_LIBS)
 endif
 
 SVN_REV=$(shell cd $(BISICLES_BRANCH) ; svnversion -n)
+
 ifeq ($(SVN_REV),)
 SVN_REV := unknown
-SVN_REP := unknown
-SVN_URL := unknown
-else
+endif
+
+ifeq ($(SVN_REV),Unversioned directory)
+SVN_REV := unknown
+endif
 
 SVN_REP := $(shell cd $(BISICLES_BRANCH) ; svn info | awk '/Repository Root:/ {print $$3}')
 ifeq ($(SVN_REP),)
@@ -87,11 +90,13 @@ ifeq ($(SVN_URL),)
 SVN_URL := unknown
 endif
 
-endif
+
 
 CPPFLAGS += -DSVN_REV='"$(SVN_REV)"'
 CPPFLAGS += -DSVN_REP='"$(SVN_REP)"'
 CPPFLAGS += -DSVN_URL='"$(SVN_URL)"'
+
+$(info $(CPPFLAGS))
 
 nolink: $(shell $(CHOMBO_HOME)/mk/reverse $(LibNames)) $(objects)  
 	@echo BISICLES Objects built
