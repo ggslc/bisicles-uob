@@ -1,1 +1,20 @@
-BISICLES is an adaptive mesh ice sheet model
+BISICLES is an adaptive mesh ice sheet model.
+
+This repository begins with the version used to work on CalvingMIP (https://github.com/JRowanJordan/CalvingMIP). It has 
+no history prior to that, because (a) there are many branches (b) the history includes files too large to be stored
+on GitHub. It is possible that we will provide a full history repo at some point, but there are no concrete plans.
+
+Contributors to Aug 2023 (from svn history):
+
+dmartin
+slcornford
+madams
+ligocki
+at7155 
+schwartz
+dranken
+Vicky-Lee
+sainansunq
+skachuck
+mmcphail
+cashafer
