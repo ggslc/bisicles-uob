@@ -1,0 +1,162 @@
+#CAMIP dome 1000 km spinup with 2 level of refinement.
+#Domain is postive x,y quadrant of the full 1600 x 1600 km problem
+#reflection symmetry makes this OK.
+#Uses the 'new' timestep
+#Final results need to be interpolated to 10 km *node centered* grid
+#for submission (i.e cell at origin)
+
+main.poutBaseName = pout.camip_dome_spinup
+
+#domain details
+main.domain_size = 800.0e+3 800.0e+3 1.0e+3
+amr.num_cells = 160 160 11 # base res is 5 km. Final results need to be presneted 
+amr.is_periodic = 0 0 0
+
+#bulk constitutive relation and parameters
+main.constitutiveRelation = GlensLaw
+main.rateFactor = constRate
+constRate.epsSqr0 = 1.0e-12
+constRate.A =  3.1536e-18 #1e25 * (365 * 24 * 3600 =  seconds per year)
+
+#geometry,temperarture & basal friction input data
+geometry.problem_type = Python
+PythonIBC.module = camip
+PythonIBC.thicknessFunction = thickness_600
+PythonIBC.topographyFunction = bed_dome
+
+temperature.type = constant
+temperature.value = 268
+
+#amr.sigma = 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+
+#basal friction relation parameters
+main.basalFrictionRelation = powerLaw
+BasalFrictionPowerLaw.m = 0.333
+basal_friction.grounding_line_subdivision = 4
+geometry.beta_type = constantBeta
+geometry.betaValue = 1.0e+4
+
+#physical constants
+constants.ice_density = 917.0 # CHECK
+constants.sea_water_density = 1027.0 # CHECK 
+constants.gravity = 9.81 # CHECK
+
+surfaceFlux.type = constantFlux
+surfaceFlux.flux_value = 0.3
+basalFlux.type = pythonFlux
+basalFlux.function = melt_radius_768
+basalFlux.module = camip
+
+
+#velocity solve type -- 0 = Picard, 1 = JFNK
+amr.velocity_solver_type = 1
+
+#initial guess 
+amr.do_initial_velocity_guess = 1
+amr.do_initial_velocity_solve = 1
+amr.initial_velocity_guess_type = 1 # linear PDE
+amr.initial_velocity_guess_const_mu = 1.0e+6
+amr.initial_velocity_guess_solver_type = 1 
+amr.initial_velocity_guess_const_vel = 1.0 0.0
+#JFNK parameters
+JFNKSolver.vtopSafety = 0.95
+JFNKSolver.minPicardIterations = 3
+JFNKSolver.maxIter = 1 # SPINUP!
+JFNKSolver.maxIter_init = 10
+JFNKSolver.absTol = 1.0e-8
+JFNKSolver.relTol = 1.0e-4
+JFNKSolver.solverType = 0 #Relax solver
+JFNKSolver.RelaxRelTol = 2.0e-3
+JFNKSolver.RelaxHang = 0.975
+JFNKSolver.maxRelaxIter = 10
+JFNKSolver.normType = 0
+JFNKSolver.verbosity = 5
+JFNKSolver.vtopRelaxTol = 0.005
+JFNKSolver.vtopRelaxMinIter = 8
+JFNKSolver.numMGSmooth = 8
+JFNKSolver.numMGIter = 1
+JFNKSolver.h = 0.025
+JFNKSolver.switchRate = 5.0
+#JFNKSolver.writeResiduals = true
+#JFNKSolver.muMin = 1.0e+6
+#JFNKSolver.uMaxAbs = 1.0e+6
+#JFNKSolver.minThickness = 1.0
+#amr.limit_margin_velocity = true
+
+
+#time stepping
+main.maxTime = 30000.0  # maximum time to run to
+main.maxStep = 100000   # maximum number of steps to runx
+amr.temporal_accuracy = 1
+amr.cfl = 0.5 
+amr.initial_cfl = 0.5 
+amr.max_dt_grow_factor = 1.1 
+amr.time_step_ticks = 1
+
+#plotting options
+amr.plot_interval = 128
+#amr.plot_time_interval = 1000
+amr.plot_prefix = plot.camip_dome_spinup.
+amr.write_solver_rhs = 1
+amr.write_viscous_tensor = true
+amr.write_thickness_sources = true
+amr.write_mask = true
+
+#check points
+amr.check_interval = 480
+amr.check_prefix = chk.camip_dome_spinup.
+amr.check_overwrite = 0
+amr.verbosity = 5
+
+#AMR mesh options
+amr.maxLevel = 10 # finest level allowed in simulation
+amr.ref_ratio = 2 2 2 2 2 2 2 2 2 2 2
+amr.regrid_interval = 32  # number of timesteps between regridding
+amr.blockFactor = 8      # block factor used in grid generation
+amr.fill_ratio = 0.85    # how efficient are the grids
+amr.nestingRadius = 1    # proper nesting radius required
+amr.tags_grow = 4        # amount to buffer tags
+#amr.tagSubsetBoxesFile = tag_subset.Deep
+amr.tagCap = -1 # 5 km -> 2.5 km -> 1.25 -> 0.625 km -> 0.3125 km
+amr.interpolate_zb = 0 #go back to the IBC to regrid geometry
+amr.max_box_size = 40 # largest box length allowed
+
+#AMR tagging
+amr.tag_on_grad_velocity = 0
+
+amr.tag_on_grounded_laplacian_velocity = 0
+amr.lap_vel_tagging_val = 1
+
+amr.tag_grounding_line = 1
+amr.grounding_line_tagging_min_vel = 0
+
+amr.tag_ice_margin = 1
+
+
+
+#misc options
+amr.verbosity = 5
+
+#new timetep options
+#time stepping
+#main.maxTime = 30000  # maximum time to run to
+#main.maxStep = 10000  # maximum number of steps to runx
+#main.newTimeStep = true
+#amr.cfl = 0.5 
+#amr.fixed_dt = 1.0
+#amr.plot_interval = 200
+#JFNKSolver.maxIter = 1 # speed up - spin up only
+#JFNKSolver.maxIter_init = 10 # for t = 0
+#amr.time_step_n_iter = 1
+#geometry.compute_ocean_connection_iter = 32
+#basalFlux.floating_check_ocean_connected = true
+#amr.floating_check_ocean_connected = true
+
+
+#calving model
+CalvingModel.type = RateProportionalToSpeedCalvingModel
+CalvingModel.proportion.type = pythonFlux
+CalvingModel.proportion.function = calving_rate_u_radius_750_steep
+CalvingModel.proportion.module = camip
+CalvingModel.front_lo = 0 0
+CalvingModel.front_hi = 0 0

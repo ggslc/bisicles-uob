@@ -1,0 +1,17 @@
+#inputs file for comparison utility program	
+
+#if "same size" is 1, then both "exact" and "computed" solutions are 
+#at the same resolution.  They can both be AMR solutions, but they should 
+#have the same grids
+compare.sameSize = 1
+
+#name of file for "exact" solution (single-level fine-resolution solution)
+compare.exactRoot = plot.testwb.000010.2d.hdf5
+
+#name of file containing "computed" solution (which may be AMR )
+compare.computedRoot =  plot.testwa.000010.2d.hdf5
+
+#name of file into which to write error plotfile
+compare.errorRoot = err1.hdf5
+
+

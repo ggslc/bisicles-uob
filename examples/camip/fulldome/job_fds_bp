@@ -1,0 +1,30 @@
+#!/bin/bash
+
+#SBATCH --job-name=fds@TAGCAP
+#SBATCH --partition=icesheet
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=24
+#SBATCH --time=12:00:00
+#SBATCH --account=GEOG004062
+
+
+#environment
+export PYTHONPATH=$SLURM_SUBMIT_DIR:$PYTHONPATH
+NAME=fulldome_spin_tc@TAGCAP
+INFILE=inputs.$NAME
+
+#work out what the latest checkpoint file is (if it exists)
+if test -n "$(find ../ -maxdepth 1 -name 'chk.$NAME.??????.2d.hdf5' -print -quit)"
+    then
+    LCHK=`ls -th ../chk.$NAME.??????.2d.hdf5 | head -n 1`
+    echo "" >> $INFILE #ensure line break
+    echo "amr.restart_file=$LCHK" >> $INFILE
+    echo "amr.restart_set_time=false" >> $INFILE
+    echo "" >> $INFILE #ensure line break
+fi
+
+
+EXE=driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex
+
+
+srun $EXE $INFILE

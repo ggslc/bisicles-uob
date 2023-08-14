@@ -1,0 +1,119 @@
+main.poutBaseName=pout.testwa-amr
+
+#domain details
+main.domain_size = 64.0e+3 64.0e+3 1.0e+3
+amr.num_cells = 64 64 10 
+amr.is_periodic = 0 0 0
+
+#bulk constitutive relation and parameters
+main.constitutiveRelation = L1L2
+L1L2.delta = 1.0e-1
+main.rateFactor = patersonRate
+patersonRate.epsSqr0 = 1.0e-12
+
+#geometry,temperarture & basal friction input data
+geometry.problem_type = Python
+PythonIBC.module = square
+PythonIBC.thicknessFunction = thickness
+PythonIBC.topographyFunction = topography	
+PythonIBC.bc_lo = 0 0 # bc type at x = 0, y = 0
+PythonIBC.bc_hi = 0 0 # bc type at x = L , y = W
+
+temperature.type = constant
+temperature.value = 268
+
+amr.sigma = 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
+
+#basal friction relation parameters
+main.basalFrictionRelation = powerLaw
+geometry.beta_type = Python
+PythonBasalFriction.module = square
+PythonBasalFriction.function = constfriction
+BasalFrictionPowerLaw.m = 0.333
+BasalFrictionPowerLaw.includeEffectivePressure = false
+
+amr.grounding_line_subdivision = 4
+
+#physical constants
+constants.ice_density=918.0
+constants.sea_water_density=1028.0
+
+surfaceFlux.type = pythonFlux
+surfaceFlux.module = square
+surfaceFlux.function = acab
+amr.mask_sources = true
+basalFlux.type = zeroFlux
+
+
+
+
+CalvingModel.type = VariableRateCalvingModel 
+CalvingModel.CalvingRate.type = pythonFlux
+CalvingModel.CalvingRate.function = rate0
+CalvingModel.CalvingRate.module = square
+CalvingModel.front_lo = 1 1
+CalvingModel.front_hi = 1 1
+
+#velocity solve type -- 0 = Picard, 1 = JFNK, 5 = python
+amr.velocity_solver_type = 5
+#prescribe the velocity for a test
+###applies when amr.velocity_solver_type = 5
+PythonVelocitySolver.module = square
+PythonVelocitySolver.function = velocity
+
+#time stepping
+main.maxTime = 400.0  # maximum time to run to
+main.maxStep = 10   # maximum number of steps to runx
+amr.temporal_accuracy = 1
+amr.cfl = 0.25
+amr.initial_cfl = 0.25
+#amr.max_dt_grow_factor = 16
+#amr.time_step_ticks = 0
+
+#plotting options
+amr.plot_interval = 1
+amr.plot_prefix = plot.testwa-amr.
+amr.check_prefix = chk.testwa-amr.
+
+#amr.write_solver_rhs = true
+amr.write_mask = true
+#amr.write_thickness_sources = true
+
+#check points
+amr.check_interval = 1000
+amr.check_overwrite = 0
+amr.verbosity = 5
+
+#AMR mesh options
+amr.maxLevel = 1 # finest level allowed in simulation
+amr.ref_ratio = 2 2 2 2 2 2 2 2 2 2 2
+amr.regrid_interval = 2  # number of timesteps between regridding
+amr.blockFactor = 8      # block factor used in grid generation
+amr.fill_ratio = 0.85    # how efficient are the grids
+amr.nestingRadius = 1    # proper nesting radius required
+amr.tags_grow = 4        # amount to buffer tags
+amr.tagCap = 99
+
+amr.interpolate_zb = 0 #go back to the IBC to regrid geometry
+#amr.max_box_size = 32 # largest box length allowed
+amr.max_box_size = 128 # largest box length allowed
+
+#AMR tagging
+amr.tag_on_grad_velocity = 0
+amr.tag_on_grounded_laplacian_velocity = 0
+amr.lap_vel_tagging_val = 8.0
+amr.tag_grounding_line = 1
+amr.grounding_line_tagging_min_vel = 0
+amr.tag_ice_margin = 1
+
+#misc options
+amr.verbosity = 5
+amr.velocity_solve_interval = 1
+
+amr.eliminate_remote_ice = false
+amr.mask_sources = true
+
+amr.thickness_advection.normal_pred_order = 2
+#END OF TEMPLATE
+
+amr.gridsFile = gridsa.dat
