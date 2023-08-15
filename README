@@ -1,5 +1,7 @@
 BISICLES is an adaptive mesh ice sheet model.
 
+User documentation is in the docs directory and at https://ggslc.github.io/bisicles-camip/. Developer documentation is in the code/docs directory.
+
 This repository begins with the version used to work on CalvingMIP (https://github.com/JRowanJordan/CalvingMIP). It has 
 no history prior to that, because (a) there are many branches (b) the history includes files too large to be stored
 on GitHub. It is possible that we will provide a full history repo at some point, but there are no concrete plans.
