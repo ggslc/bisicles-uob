@@ -1,2 +1,3 @@
 *.pdf linguist-detectable=false
 *.hdf5 linguist-detectable=false
+*.ChF linguist-language=fortran
