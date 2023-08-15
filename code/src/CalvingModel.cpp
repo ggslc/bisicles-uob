@@ -1137,7 +1137,43 @@ RateProportionalToSpeedCalvingModel::getCalvingVel
   m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
   prop.exchange();
   //interpolate to faces
-  CellToEdge(prop, a_faceCalvingVel);
+ 
+  //CellToEdge(prop, a_faceCalvingVel);
+  LevelData<FluxBox>& faceProp = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	{
+  	  Box faceBox = frac.box();
+  	  faceBox.grow(-1);
+  	  faceBox.surroundingNodes(dir);
+  	  faceBox &= faceProp[dit][dir].box();
+
+  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+  	    {
+  	      const IntVect& iv = bit();
+  	      // cell-centre indices on the - and + sides of the face
+  	      IntVect ivm = iv - BASISV(dir); 
+  	      IntVect ivp = iv;
+	      // one-sided...
+  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
+  		{
+  		  faceProp[dit][dir](iv) = prop[dit](ivm);
+  		}
+  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
+  		{
+  		  faceProp[dit][dir](iv) = prop[dit](ivp);
+  		}
+  	      else
+  		{
+  		  // normal linear interpolation
+  		  faceProp[dit][dir](iv) = 0.5 * (prop[dit](ivm) + prop[dit](ivp));
+  		}
+  	    }
+  	}
+    }
+    
 
   // multiply by -velocity
   for (DataIterator dit(a_grids); dit.ok(); ++dit)

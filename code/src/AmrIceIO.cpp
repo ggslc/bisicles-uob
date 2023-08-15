@@ -1836,8 +1836,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           m_velocity[lev] = new LevelData<FArrayBox>(levelDBL, SpaceDim, 
                                                      ghostVect);
 
-          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1, ghostVect);
-
+          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1, ghostVect); 
 	  m_faceVelAdvection[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 	  m_faceVelTotal[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 #if BISICLES_Z == BISICLES_LAYERED
@@ -2255,8 +2254,6 @@ void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
   headerData.m_string["svn_version"] = SVN_REV;
   headerData.m_string["svn_repository"] = SVN_REP;
   headerData.m_string["svn_url"] = SVN_URL;
-  headerData.m_string["git_hash"] = GIT_HASH;
-  headerData.m_string["git_remote"] = GIT_REMOTE;
   headerData.m_int["bisicles_version_major"] = BISICLES_VERSION_MAJOR;
   headerData.m_int["bisicles_version_minor"] = BISICLES_VERSION_MINOR;
   headerData.m_int["bisicles_patch_number"] = BISICLES_PATCH_NUMBER;
