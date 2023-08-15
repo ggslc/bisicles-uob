@@ -21,7 +21,7 @@ CHOMBO_HOME := $(BISICLES_HOME)/Chombo/lib
 endif
 
 #GIA code depends on fftw
-USE_FFTW := TRUE
+USE_FFTW := FALSE
 #Guess FFTWDIR if it is not specified. 
 ifeq ($(FFTWDIR),)
 FFTWDIR=/usr
