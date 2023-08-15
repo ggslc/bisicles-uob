@@ -2255,6 +2255,8 @@ void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
   headerData.m_string["svn_version"] = SVN_REV;
   headerData.m_string["svn_repository"] = SVN_REP;
   headerData.m_string["svn_url"] = SVN_URL;
+  headerData.m_string["git_hash"] = GIT_HASH;
+  headerData.m_string["git_remote"] = GIT_REMOTE;
   headerData.m_int["bisicles_version_major"] = BISICLES_VERSION_MAJOR;
   headerData.m_int["bisicles_version_minor"] = BISICLES_VERSION_MINOR;
   headerData.m_int["bisicles_patch_number"] = BISICLES_PATCH_NUMBER;
