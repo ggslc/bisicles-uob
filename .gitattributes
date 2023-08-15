@@ -2,3 +2,4 @@
 *.hdf5 linguist-detectable=false
 *.ChF linguist-language=fortran
 *.fig linguist-detectable=false
+*.ps linguist-detectable=false
