@@ -37,6 +37,9 @@ public:
   virtual const Vector<int>& refRatios() const  = 0;
   //virtual const Vector<Real>& amrDx() const = 0;
 
+  //access to the ice fraction
+  virtual const LevelData<FArrayBox>* iceFraction(int a_level) const = 0;
+
   //access to the velocity
   virtual const LevelData<FArrayBox>* velocity(int a_level) const = 0;
   //virtual const Vector<LevelData<FArrayBox>* >& amrVelocity() const = 0;

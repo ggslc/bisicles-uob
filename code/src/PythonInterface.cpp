@@ -708,10 +708,10 @@ void PythonInterface::PythonSurfaceFlux::surfaceThicknessFlux(LevelData<FArrayBo
 {
    CH_TIME("PythonInterface::PythonSurfaceFlux::surfaceThicknessFlux");
  
-  Vector<Real> args(SpaceDim + 3);
+  Vector<Real> args(SpaceDim + 4);
   Vector<Real> rval;
   const RefCountedPtr<LevelSigmaCS> levelCS = a_amrIce.geometry(a_level);
-
+  const LevelData<FArrayBox>& iceFraction = *a_amrIce.iceFraction(a_level);
   const DisjointBoxLayout& grids = a_flux.disjointBoxLayout();
   for (DataIterator dit(grids);dit.ok();++dit)
     {
@@ -729,6 +729,7 @@ void PythonInterface::PythonSurfaceFlux::surfaceThicknessFlux(LevelData<FArrayBo
 	  args[i] = a_amrIce.time();i++;
 	  args[i] = levelCS->getH()[dit](iv);i++;
 	  args[i] = levelCS->getTopography()[dit](iv);i++;
+	  args[i] = iceFraction[dit](iv);i++;
 	  FillKwargs(m_kwarg, a_amrIce, a_level,  dit, iv);
 	  PythonEval(m_pFunc, rval,  args, &m_kwarg);
 	  a_flux[dit](iv) =  rval[0];

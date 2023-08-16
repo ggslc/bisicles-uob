@@ -49,14 +49,13 @@
   but we never do that), plus both C++ and FORTRAN compilers, a GNU-compatible make, subversion, and Perl.
   Python is optional but highly recommended - BISICLES has numerous optional python components.
   On the whole, life is easiest with gcc (including g++ and gfortran), and we shall assume that
-  is what will be used. A modernish gcc is required - see the <a href='oldbuild.html'>older build instructions<a> if
-   you want to build with gcc 4.1.2, for example. To build the parallel version, you need an MPI environment, which provides 
+  is what will be used. To build the parallel version, you need an MPI environment, which provides 
   the mpicc and mpicxx  (or equivalents). You will also need 
   <a href='https://wci.llnl.gov/codes/visit/home.html'>VisIt</a></li> to view the data BISICLES 
 produces (other programs can be put to use, but VisIt is by far the most convenient)</p>
 <p>
   There are some <a href='sites.html'>site specific notes</a>: look at these before proceeding
-  if you are installing on an Ubuntu or Debian workstations, on a Cray XC30 or XC40 (e.g ARCHER, edison, cori),
+  if you are installing on an Ubuntu or Debian workstation, on a Cray (e.g ARCHER, NERSC),
   or on any of the other machines that BISICLES has been used before.
 </p>
 <h2><a name="svnco"> Check out the source code.</a> </h2>
@@ -70,24 +69,32 @@ produces (other programs can be put to use, but VisIt is by far the most conveni
   > export BISICLES_HOME=/wherever/you/like #assumes bash...
   > mkdir -p $BISICLES_HOME
   > cd $BISICLES_HOME
-  > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.2 Chombo 
+  > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.2 Chombo
+</pre>
+<p>
+  Next, decide which BISICLES branch you want. Most users will
+  want the main BISICLES development branch (trunk),which is fairly stable
+  since experimental code is developed on other branches. In that wcase run
+</p>
+<pre>
   > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/trunk BISICLES 
 </pre>
-</p> 
 <p>
-  Here we have assumed that you want the the main BISICLES development branch (trunk)
-  which is fairly stable since experimental
-  code is developed on other branches. The advantage of trunk is that bug fixes
-  are published there first. You may prefer the current release, which
-  changes infrequently.
-  </p>
+The advantage of trunk is that bug fixes
+are published there first. You may prefer the current release, which
+changes infrequently.
+</p>
 <pre>
-   > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/release/1.3 BISICLES
+  > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/release/1.4 BISICLES
 </pre>
-<p>
+<p>  
   You may want one of the other branches, especially if you are working with any of
   the BISICLES developers to introduce new features, but in that case you will
-  probably know which one you need. Note
+  probably know which one you need. There is also a development branch available on github
+  at <a href='https://github.com/ggslc/bisicles-camip'>https://github.com/ggslc/bisicles-camip</a>
+</p>
+<p>
+  Note
   that you do not need to layout your source directories as indicated above, or even
   follow the rest of these notes exactly. If you want some other layout, note
   the following

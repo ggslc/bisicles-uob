@@ -1836,8 +1836,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           m_velocity[lev] = new LevelData<FArrayBox>(levelDBL, SpaceDim, 
                                                      ghostVect);
 
-          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1, ghostVect);
-
+          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1, ghostVect); 
 	  m_faceVelAdvection[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 	  m_faceVelTotal[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 #if BISICLES_Z == BISICLES_LAYERED
