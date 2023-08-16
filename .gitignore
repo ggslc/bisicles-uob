@@ -1,0 +1,27 @@
+# ignore files generated from .ChF
+*F_F.H
+
+#ignore binaries
+*.ex
+*.a
+*.so
+
+#ignore fortan *.mod files
+*.mod
+
+# ignore the d/f/o/p dirs
+d/
+f/
+o/
+p/
+
+#emacs backup files
+*~
+
+#data
+*.nc
+*.hdf5
+
+#files that should generally be ignored
+code/libamrfile/libamrfile_python.png
+code/libamrfile/python/AMRFile/amrfile/__pycache__/
