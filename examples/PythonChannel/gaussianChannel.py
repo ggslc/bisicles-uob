@@ -6,7 +6,7 @@ def slope(x):
 def width(x):
     return 4.0e+3 + 16.0e+3 * math.exp(-x/16.0e+3)
 
-def tag(x,y,dx,thck,topg):
+def tag(x,y,dx,thck,topg,*etc):
     w = width(x) + 1.0e+2
     y = y - 32.0e+3
     tag = -1.0 #don't tag unless...
@@ -35,7 +35,7 @@ def topography(x,y):
     return topography
 
 
-def accumulation(x,y,t,thck,topg):
+def accumulation(x,y,t,thck,topg,*etc):
     acc = -1000.0
     surface = 300.0 + slope(x)
     if ((x < 80.0e+3) & (surface > topg)):
@@ -43,7 +43,7 @@ def accumulation(x,y,t,thck,topg):
     
     return acc
 
-def friction(x,y,t,thck,topg):
+def friction(x,y,t,thck,topg,*etc):
     friction = 1.0e+6
     surface = 300.0 + slope(x)
     if (  surface > topg ):
@@ -51,7 +51,7 @@ def friction(x,y,t,thck,topg):
         
     return friction
 
-def frictionTemp(x,y,t,thck,topg):
+def frictionTemp(x,y,t,thck,topg,*etc):
     friction = 1.0e+6
     surface = 300.0 + slope(x)
     if (  surface > topg ):
