@@ -11,9 +11,11 @@
 #include "CalvingModel.H"
 #include "MaskedCalvingModel.H"
 #include "CrevasseCalvingModel.H"
+#include "LevelMappedDerivatives.H"
 #include "IceConstants.H"
 #include "AmrIce.H"
 #include "ParmParse.H"
+#include "CalvingF_F.H"
 #include "NamespaceHeader.H"
 
 /// a default implementation
@@ -477,7 +479,12 @@ CalvingModel* CalvingModel::parseCalvingModel(const char* a_prefix)
     {
       ptr = new RateProportionalToSpeedCalvingModel(pp);
     }
-  
+   /**
+   else if (type == "VonMisesCalvingModel")
+    {
+      ptr = new VonMisesCalvingModel(pp);
+    } 
+    **/
 
   return ptr;
 }
@@ -1260,5 +1267,401 @@ RateProportionalToSpeedCalvingModel::getCalvingRate
 
   int dbg = 0;dbg++; 
 }
+
+/** Von Mises building blocks **/
+void VonMisesCalvingModel::applyCriterion
+(LevelData<FArrayBox>& a_thickness,
+ LevelData<FArrayBox>& a_calvedIce,
+ LevelData<FArrayBox>& a_addedIce,
+ LevelData<FArrayBox>& a_removedIce,  
+ LevelData<FArrayBox>& a_iceFrac, 
+ const AmrIce& a_amrIce,
+ int a_level,
+ Stage a_stage)
+{
+
+  (*m_domainEdgeCalvingModel).applyCriterion( a_thickness, a_calvedIce, a_addedIce, a_removedIce, a_iceFrac,a_amrIce, a_level, a_stage);
+
+  const LevelSigmaCS& levelCoords = *a_amrIce.geometry(a_level);
+  for (DataIterator dit(levelCoords.grids()); dit.ok(); ++dit)
+    {
+      FArrayBox& thck = a_thickness[dit];
+      FArrayBox& calved = a_calvedIce[dit];
+      FArrayBox& added = a_addedIce[dit];
+      FArrayBox& removed = a_removedIce[dit];
+      FArrayBox& frac = a_iceFrac[dit];
+      const BaseFab<int>& mask = levelCoords.getFloatingMask()[dit];
+      Real frac_eps = TINY_FRAC;
+      const Box& b = levelCoords.grids()[dit];
+      for (BoxIterator bit(b); bit.ok(); ++bit)
+	{
+	  const IntVect& iv = bit();
+	  Real prevThck = thck(iv);
+
+	  // if (frac(iv) < frac_eps * frac_eps)
+	  //   {
+	  //     frac(iv) = 0.0;
+	  //   }
+	  
+	  // if (frac(iv) < frac_eps)
+	  //   {
+	  //     thck(iv) = 0.0;
+	  //   }
+
+	  //  // if (frac(iv) < 0.5)
+	  //  //   {
+	  //  //     thck(iv) *= frac(iv);
+	  //  //   }
+
+		  
+	  // // Record gain/loss of ice
+	  if (calved.box().contains(iv))
+	    {
+	      updateCalvedIce(thck(iv),prevThck,mask(iv),added(iv),calved(iv),removed(iv));
+	    }
+
+	}
+    }
+}
+
+
+
+CalvingModel* VonMisesCalvingModel::new_CalvingModel()
+  {
+    VonMisesCalvingModel* ptr = new VonMisesCalvingModel(*this);
+    ptr->m_startTime = m_startTime;
+    ptr->m_endTime = m_endTime;
+    ptr->m_scale = m_scale->new_surfaceFlux();
+    ptr->m_independent = m_independent->new_surfaceFlux();
+    ptr->m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(*m_domainEdgeCalvingModel);
+    return ptr; 
+  }
+
+VonMisesCalvingModel::~VonMisesCalvingModel()
+{
+
+  if (m_domainEdgeCalvingModel != NULL)
+    {
+      delete m_domainEdgeCalvingModel;
+      m_domainEdgeCalvingModel = NULL;
+    }
+
+  if (m_scale != NULL)
+    {
+      delete m_scale;
+      m_scale = NULL;
+    }
+
+    if (m_independent != NULL)
+    {
+      delete m_independent;
+      m_independent = NULL;
+    }
+
+  
+}
+
+bool 
+VonMisesCalvingModel::getCalvingVel
+(LevelData<FluxBox>& a_faceCalvingVel,
+ const LevelData<FluxBox>& a_faceIceVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  if (!m_vector) return false; 
+
+  // cell-centered scale
+  LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
+  m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
+  scale.exchange();
+  //interpolate to faces
+  //CellToEdge(scale, a_faceCalvingVel);
+  LevelData<FluxBox>& faceScale = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	{
+  	  Box faceBox = frac.box();
+  	  faceBox.grow(-1);
+  	  faceBox.surroundingNodes(dir);
+  	  faceBox &= faceScale[dit][dir].box();
+
+  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+  	    {
+  	      const IntVect& iv = bit();
+  	      // cell-centre indices on the - and + sides of the face
+  	      IntVect ivm = iv - BASISV(dir); 
+  	      IntVect ivp = iv;
+	      // one-sided...
+  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
+  		{
+  		  faceScale[dit][dir](iv) = scale[dit](ivm);
+  		}
+  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
+  		{
+  		  faceScale[dit][dir](iv) = scale[dit](ivp);
+  		}
+  	      else
+  		{
+  		  // normal linear interpolation
+  		  faceScale[dit][dir](iv) = 0.5 * (scale[dit](ivm) + scale[dit](ivp));
+  		}
+  	    }
+  	}
+    }
+
+  LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
+  // Access the (cell-centered) viscous tensor (vertically integrated stress)
+  const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
+  //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
+  const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& a_thickness = a_geometry.getH();
+
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+
+  // Compute the Von Mises Stress (cell-centered)
+  FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+          CHF_CONST_FRA(a_viscousTensor),
+          CHF_CONST_FRA1(a_thickness[dit],0),
+          CHF_INT(xxComp),
+          CHF_INT(xyComp),
+          CHF_INT(yxComp),
+          CHF_INT(yyComp),
+          CHF_CONST_REAL(eps),
+          CHF_BOX(thisBox))
+
+    } // End loop over boxes on a single processor
+
+    
+  /**  ******** PULLED FROM DAMAGE CODE **********
+  // Get stress tensor to compute vinMises Stress
+  const AmrIce* &a_amrIcePtr;
+  // Only evolve for nonzero times
+  // Pull the constitutive relation from AmrIce 
+  const ConstitutiveRelation* constRelPtr = a_amrIcePtr->getConstitutiveRelation();
+
+
+  const DisjointBoxLayout levelGrids = a_amrIcePtr->grids(a_level);
+  const ProblemDomain& domain = levelGrids.physDomain();
+
+  // ice thickness...
+  const LevelData<FArrayBox>& iceThickness = a_coordSys.getH();
+  // effective ice thickness is the cell-averaged value divided by the ice area fraction
+  LevelData<FArrayBox> effectiveH(iceThickness.getBoxes(), 1, iceThickness.ghostVect());
+  a_amrIcePtr->computeEffectiveIceThickness(effectiveH, a_level);
+
+  // Assume that ghost-cell values for velocity have been set.
+  // If they haven't, we will have to do coarse-fine interpolation, etc.
+  const LevelData<FArrayBox>& iceVel = *a_amrIcePtr->velocity(a_level);
+
+  // ice fraction mask
+  const LevelData<FArrayBox>& iceFrac = *a_amrIcePtr->iceFrac(a_level);
+
+  //  Initialize the undamaged ice viscosity
+  //  We need to use one less than the ice velocity ghost vector
+  IntVect muGhost = iceVel.ghostVect();
+  muGhost -= IntVect::Unit;
+  LevelData<FArrayBox> mu(levelGrids, 1, muGhost);
+
+  // need to cast away const-ness for getA
+  AmrIce* nonConstAmrIcePtr = const_cast<AmrIce*>(a_amrIcePtr);
+  const LevelData<FArrayBox>& A = nonConstAmrIcePtr->getA(a_level);
+
+  // non-const only because we will need to set coarse-fine BC's, but still
+  // need to explicitly cast away the const-ness
+  LevelData<FArrayBox>& nonConstVel = *(const_cast<LevelData<FArrayBox>*>(&iceVel));
+
+  // coarse-fine boundary-condition stuff -- need coarser level if it exists
+  LevelData<FArrayBox>* crseVelPtr = NULL;
+  // nRefCrse will be refinement ratio to next coarser-level, if we're on a refined level
+  int nRefCrse = -1;
+  if (a_level > 0)
+    {
+      crseVelPtr  = const_cast<LevelData<FArrayBox>*>(a_amrIcePtr->velocity(a_level-1));
+      nRefCrse = a_amrIcePtr->refRatios()[a_level-1];
+    }
+
+  LevelData<FArrayBox> tempVel(nonConstVel.getBoxes(),
+                               nonConstVel.nComp(),
+                               nonConstVel.ghostVect());
+
+  
+  DamageUtils::extendVelocityAtCalvingFronts(tempVel, nonConstVel, iceThickness);
+
+  
+  // Initialize 
+  LevelData<FArrayBox> gradU(levelGrids, SpaceDim*SpaceDim, muGhost);
+
+  // Calculate the strain rate invariant tensor
+  constRelPtr->computeStrainRateInvariant(mu, gradU, tempVel, crseVelPtr,
+                                          nRefCrse, a_coordSys, muGhost);
+					  
+  // Calculate the viscosity
+  {
+    // scale here is time scaling (normally 1)
+    /// since we tuned everthing to m/a, scaling to m/a by default
+    Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
+    ParmParse ppc("constants");
+    ppc.query("seconds_per_unit_time",seconds_per_unit_time);
+    Real scale = SECONDS_PER_TROPICAL_YEAR/ seconds_per_unit_time;
+    constRelPtr->computeMu(mu, tempVel, scale, crseVelPtr, nRefCrse, A,
+                           a_coordSys, domain, muGhost);
+  }
+  
+  // locate specific components of the velocity gradients in the multicomponent gradU arrays.
+  // the derivComponent function is in LevelMappedDerivatives.H
+  int dudxComp = derivComponent(0,0);
+  int dudyComp = derivComponent(1,0);
+  int dvdxComp = derivComponent(0,1);
+  int dvdyComp = derivComponent(1,1);
+
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_source.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = levelGrids[dit];
+
+      // this is copied extensively from DamageConsitutiveRelation.cpp in the public branch
+      // working with strain rates e here
+      // first compute e + I*tr(e)
+      FArrayBox ee(thisBox, SpaceDim*SpaceDim);
+
+      // this is a call to a fortran subroutine using the ChomboFortran macros
+      // which automates dimensionality (2D, 3D, etc) and the C++/fortran interface
+      FORT_UPLUSUT(CHF_FRA(ee), 
+		    CHF_CONST_FRA(gradU[dit]),
+		    CHF_INT(dudxComp),
+		    CHF_INT(dudyComp),
+		    CHF_INT(dvdxComp),
+		    CHF_INT(dvdyComp),
+		    CHF_BOX(thisBox));
+      
+      //2.0* (2.0e + 2.0*I*tr(e))
+//      ee *= 2.0;
+    
+      //now compute principal strain rate components
+      FArrayBox lambda(thisBox, SpaceDim);
+      FORT_SYMTEIGEN(CHF_FRA(lambda), 
+		     CHF_CONST_FRA(ee),
+		     CHF_INT(dudxComp),
+		     CHF_INT(dudyComp),
+		     CHF_INT(dvdxComp),
+		     CHF_INT(dvdyComp),
+		     CHF_BOX(thisBox)); 
+
+      // Evolve damage in time following Bassis & Ma 2015
+      FORT_BASSISDAMAGE(CHF_FRA1(a_source[dit],0), 
+                        CHF_CONST_FRA1(levelDamage[dit],0),
+                        CHF_CONST_FRA1(effectiveH[dit],0),
+                        CHF_CONST_FRA1(mu[dit],0),
+                        CHF_CONST_FRA(lambda),
+                        CHF_CONST_REAL(iceDensity),
+                        CHF_CONST_REAL(waterDensity),
+                        CHF_CONST_REAL(gravity),
+                        CHF_CONST_REAL(n),
+                        CHF_CONST_FRA1(levelSTS[dit],0),
+                        CHF_CONST_FRA1(levelBTS[dit],0),
+                        CHF_CONST_REAL(eps),
+                        CHF_CONST_INT(manufacture),
+                        CHF_CONST_REAL(ell),
+                        CHF_CONST_REAL(damageInit),
+                        CHF_CONST_FRA1(iceVel[dit],0),
+                        CHF_CONST_REAL(a_time),
+                        CHF_CONST_REAL(glthk),
+                        CHF_CONST_INT(advect),
+                        CHF_BOX(thisBox));
+
+      // ice mask over the entire AMR level is iceFrac -- iceFrac on this patch is iceFrac[dit]
+      a_source[dit].mult(iceFrac[dit], 0, 0, 1);
+
+    }  // End loop over boxes in processor
+
+  // (DFM 10/27/21) Don't delete this here!
+  // Free memory
+  //if (constRelPtr != NULL)
+  //{
+  //delete constRelPtr;
+  //}
+}   // End class
+
+
+
+  // ********** END PULLED FROM DAMAGE CODE
+  **/
+
+
+
+  // multiply by -velocity
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      for (int dir = 0; dir < SpaceDim; dir++)
+	{
+	  a_faceCalvingVel[dit][dir] *= -1.0;
+	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
+	}
+    }
+
+  if (m_independent)
+    {
+      // cell-centered independent part 
+      LevelData<FArrayBox> ccrate(a_grids, 1, 2*IntVect::Unit);
+     
+      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
+      ccrate.exchange();
+      LevelData<FArrayBox> ccvel(a_grids, SpaceDim, 2*IntVect::Unit);
+     
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+	{
+	  const FArrayBox& vel = a_centreIceVel[dit];
+	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
+	  Box gbox = a_grids[dit];
+	  gbox.grow(1);
+	  for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
+	      //if (norm > 1.0e-10)
+		{
+		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
+		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
+		}
+	    }
+	}
+      // interpolate to centers and add to a_faceCalvingVel
+
+      ccvel.exchange();
+      LevelData<FluxBox> flux(a_grids, 1, IntVect::Unit);
+      CellToEdge(ccvel, flux);
+      
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+	{
+	  for (int dir = 0; dir < SpaceDim; dir++)
+	    {	      
+	      a_faceCalvingVel[dit][dir] += flux[dit][dir];
+	    }
+	}
+    }
+
+  return true;
+  
+}
+/**Von Mises Building Blocks**/
 
 #include "NamespaceFooter.H"
