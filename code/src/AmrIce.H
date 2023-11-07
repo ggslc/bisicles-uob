@@ -889,6 +889,8 @@ protected:
   
   /// sets topography flux (which raises/lowers bedrock)
   SurfaceFlux* m_topographyFluxPtr;
+  // For branching a GIA run from a non-GIA checkpoint
+  bool m_force_gia_init;
   /// stores the accumulated bedrock difference. This is needed because when 
   /// m_interpolate_zb == false, the regrid() function re-reads the bedrock, which
   /// in many cases is a DEM (e.g, bedmap2), so that the evolution of topography would be obliterated

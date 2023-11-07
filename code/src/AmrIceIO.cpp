@@ -1317,7 +1317,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
   // First check to see if the pointer is NULL
   if (m_topographyFluxPtr != NULL)
   {
-#ifdef BUELERGIA
+//#ifdef BUELERGIA
   // now use dynamic casting to see if we're looking at a BuelerGIAFlux
     BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
     if (giaFluxPtr != NULL)
@@ -1341,7 +1341,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
       nComp++;
       header.m_real["giaUpdatedTime"] = giaFluxPtr->getUpdatedTime();
     } // end if we have a BuelerGIAFlux
-#endif
+//#endif // BUELERGIA
     // do any generic TopographyFlux sorts of things
   } // end if there is a topographyFlux
 
@@ -1422,7 +1422,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
     // First check to see if the pointer is NULL
     if (m_topographyFluxPtr != NULL && lev == 0)
     {
-#ifdef BUELERGIA      
+//#ifdef BUELERGIA      
     // now use dynamic casting to see if we're looking at a BuelerGIAFlux
       BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
       if (giaFluxPtr != NULL)
@@ -1445,7 +1445,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
         write(handle, *tmp, "udotData",
           tmp->ghostVect());
       } // end if we have a BuelerGIAFlux
-#endif
+//#endif //BUELERGIA
       // do any generic TopographyFlux sorts of things
     } // end if there is a topographyFlux 
 
@@ -2098,10 +2098,11 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	      m_observers[i]->readCheckData(a_handle, header,  lev, levelDBL);
 	    }
       // Check if topographyFlux initialized and checkpoint Uplift and initial TOF.
+     
       // First check to see if the pointer is NULL
       if (m_topographyFluxPtr != NULL && lev == 0)
       {
-#ifdef BUELERGIA	
+//#ifdef BUELERGIA	
       // now use dynamic casting to see if we're looking at a BuelerGIAFlux
         BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
         if (giaFluxPtr != NULL)
@@ -2115,6 +2116,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUpdatedTime(header.m_real["giaUpdatedTime"]); 
           } 
           // try to read initial thickness above flotation
@@ -2132,6 +2134,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setTAF0(tafpadhat0);
           }
           // try to read previous thickness above flotation
@@ -2149,6 +2152,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setTAFold(tafpadhatold);
           }   
           // try to read fft uplift
@@ -2166,6 +2170,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUn(upadhat);
           }
 
@@ -2184,11 +2189,12 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUdot(udot);
           }
 
         } // end if we have a BuelerGIAFlux
-#endif // BUELERGIA	
+//#endif // BUELERGIA	
         // do any generic TopographyFlux sorts of things
       } // end if there is a topographyFlux
 
@@ -2235,6 +2241,11 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
     }
   solveVelocityField();
   m_doInitialVelSolve = true;
+
+  if (m_force_gia_init && m_topographyFluxPtr != NULL) 
+    {
+      m_topographyFluxPtr->init(*this);
+    }
 
 #endif
   

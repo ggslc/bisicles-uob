@@ -7,10 +7,10 @@
  *    Please refer to Copyright.txt, in Chombo's root directory.
  */
 #endif
-#if USE_FFTW
+//#if USE_FFTW
 #ifndef _BUELERGIA_H_
 #define _BUELERGIA_H_
-#define BUELERGIA
+//#define BUELERGIA
 #include "SurfaceFlux.H"
 #include "RefCountedPtr.H"
 #include <fftw3.h>
@@ -162,6 +162,6 @@ public:
 
 
 #endif /*_BUELERGIA_H_*/
-#else /*USE_FFTW*/
-#warning ('USE_FFTW != TRUE: BuelerGIA not compiled')
-#endif /*USE_FFTW*/
+//#else /*USE_FFTW*/
+//#warning ('USE_FFTW != TRUE: BuelerGIA not compiled')
+//#endif /*USE_FFTW*/

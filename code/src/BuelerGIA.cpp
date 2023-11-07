@@ -13,7 +13,7 @@
  * Date: Jan 19, 2019
  *
  */
-#if USE_FFTW
+//#if USE_FFTW
 #include "BuelerGIA.H"
 #include <fftw3.h>
 #include "BisiclesF_F.H"
@@ -418,7 +418,7 @@ BuelerGIAFlux::precomputeGIAstep() {
       // The Bueler et al., 2007 fields.  
       m_betaFAB(iv,comp) = m_mantleDensity*m_gravity + m_flex*pow(kij,4);               // Pa/m
       if (m_includeElas) {
-        m_elasFAB(iv,comp) = -(1-pow(alpha_l,-1))*(1./m_lame2+1./(m_lame1+m_lame2))/(2*kij); // m/Pa
+        m_elasFAB(iv,comp) = -(1-pow(alpha_l,-1))*m_gravity*(1./m_lame2+1./(m_lame1+m_lame2))/(2*kij); // m/Pa
       }
 
       if (ix == 0 && iy == 0) {
@@ -516,12 +516,13 @@ void BuelerGIAFlux::computeAndTransformTAF( const AmrIceBase& a_amrIce )
   int n = a_amrIce.finestLevel() + 1;
   Vector<LevelData<FArrayBox>* > data(n);
   Vector<RealVect> amrDx(n);
-   
+
   // Thickness above flotation
   for (int lev=0; lev<n; lev++) {
     data[lev] = const_cast<LevelData<FArrayBox>* >(&(a_amrIce.geometry(lev)->getThicknessOverFlotation()));
     amrDx[lev] = a_amrIce.dx(lev);
   }
+  pout() << "BuelerGIAFlux::computeAndTransformTAF() found TAF" << endl; 
   RealVect m_destDx = a_amrIce.dx(0);
   flattenCellData(*m_taf, m_destDx,data,amrDx,m_verbosity); 
 
@@ -756,4 +757,4 @@ BuelerGIAFlux::fftinvcrop (LevelData<FArrayBox>& a_varinhat, LevelData<FArrayBox
 }
 
 #include "NamespaceFooter.H"
-#endif /*USE_FFTW*/
+//#endif /*USE_FFTW*/

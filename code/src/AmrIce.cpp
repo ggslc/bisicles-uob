@@ -330,6 +330,10 @@ AmrIce::setDefaults()
   m_basalFluxPtr = cfptr;
   m_offsetTime = 0.0;
   
+  // Flag to force a GIA init (in the case of starting from a nonGIA
+  // checkpoint)
+  m_force_gia_init = false;
+
   // MJT - 2022/07/28 - Demonstration of change for UKESM to allow masking of stable sources
   m_mask_stable_sources = false;
   m_stable_sources_mask_file = "";
@@ -1465,6 +1469,7 @@ AmrIce::initialize()
     {
       // we're restarting from a checkpoint file
       string restart_file;
+      ppAmr.query("force_gia_init", m_force_gia_init);
       ppAmr.get("restart_file", restart_file);
       m_do_restart = true;
 #ifdef CH_USE_HDF5
