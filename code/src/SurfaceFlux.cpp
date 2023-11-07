@@ -508,8 +508,17 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     Ly = domsize[1];
     int pad;
     pp.get("pad", pad);
-
-    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad);
+    int m_gia_box_lox = -9999999;
+    pp.query("box_lox", m_gia_box_lox);
+    int m_gia_box_hix = 9999999;
+    pp.query("box_hix", m_gia_box_hix);
+    int m_gia_box_loy = -9999999;
+    pp.query("box_loy", m_gia_box_loy);
+    int m_gia_box_hiy = 9999999;
+    pp.query("box_hiy", m_gia_box_hiy);
+    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad,
+                          m_gia_box_lox, m_gia_box_hix,
+                          m_gia_box_loy, m_gia_box_hiy); 
 
     Real t = 0.;
     ppAmr.query("offsetTime", t);
