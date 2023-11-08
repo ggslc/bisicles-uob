@@ -1412,8 +1412,10 @@ VonMisesCalvingModel::getCalvingVel
   	}
     }
 
+  // Von Mises Block
   LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
   // Access the (cell-centered) viscous tensor (vertically integrated stress)
+  // SHOULD USE FACE VISCOUS TENSOR!
   const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
   //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
   const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
@@ -1437,184 +1439,26 @@ VonMisesCalvingModel::getCalvingVel
 
   // Compute the Von Mises Stress (cell-centered)
   FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
-          CHF_CONST_FRA(a_viscousTensor),
+          CHF_CONST_FRA(a_viscousTensor[dit]),
           CHF_CONST_FRA1(a_thickness[dit],0),
           CHF_INT(xxComp),
           CHF_INT(xyComp),
           CHF_INT(yxComp),
           CHF_INT(yyComp),
           CHF_CONST_REAL(eps),
-          CHF_BOX(thisBox))
+          CHF_BOX(thisBox));
 
     } // End loop over boxes on a single processor
+  // End Von Mises block
 
-    
-  /**  ******** PULLED FROM DAMAGE CODE **********
-  // Get stress tensor to compute vinMises Stress
-  const AmrIce* &a_amrIcePtr;
-  // Only evolve for nonzero times
-  // Pull the constitutive relation from AmrIce 
-  const ConstitutiveRelation* constRelPtr = a_amrIcePtr->getConstitutiveRelation();
-
-
-  const DisjointBoxLayout levelGrids = a_amrIcePtr->grids(a_level);
-  const ProblemDomain& domain = levelGrids.physDomain();
-
-  // ice thickness...
-  const LevelData<FArrayBox>& iceThickness = a_coordSys.getH();
-  // effective ice thickness is the cell-averaged value divided by the ice area fraction
-  LevelData<FArrayBox> effectiveH(iceThickness.getBoxes(), 1, iceThickness.ghostVect());
-  a_amrIcePtr->computeEffectiveIceThickness(effectiveH, a_level);
-
-  // Assume that ghost-cell values for velocity have been set.
-  // If they haven't, we will have to do coarse-fine interpolation, etc.
-  const LevelData<FArrayBox>& iceVel = *a_amrIcePtr->velocity(a_level);
-
-  // ice fraction mask
-  const LevelData<FArrayBox>& iceFrac = *a_amrIcePtr->iceFrac(a_level);
-
-  //  Initialize the undamaged ice viscosity
-  //  We need to use one less than the ice velocity ghost vector
-  IntVect muGhost = iceVel.ghostVect();
-  muGhost -= IntVect::Unit;
-  LevelData<FArrayBox> mu(levelGrids, 1, muGhost);
-
-  // need to cast away const-ness for getA
-  AmrIce* nonConstAmrIcePtr = const_cast<AmrIce*>(a_amrIcePtr);
-  const LevelData<FArrayBox>& A = nonConstAmrIcePtr->getA(a_level);
-
-  // non-const only because we will need to set coarse-fine BC's, but still
-  // need to explicitly cast away the const-ness
-  LevelData<FArrayBox>& nonConstVel = *(const_cast<LevelData<FArrayBox>*>(&iceVel));
-
-  // coarse-fine boundary-condition stuff -- need coarser level if it exists
-  LevelData<FArrayBox>* crseVelPtr = NULL;
-  // nRefCrse will be refinement ratio to next coarser-level, if we're on a refined level
-  int nRefCrse = -1;
-  if (a_level > 0)
-    {
-      crseVelPtr  = const_cast<LevelData<FArrayBox>*>(a_amrIcePtr->velocity(a_level-1));
-      nRefCrse = a_amrIcePtr->refRatios()[a_level-1];
-    }
-
-  LevelData<FArrayBox> tempVel(nonConstVel.getBoxes(),
-                               nonConstVel.nComp(),
-                               nonConstVel.ghostVect());
-
-  
-  DamageUtils::extendVelocityAtCalvingFronts(tempVel, nonConstVel, iceThickness);
-
-  
-  // Initialize 
-  LevelData<FArrayBox> gradU(levelGrids, SpaceDim*SpaceDim, muGhost);
-
-  // Calculate the strain rate invariant tensor
-  constRelPtr->computeStrainRateInvariant(mu, gradU, tempVel, crseVelPtr,
-                                          nRefCrse, a_coordSys, muGhost);
-					  
-  // Calculate the viscosity
-  {
-    // scale here is time scaling (normally 1)
-    /// since we tuned everthing to m/a, scaling to m/a by default
-    Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
-    ParmParse ppc("constants");
-    ppc.query("seconds_per_unit_time",seconds_per_unit_time);
-    Real scale = SECONDS_PER_TROPICAL_YEAR/ seconds_per_unit_time;
-    constRelPtr->computeMu(mu, tempVel, scale, crseVelPtr, nRefCrse, A,
-                           a_coordSys, domain, muGhost);
-  }
-  
-  // locate specific components of the velocity gradients in the multicomponent gradU arrays.
-  // the derivComponent function is in LevelMappedDerivatives.H
-  int dudxComp = derivComponent(0,0);
-  int dudyComp = derivComponent(1,0);
-  int dvdxComp = derivComponent(0,1);
-  int dvdyComp = derivComponent(1,1);
-
-  // Loop over individual boxes on a single processor
-  DataIterator dit=a_source.dataIterator();
-  for (dit.begin(); dit.ok(); ++dit)
-    {
-      // valid region box for this patch
-      const Box& thisBox = levelGrids[dit];
-
-      // this is copied extensively from DamageConsitutiveRelation.cpp in the public branch
-      // working with strain rates e here
-      // first compute e + I*tr(e)
-      FArrayBox ee(thisBox, SpaceDim*SpaceDim);
-
-      // this is a call to a fortran subroutine using the ChomboFortran macros
-      // which automates dimensionality (2D, 3D, etc) and the C++/fortran interface
-      FORT_UPLUSUT(CHF_FRA(ee), 
-		    CHF_CONST_FRA(gradU[dit]),
-		    CHF_INT(dudxComp),
-		    CHF_INT(dudyComp),
-		    CHF_INT(dvdxComp),
-		    CHF_INT(dvdyComp),
-		    CHF_BOX(thisBox));
-      
-      //2.0* (2.0e + 2.0*I*tr(e))
-//      ee *= 2.0;
-    
-      //now compute principal strain rate components
-      FArrayBox lambda(thisBox, SpaceDim);
-      FORT_SYMTEIGEN(CHF_FRA(lambda), 
-		     CHF_CONST_FRA(ee),
-		     CHF_INT(dudxComp),
-		     CHF_INT(dudyComp),
-		     CHF_INT(dvdxComp),
-		     CHF_INT(dvdyComp),
-		     CHF_BOX(thisBox)); 
-
-      // Evolve damage in time following Bassis & Ma 2015
-      FORT_BASSISDAMAGE(CHF_FRA1(a_source[dit],0), 
-                        CHF_CONST_FRA1(levelDamage[dit],0),
-                        CHF_CONST_FRA1(effectiveH[dit],0),
-                        CHF_CONST_FRA1(mu[dit],0),
-                        CHF_CONST_FRA(lambda),
-                        CHF_CONST_REAL(iceDensity),
-                        CHF_CONST_REAL(waterDensity),
-                        CHF_CONST_REAL(gravity),
-                        CHF_CONST_REAL(n),
-                        CHF_CONST_FRA1(levelSTS[dit],0),
-                        CHF_CONST_FRA1(levelBTS[dit],0),
-                        CHF_CONST_REAL(eps),
-                        CHF_CONST_INT(manufacture),
-                        CHF_CONST_REAL(ell),
-                        CHF_CONST_REAL(damageInit),
-                        CHF_CONST_FRA1(iceVel[dit],0),
-                        CHF_CONST_REAL(a_time),
-                        CHF_CONST_REAL(glthk),
-                        CHF_CONST_INT(advect),
-                        CHF_BOX(thisBox));
-
-      // ice mask over the entire AMR level is iceFrac -- iceFrac on this patch is iceFrac[dit]
-      a_source[dit].mult(iceFrac[dit], 0, 0, 1);
-
-    }  // End loop over boxes in processor
-
-  // (DFM 10/27/21) Don't delete this here!
-  // Free memory
-  //if (constRelPtr != NULL)
-  //{
-  //delete constRelPtr;
-  //}
-}   // End class
-
-
-
-  // ********** END PULLED FROM DAMAGE CODE
-  **/
-
-
-
-  // multiply by -velocity
+  // multiply by -velocity*(von mises stress)
   for (DataIterator dit(a_grids); dit.ok(); ++dit)
     {
       for (int dir = 0; dir < SpaceDim; dir++)
 	{
 	  a_faceCalvingVel[dit][dir] *= -1.0;
 	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
+	  a_faceCalvingVel[dit][dir] *= vonmises[dit];
 	}
     }
 
@@ -1661,6 +1505,79 @@ VonMisesCalvingModel::getCalvingVel
 
   return true;
   
+}
+
+void
+VonMisesCalvingModel::getCalvingRate
+(LevelData<FArrayBox>& a_calvingRate, const AmrIce& a_amrIce,int a_level)
+{
+  const DisjointBoxLayout& a_grids = a_calvingRate.disjointBoxLayout();
+  // CH_assert(false); // we don't want to use this
+  m_scale->evaluate(a_calvingRate, a_amrIce, a_level, a_amrIce.dt());
+  LevelData<FArrayBox> indep(a_calvingRate.disjointBoxLayout(), 1, 2*IntVect::Unit);
+  if (m_independent) m_independent->evaluate(indep, a_amrIce, a_level, a_amrIce.dt());
+
+  // Von Mises Block
+  LevelData<FArrayBox> vonmises(a_calvingRate.disjointBoxLayout(), 1, 2*IntVect::Unit);
+  // Access the (cell-centered) viscous tensor (vertically integrated stress)
+  // SHOULD USE FACE VISCOUS TENSOR!
+  const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
+  //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
+  const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& a_thickness = a_geometry.getH();
+
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+
+  // Compute the Von Mises Stress (cell-centered)
+  FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+          CHF_CONST_FRA(a_viscousTensor[dit]),
+          CHF_CONST_FRA1(a_thickness[dit],0),
+          CHF_INT(xxComp),
+          CHF_INT(xyComp),
+          CHF_INT(yxComp),
+          CHF_INT(yyComp),
+          CHF_CONST_REAL(eps),
+          CHF_BOX(thisBox));
+
+    } // End loop over boxes on a single processor
+  // End Von Mises block
+
+
+  const LevelData<FArrayBox>& vel = *a_amrIce.velocity(a_level); // flux vel might be better  
+  for (DataIterator dit(vel.dataIterator()); dit.ok(); ++dit)
+    {
+      Box b = a_calvingRate[dit].box();
+      for (BoxIterator bit(b); bit.ok(); ++bit)
+	{
+	  const IntVect& iv = bit();
+	  Real usq = 0.0;
+	  for (int dir = 0; dir < SpaceDim; dir++)
+	    {
+	      usq += vel[dit](iv,dir)*vel[dit](iv,dir);
+	    }	
+	  a_calvingRate[dit](iv) *= std::sqrt(usq)*vonmises[dit](iv);
+	}
+      if  (m_independent)
+	{
+	  a_calvingRate[dit] += indep[dit];
+	}
+    }
+
+  int dbg = 0;dbg++; 
 }
 /**Von Mises Building Blocks**/
 
