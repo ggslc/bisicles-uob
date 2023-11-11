@@ -519,10 +519,10 @@ testConstitutive()
   LoadBalance(procAssign, gridBoxes);
 
 
-  // test zero-velocity, constant temperature
+  Real time_scale = 1.0;
+  
+  // test zero-velocity, constant A
   {
-    // isothermal ice value from Pattyn(2003)
-    Real thetaVal = 238.15;
     
     // allocate storage
     DisjointBoxLayout grids(gridBoxes, procAssign, entireDomain);
@@ -535,8 +535,8 @@ testConstitutive()
     defineLevelSigmaCS(sigmaCoords, domainSize, thicknesstype, basalType,
                        basalSlope);
 
-    LevelData<FArrayBox> theta(grids, 1, ghostVect);
-    LevelData<FluxBox> faceTheta(grids, 1, ghostVect);
+    LevelData<FArrayBox> A(grids, 1, ghostVect);
+    LevelData<FluxBox> faceA(grids, 1, ghostVect);
     int numVelComps = min(SpaceDim, 2);
     LevelData<FArrayBox> horizontalVel(grids, numVelComps, ghostVect);
     // for now, no coarser level
@@ -544,10 +544,11 @@ testConstitutive()
     int nRefCrse = -1;
 
     DataIterator dit = grids.dataIterator();
+    Real A0 = 1.0e-18; // typical value
     for (dit.begin(); dit.ok(); ++dit)
       {
-        theta[dit].setVal(thetaVal);
-        faceTheta[dit].setVal(thetaVal);
+        A[dit].setVal(A0);
+        faceA[dit].setVal(A0);
         horizontalVel[dit].setVal(0);
       }
 
@@ -557,36 +558,32 @@ testConstitutive()
 
     // ConstitutiveRelation object
     GlensFlowRelation constitutiveRelation;
-    ArrheniusRateFactor rateFactor(SECONDS_PER_TROPICAL_YEAR);
     Real epsSqrZero = 1e-30;
     constitutiveRelation.setParameters(3.0 , epsSqrZero, 0.0);
 
-    // assuming theta = 238.15...
-    //Real exactMu0 = 4.779690e-19;
-    //Real exactMu0 = 1278989e-8;
     Real exponent = -1.0/3.0;
-     Real exactMu0 = 0.5*pow(thetaVal,exponent);
+    Real mu0 = pow(8.0 * A0, exponent); // typical value
     // zero velocity field -- this is the effect of the
     // small parameter epsSqr_0
-     Real exactMu = exactMu0*pow(epsSqrZero,exponent);
+    Real exactMu = mu0*pow(epsSqrZero,exponent);
         
     IntVect muGhost = IntVect::Zero;
     // cell-centered Mu
     constitutiveRelation.computeMu(cellMu,
-                                   horizontalVel, SECONDS_PER_TROPICAL_YEAR,
+                                   horizontalVel, time_scale,
                                    crseVelPtr,
                                    nRefCrse,
-                                   theta,
+                                   A,
                                    sigmaCoords,
 				   entireDomain,
                                    muGhost);
 
     // face-centered Mu
     constitutiveRelation.computeFaceMu(faceMu,
-                                       horizontalVel, SECONDS_PER_TROPICAL_YEAR,
+                                       horizontalVel, time_scale,
                                        crseVelPtr,
                                        nRefCrse,
-                                       faceTheta,
+                                       faceA,
                                        sigmaCoords,
 				       entireDomain,
                                        muGhost);
@@ -680,7 +677,7 @@ testConstitutive()
 
       // constitutive relation object
       GlensFlowRelation constitutiveRelation;
-      ArrheniusRateFactor rateFactor(SECONDS_PER_TROPICAL_YEAR);
+      ArrheniusRateFactor rateFactor(time_scale);
       constitutiveRelation.setParameters(3.0 , 1.0e-30, 0.0);
       
       IntVect epsSqrGhost = IntVect::Zero;

@@ -485,6 +485,7 @@ void testZV(int basalType, const Vector<Box>& gridBoxes,
   
   // test zero velocity, constant A
   Real Aval = 1.0e-18;
+  Real time_scale = 1.0; // u in m/a
     
   // allocate storage
   DisjointBoxLayout grids(gridBoxes, procAssign, entireDomain);
@@ -541,7 +542,7 @@ void testZV(int basalType, const Vector<Box>& gridBoxes,
     // cell-centered Mu
 
     constitutiveRelation.computeMu(cellMu,
-                                   horizontalVel,SECONDS_PER_TROPICAL_YEAR,
+                                   horizontalVel,time_scale,
                                    crseVelPtr, 
                                    nRefCrse,
 				   A,
@@ -550,7 +551,7 @@ void testZV(int basalType, const Vector<Box>& gridBoxes,
                                    muGhost);
     
     glenRelation.computeMu(cellGlenMu,
-                           horizontalVel,SECONDS_PER_TROPICAL_YEAR,
+                           horizontalVel,time_scale,
                            crseVelPtr, 
                            nRefCrse,
                            A,
@@ -561,7 +562,7 @@ void testZV(int basalType, const Vector<Box>& gridBoxes,
     LevelData<FluxBox> faceA(grids, 1, A.ghostVect());
     CellToEdge(A, faceA);
     constitutiveRelation.computeFaceMu(faceMu,
-                                       horizontalVel,SECONDS_PER_TROPICAL_YEAR,
+                                       horizontalVel,time_scale,
                                        crseVelPtr, 
                                        nRefCrse,
                                        faceA,
@@ -570,7 +571,7 @@ void testZV(int basalType, const Vector<Box>& gridBoxes,
                                        muGhost);
     
     glenRelation.computeFaceMu(faceGlenMu,
-                               horizontalVel,SECONDS_PER_TROPICAL_YEAR,
+                               horizontalVel,time_scale,
                                crseVelPtr, 
                                nRefCrse,
                                faceA,
