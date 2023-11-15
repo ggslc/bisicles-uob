@@ -1268,6 +1268,35 @@ RateProportionalToSpeedCalvingModel::getCalvingRate
   int dbg = 0;dbg++; 
 }
 
+VonMisesCalvingModel::VonMisesCalvingModel(ParmParse& a_pp)
+{
+      Real startTime = -1.2345678e+300;
+      a_pp.query("start_time",  startTime);
+      Real endTime = 1.2345678e+300;
+      a_pp.query("end_time",  endTime);
+ 
+      Vector<int> frontLo(2,false); 
+      a_pp.getarr("front_lo",frontLo,0,frontLo.size());
+      Vector<int> frontHi(2,false);
+      a_pp.getarr("front_hi",frontHi,0,frontHi.size());
+      bool preserveSea = false;
+      a_pp.query("preserveSea",preserveSea);
+      bool preserveLand = false;
+      a_pp.query("preserveLand",preserveLand);
+
+      m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(frontLo,frontHi,preserveSea,preserveLand);
+
+      std::string prefix (a_pp.prefix());
+      m_scale = SurfaceFlux::parse( (prefix + ".scale").c_str());
+      if (!m_scale) m_scale = new zeroFlux(); 
+      m_independent = SurfaceFlux::parse( (prefix + ".independent").c_str());
+      if (!m_independent) m_independent  = new zeroFlux(); 
+      m_vector = false;
+      a_pp.query("vector", m_vector);
+
+      
+}
+
 /** Von Mises building blocks **/
 void VonMisesCalvingModel::applyCriterion
 (LevelData<FArrayBox>& a_thickness,
