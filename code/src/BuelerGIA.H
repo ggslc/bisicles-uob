@@ -7,7 +7,7 @@
  *    Please refer to Copyright.txt, in Chombo's root directory.
  */
 #endif
-#if USE_FFTW
+#ifdef FFTW_3
 #ifndef _BUELERGIA_H_
 #define _BUELERGIA_H_
 #define BUELERGIA

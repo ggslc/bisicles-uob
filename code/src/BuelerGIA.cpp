@@ -13,7 +13,7 @@
  * Date: Jan 19, 2019
  *
  */
-#if USE_FFTW
+#if FFTW_3
 #include "BuelerGIA.H"
 #include <fftw3.h>
 #include "BisiclesF_F.H"
