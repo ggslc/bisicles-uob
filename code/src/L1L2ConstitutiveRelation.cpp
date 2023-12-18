@@ -376,9 +376,9 @@ L1L2ConstitutiveRelation::computeEitherMuZ(FArrayBox& a_mu,
       
       FArrayBox A(a_box,1);
       FArrayBox res(a_box,1);
-      
       const int maxIter = 150;;
-      
+     
+    
       for (unsigned int l = 0; l < a_mu.nComp(); ++l){
 	
 	
@@ -467,10 +467,17 @@ L1L2ConstitutiveRelation::computeEitherMuZ(FArrayBox& a_mu,
 			       CHF_CONST_REAL(m_solverTol),
 			       CHF_CONST_INT(maxIter));
 	    
-	    
-	    
 	    Real resNorm = res.norm(0);
-	    CH_assert(resNorm < 2.0 * m_solverTol);
+	    // the assert here was rare, and SLC never worked out
+	    // why it happened. So now we have some hopefully more
+	    // useful diagnostic
+	    //CH_assert(resNorm < 2.0 * m_solverTol);
+	    if (!(resNorm < 2.0 * m_solverTol))
+	      {
+		pout() << "L1L2ConstitutiveRelation::computeEitherMuZ: residual max norm = " << resNorm
+		       << std::endl;
+	      }
+	    CH_assert(resNorm < 2.0 * m_solverTol);   
 	    CH_assert(a_mu.min(a_box,l) > 0.0e0);
 	  } // end general case
       } // end loop over layers
