@@ -3845,9 +3845,15 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
 	  LevelData<FArrayBox> A(C.disjointBoxLayout(),1,C.ghostVect());
 	  IceUtility::computeA(A, bSigma,*m_vect_coordSys[lev],  
 			       m_basalRateFactor, *m_bInternalEnergy[lev]);
+	  const Real& p =  m_basalFrictionRelation->power();
+	  
 	  for (DataIterator dit = C.dataIterator(); dit.ok(); ++dit)
 	    {
-	      C[dit] /= A[dit];
+	      for (BoxIterator bit(C[dit].box());bit.ok();++bit)
+	      {
+		const IntVect& iv = bit();
+		C[dit](iv) /= std::pow(A[dit](iv),p);
+	      }
 	    }
 	}
      
