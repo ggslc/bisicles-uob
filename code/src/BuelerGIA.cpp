@@ -45,7 +45,7 @@
 BuelerGIAFlux::BuelerGIAFlux( Real a_iceDensity, Real a_mantleDensity, Real a_gravity, Real a_waterDensity)
   : m_flex(1e23), m_visc(1e21), m_dt(0.), m_Nx(0), m_Ny(0), m_Lx(0), m_Ly(0), m_nlayers(0), m_pad(1), 
     m_isDomainSet(false), m_updatedTime(0.), m_verbosity(5), m_init(false),
-    m_iceDensity(a_iceDensity), m_mantleDensity(a_mantleDensity), m_gravity(a_gravity), m_waterDensity(a_waterDensity), m_gia_box_lox(-9999999), m_gia_box_hix(9999999), m_gia_box_loy(-9999999), m_gia_box_hiy(9999999)
+    m_iceDensity(a_iceDensity), m_mantleDensity(a_mantleDensity), m_gravity(a_gravity), m_waterDensity(a_waterDensity), m_inside_box(true), m_gia_box_lox(-9999999), m_gia_box_hix(9999999), m_gia_box_loy(-9999999), m_gia_box_hiy(9999999)
 {
   // need to allocate pointers for LevelData
   RefCountedPtr<LevelData<FArrayBox> > betaTmpPtr(new LevelData<FArrayBox>());
@@ -126,6 +126,7 @@ BuelerGIAFlux::new_surfaceFlux()
   newPtr->m_Ly          = m_Ly;
   newPtr->m_isDomainSet = m_isDomainSet;
   newPtr->m_domainOffset= m_domainOffset;
+  newPtr->m_inside_box  = m_inside_box;
   newPtr->m_gia_box_lox = m_gia_box_lox;
   newPtr->m_gia_box_hix = m_gia_box_hix;
   newPtr->m_gia_box_loy = m_gia_box_loy;
@@ -188,6 +189,7 @@ BuelerGIAFlux::~BuelerGIAFlux() {
 void
 BuelerGIAFlux::setDomain( int a_Nx, int a_Ny, Real a_Lx, Real a_Ly, 
                           IntVect& a_offset, int a_pad,
+                          bool a_inside_box,
                           int a_gia_box_lox, int a_gia_box_hix,
                           int a_gia_box_loy, int a_gia_box_hiy ) {
   m_Nx = a_Nx;
@@ -196,6 +198,7 @@ BuelerGIAFlux::setDomain( int a_Nx, int a_Ny, Real a_Lx, Real a_Ly,
   m_Ly = a_Ly;
   m_domainOffset = a_offset;
   m_pad = a_pad;
+  m_inside_box = a_inside_box;
   m_gia_box_lox = a_gia_box_lox;
   m_gia_box_hix = a_gia_box_hix;
   m_gia_box_loy = a_gia_box_loy;
@@ -571,7 +574,9 @@ void BuelerGIAFlux::computeAndTransformTAF( const AmrIceBase& a_amrIce )
     for (bit.begin(); bit.ok(); ++bit) {
       IntVect iv = bit();
       int comp = 0;
-      if ((iv[0] > m_gia_box_lox) && (iv[0] < m_gia_box_hix) && (iv[1] > m_gia_box_loy) && (iv[1] < m_gia_box_hiy)) {
+      bool inbox = (iv[0] > m_gia_box_lox) && (iv[0] < m_gia_box_hix) && (iv[1] > m_gia_box_loy) && (iv[1] < m_gia_box_hiy);
+      inbox = m_inside_box ? inbox : !inbox;
+      if ( inbox ) {
         if (m_oceanLoad && (m_topoFAB(iv,comp) <= 0) && (m_tafFAB(iv,comp) <= 0)) { 
         // Ocean-consistent load with no grounded ice (taf<=0) is water (topo<0)
           m_loadFAB(iv, comp) = -m_waterDensity*m_topoFAB(iv,comp);

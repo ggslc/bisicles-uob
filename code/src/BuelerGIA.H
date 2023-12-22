@@ -67,6 +67,7 @@ protected:
   int m_Nx, m_Ny;
   Real m_Lx, m_Ly;
   IntVect m_domainOffset;
+  bool m_inside_box;
   int m_gia_box_lox, m_gia_box_hix, m_gia_box_loy, m_gia_box_hiy;
   bool m_isDomainSet, m_init, m_oceanLoad, m_includeElas;
   bool m_ELRA;
@@ -114,7 +115,7 @@ public:
   void setTimestep( Real& a_dt ) {m_dt = a_dt;};
   // Set domain size characteristics
   void setDomain( int a_Nx, int a_Ny, Real a_Lx, Real a_Ly, IntVect& a_offset,
-                  int a_pad, int a_gia_box_lox, int a_gia_box_hix,
+                  int a_pad, bool a_inside_box, int a_gia_box_lox, int a_gia_box_hix,
                           int a_gia_box_loy, int a_gia_box_hiy );
   // Set the elastic properties.
   void setElastic( bool a_includeElas, Real& a_lame1, Real& a_lame2 );
