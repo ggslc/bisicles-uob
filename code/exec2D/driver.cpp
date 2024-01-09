@@ -80,7 +80,7 @@ int main(int argc, char* argv[]) {
   int ierr = 0;
 
 #ifdef CH_USE_PETSC
-  ierr = PetscInitialize(&argc, &argv,PETSC_NULL,PETSC_NULL); CHKERRQ(ierr);
+  ierr = PetscInitialize(&argc, &argv,PETSC_NULLPTR,PETSC_NULLPTR); CHKERRQ(ierr);
 #else
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
