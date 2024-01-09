@@ -222,7 +222,7 @@ c     &            p1, niter, tol)
      &               (4.0d0 * tmu**2 * tesqr + ttsqr)**p1
                
                 if (abs(fb) .lt. tol) exit
-                !if (abs(fb-fa) .lt. tol**2) exit
+!               if (abs(fb-fa) .lt. tol**2) exit
 
                 t = tmu
                 tmu = tmua - (tmua - tmu)/(fa - fb)*fa 
