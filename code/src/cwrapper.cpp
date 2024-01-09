@@ -1302,6 +1302,10 @@ void bisicles_new_instance(int *instance_key, const char *input_fname, MPI_Comm 
 
 #ifdef CH_USE_PETSC
   PETSC_COMM_WORLD = Chombo_MPI::comm;
+#ifndef PETSC_NULLPTR
+#define PETSC_NULLPTR PETSC_NULL
+#endif
+
   PetscInitialize(PETSC_NULL,PETSC_NULL,PETSC_NULL,PETSC_NULL);
 #endif
 
