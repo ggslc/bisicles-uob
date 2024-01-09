@@ -2888,40 +2888,27 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	  		   gridBox);
 	  
           // add in thickness source
-          // if there are still diffusive fluxes to deal
-          // with, the source term will be included then
- 
-	  //if (m_diffusionTreatment != IMPLICIT)
-	  {
-	    if (m_frac_sources)
-	      {
-		// scale surface fluxes by mask values
-		const FArrayBox& thisFrac = (*m_iceFrac[lev])[dit];
-		FArrayBox sources(gridBox,1);
-		sources.setVal(0.0);
-		sources.plus((*m_surfaceThicknessSource[lev])[dit], gridBox,
-			     0, 0, 1);
-		sources.plus((*m_basalThicknessSource[lev])[dit], gridBox, 
-			     0, 0, 1);
-		//		sources.plus((*m_calvedIceArea[lev])[dit], gridBox, 
-		//		     0, 0, 1);
-                  
-		sources.mult(thisFrac, gridBox, 0, 0, 1);
-
-		//sources.plus((*m_calvedIceArea[lev])[dit], gridBox, 
-		//		     0, 0, 1);
-		newH.minus(sources, gridBox, 0, 0, 1);
+	  if (m_frac_sources)
+	    {
+	      // scale surface fluxes by mask values
+	      const FArrayBox& thisFrac = (*m_iceFrac[lev])[dit];
+	      FArrayBox sources(gridBox,1);
+	      sources.setVal(0.0);
+	      sources.plus((*m_surfaceThicknessSource[lev])[dit], gridBox,
+			   0, 0, 1);
+	      sources.plus((*m_basalThicknessSource[lev])[dit], gridBox, 
+			   0, 0, 1);
+	      sources.mult(thisFrac, gridBox, 0, 0, 1);
+	      newH.minus(sources, gridBox, 0, 0, 1);
                   
 	      }
 	    else 
 	      {
-
 		// just add in sources directly
 		newH.minus((*m_surfaceThicknessSource[lev])[dit], gridBox,0,0,1);
 		newH.minus((*m_basalThicknessSource[lev])[dit], gridBox,0,0,1);
-		//newH.minus((*m_calvedIceArea[lev])[dit], gridBox,0,0,1);
 	      }
-	  }
+	
           
          
 	  newH *= -1*a_dt;
@@ -2929,38 +2916,26 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 
 	  if (m_evolve_ice_frac)
 	    {
-	      // // remove calved area.
+	      //remove calved area.
 	      const FArrayBox& frac = (*m_iceFrac[lev])[dit];
 	      const FArrayBox& calved_frac = (*m_calvedIceArea[lev])[dit];
-	      // FArrayBox remove(calved_frac.box(), 1);
-	      // remove.copy(newH); // H
-	      // remove *= calved_frac; // -H df
-	      // newH -= remove;
-	      // (*m_calvedIceThickness[lev])[dit] += remove;
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	      	{
 	      	  const IntVect& iv = bit();
 		  if (newH(iv) > 0.0)
 		    {
 		      Real remove(0.0);
-		      if (frac(iv) > TINY_FRAC)
+		      if (calved_frac(iv) > 1.0e-10)
 			{
 			  remove = newH(iv) * calved_frac(iv)/(frac(iv) + calved_frac(iv));
 			}
-		      else if (newH(iv) < frac(iv) * HUGE_THICKNESS)
-			{
-			  remove = 0.5 * newH(iv);
-			}
-		      
-		      remove = Max(remove, newH(iv) - frac(iv) * HUGE_THICKNESS); 
 		      newH(iv) -= remove;
 		      (*m_calvedIceThickness[lev])[dit](iv) += remove;
 		    }
 	      	}
 	    }
-
 	  
-
+	  
 	  for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit();
@@ -3006,10 +2981,10 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	}
       //MayDay::Error("m_diffusionTreatment == IMPLICIT no yet implemented");
       //implicit thickness correction
-      if (m_frac_sources)
-        {
-          MayDay::Error("scaling sources by ice fraction values not implemented yet");
-        }
+      //if (m_frac_sources)
+      //  {
+      //MayDay::Error("scaling sources by ice fraction values not implemented yet");
+      // }
       implicitThicknessCorrection(a_dt, m_surfaceThicknessSource,  m_basalThicknessSource, m_calvedIceArea);
     }
 
@@ -4153,7 +4128,6 @@ AmrIce::advectIceFrac(FArrayBox& a_frac,
     }
 }
 
-#if 1
 void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
 		      const Vector<LevelData<FluxBox>* >& a_u,
 		      Real a_dt, Real a_tol)
@@ -4273,145 +4247,6 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
   
   
 }
-#else	      
-void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
-		      const Vector<LevelData<FluxBox>* >& a_u, Real a_dt, Real a_tol)
-{
-
-  // attempt to use the patch godunov methods to evolve f.
-  // f is not conserved: the eqn is df/dt + u. grad(f) = 0
-  // i.e df/dt = mask * (- div(uf) + f div(u)).
-  // the mask is used to maintain f against the error e
-  // in div(uf) = u.grad(f) + f div(u) 
-  // mask = ifelse(|grad f| > tol, 1, 0) 
-
-  // source term f div(u);
-  Vector<LevelData<FArrayBox>* > fdivu(m_finest_level+1, NULL);
-  // mask coeffcient
-  Vector<LevelData<FArrayBox>* > mask(m_finest_level+1, NULL);
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      fdivu[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Unit);
-      mask[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Zero);
-      const RealVect& dx = m_vect_coordSys[lev]->dx(); 
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-	  const FluxBox& u = (*a_u[lev])[dit];
-	  FArrayBox& f = (*a_f[lev])[dit];
-	  const Box& box = grids[dit];
-	  FArrayBox& this_fdivu = (*fdivu[lev])[dit];
-	  this_fdivu.setVal(0.0);
-	  // div(u)
-	  for (int dir=0; dir<SpaceDim; dir++)
-	    {
-	      FORT_DIVERGENCE(CHF_CONST_FRA(u[dir]),
-			      CHF_FRA(this_fdivu),
-			      CHF_BOX(box),
-			      CHF_CONST_REAL(dx[dir]),
-			      CHF_INT(dir));
-	    }
-	  // f * div(u)
-	  this_fdivu *= f;
-
-	  // mask calcualtion.
-	  FArrayBox& m = (*mask[lev])[dit];
-	  m.setVal(0.0);
-	  for (BoxIterator bit(box); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      for (int dir=0; dir<SpaceDim; dir++){
-		for (int sign = -1; sign <=1 ; sign += 2){
-		  if (Abs(f(iv) - f(iv + sign*BASISV(dir))) > a_tol/dx[0])
-		    m(iv) = 1.0;
-		} // sign
-	      } // dir
-	    } // bit
-	} // dit
-    } // lev
-
-  // face/time centred f
-  Vector<LevelData<FluxBox>* > fHalf(m_finest_level+1, NULL);
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-      PatchGodunov* patchGod = m_thicknessPatchGodVect[lev]; 
-      AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(patchGod->getGodunovPhysicsPtr());
-      if (advectPhysPtr == NULL)
-        {
-          MayDay::Error("AmrIce::timestep -- unable to upcast GodunovPhysics to AdvectPhysics");
-        }
-      patchGod->setCurrentTime(m_time);
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      fHalf[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
-      LevelData<FArrayBox> levelCCVel(grids, SpaceDim, IntVect::Unit);
-      EdgeToCell(*a_u[lev], levelCCVel);
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-	  patchGod->setCurrentBox(grids[dit]);
-          advectPhysPtr->setVelocities(&(levelCCVel[dit]),
-				       &((*a_u[lev])[dit]));
-	  //FArrayBox& src = (*fdivu[lev])[dit];
-	  FArrayBox src(grids[dit],1); src.setVal(0.0);
-	  patchGod->computeWHalf( (*fHalf[lev])[dit], levelF[dit],
-				  src, a_dt, grids[dit]);
-	  (*fHalf[lev])[dit] *= (*a_u[lev])[dit];
-	}
-      // coarse average flux downward
-      if (lev > 0)
-	{
-	  CoarseAverageFace faceAverager(grids, 1, m_refinement_ratios[lev-1]);
-	  faceAverager.averageToCoarse(*fHalf[lev-1], *fHalf[lev]);
-	}
-    }
-
-  // update f.
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      const RealVect& dx = m_vect_coordSys[lev]->dx(); 
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-	  const FluxBox& uf =  (*fHalf[lev])[dit];
-	  const Box& box = grids[dit];
-	  FArrayBox dF(box, 1); dF.setVal(0.0);
-	  // div(uf)
-	  for (int dir=0; dir<SpaceDim; dir++)
-	    {
-	      FORT_DIVERGENCE(CHF_CONST_FRA(uf[dir]),
-			      CHF_FRA(dF),
-			      CHF_BOX(box),
-			      CHF_CONST_REAL(dx[dir]),
-			      CHF_INT(dir));
-	    }
-	  // div(uf) - f div(u)
-	  dF -= (*fdivu[lev])[dit];
-	  // dt * (-div(uf) + f div(u));
-	  dF *= -a_dt;
-	  // mask * dt * (-div(uf) + f div(u));
-	  dF *= (*mask[lev])[dit];
-	  levelF[dit] += dF; 
-	}
-    }
-
-  // clean up
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-       if (mask[lev]) {
-	delete  (mask[lev]); mask[lev] = NULL;}
-      if (fdivu[lev]) {
-	delete  (fdivu[lev]); fdivu[lev] = NULL;}
-      if (fHalf[lev]) {
-	delete  (fHalf[lev]); fHalf[lev] = NULL;}
-    }
-  
-  
-}
-
-
-#endif
 
 void CompressFront(Vector<LevelData<FArrayBox>* >& a_iceFrac, int a_finestLevel, bool a_hard)
 {
@@ -4423,6 +4258,8 @@ void CompressFront(Vector<LevelData<FArrayBox>* >& a_iceFrac, int a_finestLevel,
   pp.query("frac_compress_lo",frac_compress_lo);
   pp.query("frac_compress_hi",frac_compress_hi);
 
+  frac_compress_lo = max(TINY_FRAC, frac_compress_lo);
+  
   if (a_hard)
     {
       frac_compress_lo = 0.5 - TINY_FRAC;
@@ -4458,15 +4295,20 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 
   updateInvalidIceFrac(a_iceFrac);
 
+  // copy of a_iceFrac at start of time step                                                                                                                                                                                         
+  Vector<LevelData<FArrayBox>* > frac_start(m_finest_level+1, NULL);
+
   // fraction change related to ice advection alone. a bit wasteful?
   Vector<LevelData<FArrayBox>* > frac_a(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
     {
        LevelData<FArrayBox>& levelF = *a_iceFrac[lev]; 
        const DisjointBoxLayout& grids = levelF.getBoxes();
+       frac_start[lev] = new LevelData<FArrayBox>(grids, 1, m_num_thickness_ghost * IntVect::Unit);
        frac_a[lev] = new LevelData<FArrayBox>(grids, 1, m_num_thickness_ghost * IntVect::Unit);
        for (DataIterator dit(grids); dit.ok(); ++dit)
 	 {
+	   (*frac_start[lev])[dit].copy(levelF[dit]);	   
 	   (*frac_a[lev])[dit].copy(levelF[dit]);
 	 }
     }
@@ -4494,21 +4336,26 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   PGAdvect(a_iceFrac, unet, a_dt, TINY_FRAC);
 
 
-  // enforce frac >= 0
+  // enforce 0 <= frac <=1 0
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       for (DataIterator dit(a_iceFrac[lev]->disjointBoxLayout()); dit.ok(); ++dit)
   	{
 	  Real zero = 0.0;
+	  Real oner = 1.0;
 	  FArrayBox& frac = (*a_iceFrac[lev])[dit]; 
 	  FORT_MAXFAB1(CHF_FRA(frac), 
                        CHF_CONST_REAL(zero), 
                        CHF_BOX(frac.box()));
-
+	  FORT_MINFAB1(CHF_FRA(frac), 
+                       CHF_CONST_REAL(oner), 
+                       CHF_BOX(frac.box()));
 	  FORT_MAXFAB1(CHF_FRA((*frac_a[lev])[dit]), 
                        CHF_CONST_REAL(zero), 
                        CHF_BOX(frac.box()));
-
+	  FORT_MINFAB1(CHF_FRA((*frac_a[lev])[dit]), 
+                       CHF_CONST_REAL(oner), 
+                       CHF_BOX(frac.box()));
 
 	}
     }
@@ -4522,6 +4369,27 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   bool hard_compress =  (ice_frac_hard_compress_interval > 0) &&
     (m_cur_step%ice_frac_hard_compress_interval == 0);
   CompressFront(a_iceFrac, m_finest_level, hard_compress);
+
+  // Empty cells that are retreating and have low frac
+  Real empty = TINY_FRAC;
+  for (int lev=0; lev<= m_finest_level; lev++)
+    {
+      LevelData<FArrayBox>& levelF = *a_iceFrac[lev];
+      const LevelData<FArrayBox>& levelFo = *frac_start[lev];
+      const DisjointBoxLayout& grids = levelF.getBoxes();
+      for (DataIterator dit(grids); dit.ok(); ++dit)
+        {
+          for (BoxIterator bit(levelF[dit].box()); bit.ok(); ++bit)
+            {
+              const IntVect& iv = bit();
+              if ( (levelF[dit](iv) < levelFo[dit](iv))
+                   && (levelF[dit](iv) < empty) )
+                levelF[dit](iv) = 0.0;
+
+            }
+        }
+    }
+
   
   // record the calved ice area
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -4536,8 +4404,6 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   	  FArrayBox calved_frac(grids[dit], 1);
   	  calved_frac.copy(levelFa[dit]);
   	  calved_frac -= levelF[dit];
-
-	  
 	  
 	  //enforce calved_frac < frac advected
 	  FORT_MINFAB(CHF_FRA(calved_frac), 
@@ -4561,9 +4427,8 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     {
       if (unet[lev]) {delete  (unet[lev]); unet[lev] = NULL;}
       if (frac_a[lev]) {delete  (frac_a[lev]); frac_a[lev] = NULL;}
+      if (frac_start[lev]) {delete  (frac_start[lev]); frac_start[lev] = NULL;}
     }
-  
-
   
 
 }
