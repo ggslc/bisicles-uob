@@ -14,9 +14,8 @@ module column_thermodynamics
   ! regularizing conductivity for temperate ice, 
   ! factor for dependence of melting point on pressure, triple point of water (K)
   
-  !real(kind = 8)  water_fraction_drain = 0.01d0, water_fraction_max = 0.05d0, drain_factor = 0.5d0,  ground_water_drain_factor = 0.01d0
   real(kind = 8)  water_fraction_drain, water_fraction_max, water_drain_factor
-  real(kind = 8)  deprecated_till_water_drain_factor, till_water_max
+  real(kind = 8)  till_water_max
   real(kind = 8)  floating_base_max_heat_flux
   integer, parameter :: groundedmaskval = 1, floatingmaskval = 2, openseamaskval = 4, openlandmaskval = 8
   real(kind=8), parameter :: temp_eps = 1.0e-3, max_delta_energy = 200.0
@@ -412,19 +411,18 @@ end subroutine column_thermodynamics_set_constants
 
 subroutine column_thermodynamics_set_water_constants ( &
      a_water_fraction_drain, a_water_fraction_max, &
-     a_water_drain_factor, a_till_water_drain_factor, &
+     a_water_drain_factor, &
      a_till_water_max, a_floating_base_max_heat_flux  )
   use column_thermodynamics
   implicit none
   
   real(kind=8) a_water_fraction_drain, a_water_fraction_max, &
-       a_water_drain_factor, a_till_water_drain_factor, &
+       a_water_drain_factor, &
        a_till_water_max, a_floating_base_max_heat_flux
   
   water_fraction_drain = a_water_fraction_drain
   water_drain_factor = a_water_drain_factor
   water_fraction_max = a_water_fraction_max
-  deprecated_till_water_drain_factor = a_till_water_drain_factor
   till_water_max = a_till_water_max
   floating_base_max_heat_flux = a_floating_base_max_heat_flux
 end subroutine column_thermodynamics_set_water_constants

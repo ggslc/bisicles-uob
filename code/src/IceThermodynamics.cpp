@@ -233,7 +233,6 @@ void IceThermodynamics::setConstants(Real a_rhoi, Real a_rhow, Real a_gravity, R
      CHF_CONST_REAL(m_water_fraction_drain),
      CHF_CONST_REAL(m_water_fraction_max),
      CHF_CONST_REAL(m_water_drain_factor),
-     CHF_CONST_REAL(m_till_water_drain_factor),
      CHF_CONST_REAL(m_till_water_max),
      CHF_CONST_REAL(m_floating_base_max_heat_flux));			       
    

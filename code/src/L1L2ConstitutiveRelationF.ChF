@@ -190,7 +190,7 @@ c------------------------------------------------
 
       integer CHF_AUTODECL[i], niter, isec
       REAL_T tmua, tmu, tA, tesqr, ttsqr, p1, p2, p3 , mu0, t
-      REAL_T fa,fb
+      REAL_T fa,fb,fa0
       
       p1 = (nExponent - one)*half
       p2 = -p1 / nExponent
@@ -215,13 +215,14 @@ c     &            p1, niter, tol)
              !call COMPUTEL1L2RES(fa,tmua,tA,tesqr,ttsqr,p1)
              fa = 1.0d0 - 2.0d0 * tA * tmua * 
      &            (4.0d0 * tmua**2 * tesqr + ttsqr)**p1
+             fa0 = fa
              do isec = 0, niter
                 !call COMPUTEL1L2RES(fb,tmu,tA,tesqr,ttsqr,p1)
                 fb = 1.0d0 - 2.0d0 * tA * tmu * 
      &               (4.0d0 * tmu**2 * tesqr + ttsqr)**p1
                
                 if (abs(fb) .lt. tol) exit
-                if (abs(fb-fa) .lt. tol**2) exit
+!               if (abs(fb-fa) .lt. tol**2) exit
 
                 t = tmu
                 tmu = tmua - (tmua - tmu)/(fa - fb)*fa 

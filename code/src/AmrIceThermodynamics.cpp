@@ -86,7 +86,11 @@ void AmrIce::updateInternalEnergy(Vector<LevelData<FluxBox>* >& a_layerEH_half,
 				  const Vector<LevelData<FArrayBox>*>& a_volumeThicknessSource)
 {
 
-CH_TIME("AmrIce::updateInternalEnergy");
+  CH_TIME("AmrIce::updateInternalEnergy");
+  if (s_verbosity > 0) 
+    {
+      pout() << "AmrIce::updateInternalEnergy " << endl;
+    }
 
   
   //update the internalEnergy fields, 2D case

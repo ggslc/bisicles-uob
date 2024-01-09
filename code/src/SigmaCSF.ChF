@@ -646,21 +646,10 @@ c     mask changes or on open sea and land
       maskL = mask(CHF_OFFSETIX[i;-ii])
       maskR = mask(CHF_AUTOIX[i])
       
- 
-      if (1.eq.0 .and. IOR(maskL,maskR) .eq. LISH) then
-c     land ice | shelf or  shelf | land ice : surface elevation given
-c     by the flotation condition
-         topgf = half*(topg( CHF_AUTOIX[i]) 
-     &        + topg( CHF_OFFSETIX[i;-ii]))
-        
-         surff(CHF_AUTOIX[i]) =  seaLevel
-     &        + (one-ratio)*(seaLevel - topgf)/ratio
-      else
-c     everwhere else : linear interpolation
-        
+c     linear interpolation in most cases        
          surff(CHF_AUTOIX[i]) = half * 
      &        (surf(CHF_OFFSETIX[i;-ii]) + surf(CHF_AUTOIX[i]))
-      end if
+   
  
       if (maskL.eq.OPENLANDMASKVAL) then
          surff(CHF_AUTOIX[i]) = 
