@@ -2612,29 +2612,29 @@ AmrIce::computeH_half(Vector<LevelData<FluxBox>* >& a_H_half,
           advectiveSource.copy(levelSTS[dit]);
           advectiveSource.plus(levelBTS[dit]);
           // add a diffusive source term div(D grad H)) to  advectiveSource
-          if (m_diffusionTreatment == IMPLICIT)
-            {
-              for (int dir=0; dir<SpaceDim; dir++)
-                {
-                  Box faceBox = levelGrids[dit].surroundingNodes(dir);
-                  FArrayBox flux(faceBox,1);
-                  FORT_FACEDERIV(CHF_FRA1(flux,0),
-                                 CHF_CONST_FRA1(levelCCThickness[dit],0),
-                                 CHF_BOX(faceBox),
-                                 CHF_CONST_REAL(dx(lev)[dir]),
-                                 CHF_INT(dir),
-                                 CHF_INT(dir));
-                  CH_assert(flux.norm(0) < HUGE_NORM);
-                  flux *= (*m_diffusivity[lev])[dit][dir];
-                  CH_assert(flux.norm(0) < HUGE_NORM);
-                  FORT_DIVERGENCE(CHF_CONST_FRA(flux),
-                                  CHF_FRA(advectiveSource),
-                                  CHF_BOX(levelGrids[dit]),
-                                  CHF_CONST_REAL(dx(lev)[dir]),
-                                  CHF_INT(dir));
+          // if (m_diffusionTreatment == IMPLICIT)
+          //   {
+          //     for (int dir=0; dir<SpaceDim; dir++)
+          //       {
+          //         Box faceBox = levelGrids[dit].surroundingNodes(dir);
+          //         FArrayBox flux(faceBox,1);
+          //         FORT_FACEDERIV(CHF_FRA1(flux,0),
+          //                        CHF_CONST_FRA1(levelCCThickness[dit],0),
+          //                        CHF_BOX(faceBox),
+          //                        CHF_CONST_REAL(dx(lev)[dir]),
+          //                        CHF_INT(dir),
+          //                        CHF_INT(dir));
+          //         CH_assert(flux.norm(0) < HUGE_NORM);
+          //         flux *= (*m_diffusivity[lev])[dit][dir];
+          //         CH_assert(flux.norm(0) < HUGE_NORM);
+          //         FORT_DIVERGENCE(CHF_CONST_FRA(flux),
+          //                         CHF_FRA(advectiveSource),
+          //                         CHF_BOX(levelGrids[dit]),
+          //                         CHF_CONST_REAL(dx(lev)[dir]),
+          //                         CHF_INT(dir));
                   
-                }
-            }
+          //       }
+          //   }
           
           patchGod->computeWHalf(levelHhalf[dit],
 				 levelCCThickness[dit],
@@ -4364,14 +4364,15 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 
 
   ParmParse pp("amr");
-  int ice_frac_hard_compress_interval = -1;
-  pp.query("ice_frac_hard_compress_interval",ice_frac_hard_compress_interval);
-  bool hard_compress =  (ice_frac_hard_compress_interval > 0) &&
-    (m_cur_step%ice_frac_hard_compress_interval == 0);
-  CompressFront(a_iceFrac, m_finest_level, hard_compress);
+  int frac_hard_compress_interval = -1;
+  pp.query("frac_hard_compress_interval",frac_hard_compress_interval);
+  bool hard_compress =  (frac_hard_compress_interval > 0) &&
+    (m_cur_step%frac_hard_compress_interval == 0);
+  //CompressFront(a_iceFrac, m_finest_level, hard_compress);
 
-  // Empty cells that are retreating and have low frac
+  // Empty/fill cells that are advancing/retreating and have high/low frac
   Real empty = TINY_FRAC;
+  Real full = 1.0 - TINY_FRAC;
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       LevelData<FArrayBox>& levelF = *a_iceFrac[lev];
@@ -4379,13 +4380,19 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
       const DisjointBoxLayout& grids = levelF.getBoxes();
       for (DataIterator dit(grids); dit.ok(); ++dit)
         {
+	  FArrayBox& f = levelF[dit];
+	  const FArrayBox& fo = levelFo[dit];
           for (BoxIterator bit(levelF[dit].box()); bit.ok(); ++bit)
             {
               const IntVect& iv = bit();
-              if ( (levelF[dit](iv) < levelFo[dit](iv))
-                   && (levelF[dit](iv) < empty) )
-                levelF[dit](iv) = 0.0;
-
+              if ( (f(iv) < fo(iv)) && (f(iv) < empty) )
+		{
+		  f(iv) = 0.0;
+		}
+	      else if ( (f(iv) > fo(iv)) && (f(iv) > full) )
+		{
+		  f(iv) = 1.0;
+		}
             }
         }
     }

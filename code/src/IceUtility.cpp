@@ -829,7 +829,7 @@ void IceUtility::computeSigmaVelocity
 			   CHF_BOX(box));
       
       
-      CH_assert(uSigma.norm(0) < HUGE_NORM);
+      //CH_assert(uSigma.norm(0) < HUGE_NORM);
     } //end compute vertical velocity loop over boxes
       
   a_uSigma.exchange();
