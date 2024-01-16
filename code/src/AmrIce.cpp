@@ -2919,16 +2919,26 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	      //remove calved area.
 	      const FArrayBox& frac = (*m_iceFrac[lev])[dit];
 	      const FArrayBox& calved_frac = (*m_calvedIceArea[lev])[dit];
+	      Real frac_tol = 1.0e-10;
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	      	{
 	      	  const IntVect& iv = bit();
 		  if (newH(iv) > 0.0)
 		    {
 		      Real remove(0.0);
-		      if (calved_frac(iv) > 1.0e-10)
+		      if (frac(iv) > frac_tol)
 			{
-			  remove = newH(iv) * calved_frac(iv)/(frac(iv) + calved_frac(iv));
+			  if (calved_frac(iv) > frac_tol)
+			    {
+			      remove = newH(iv) * calved_frac(iv)/(frac(iv) + calved_frac(iv));
+			    }
 			}
+		      else
+			{
+			  // frac < frac_tol  
+			  remove = newH(iv);
+			}
+			    
 		      newH(iv) -= remove;
 		      (*m_calvedIceThickness[lev])[dit](iv) += remove;
 		    }
@@ -4248,37 +4258,78 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
   
 }
 
-void CompressFront(Vector<LevelData<FArrayBox>* >& a_iceFrac, int a_finestLevel, bool a_hard)
+void CompressFront(Vector<LevelData<FArrayBox>* >& a_iceFrac,
+		   const Vector<LevelData<FArrayBox>* >& a_iceFracPrev,
+		   int a_finestLevel, int a_time_step)
 {
-  // cheap front compression....
+  // Various cheap front compression methods
   
-  Real frac_compress_lo = 0.005;
-  Real frac_compress_hi = 0.995;
+  Real frac_compress_lo = TINY_FRAC;
+  Real frac_compress_hi = 1.0 - TINY_FRAC;
+  int frac_compress_hard_interval = -1;
+  int frac_compress_type = 0;
+  bool frac_compress_surround = false;
+  
   ParmParse pp("amr");
   pp.query("frac_compress_lo",frac_compress_lo);
   pp.query("frac_compress_hi",frac_compress_hi);
-
-  frac_compress_lo = max(TINY_FRAC, frac_compress_lo);
+  pp.query("frac_compress_type", frac_compress_type);
+  pp.query("frac_compress_hard_interval",frac_compress_hard_interval);
+  pp.query("frac_compress_surround",frac_compress_surround);
   
-  if (a_hard)
+  // hard compression implies  values for the other parameters
+  bool hard_compress =  (frac_compress_hard_interval > 0) &&
+    (a_time_step%frac_compress_hard_interval == 0);
+  
+  if (hard_compress)
     {
       frac_compress_lo = 0.5 - TINY_FRAC;
       frac_compress_hi = 0.5 + TINY_FRAC;
+      frac_compress_type = 1;
     }
-  
+
   for (int lev = 0; lev <= a_finestLevel; lev++)
     {
-      for (DataIterator dit(a_iceFrac[lev]->disjointBoxLayout()); dit.ok(); ++dit)
+      LevelData<FArrayBox>& levelF = *a_iceFrac[lev];
+      const LevelData<FArrayBox>& levelFo = *a_iceFracPrev[lev];
+      const DisjointBoxLayout& grids = levelF.getBoxes();
+     
+      for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
-	  FArrayBox& frac = (*a_iceFrac[lev])[dit];
-	  for (BoxIterator bit(frac.box()); bit.ok(); ++bit)
+	  FArrayBox& f = levelF[dit];
+	  const FArrayBox& fo = levelFo[dit];
+	  for (BoxIterator bit(grids[dit]); bit.ok(); ++bit)
 	    {
-	      IntVect iv = bit();
-	      if (frac(iv,0) > frac_compress_hi) frac(iv,0) = 1.0;
-	      if (frac(iv,0) < frac_compress_lo) frac(iv,0) = 0.0;
-	    }
-	}
-    }
+	      IntVect iv = bit(); 
+	      if (frac_compress_type == 1)
+		{
+		  if (f(iv,0) > frac_compress_hi) f(iv,0) = 1.0;
+		  else if (f(iv,0) < frac_compress_lo) f(iv,0) = 0.0;
+		} // end (frac_compress_type = 1)
+	      else if (frac_compress_type == 2)
+		{
+		  Real empty = frac_compress_lo;
+		  Real full = frac_compress_hi;
+		  if ( (f(iv) < fo(iv)) && (f(iv) < frac_compress_lo) ) f(iv) = 0.0;
+		  else if ( (f(iv) > fo(iv)) && (f(iv) > frac_compress_hi)) f(iv) = 1.0;
+		} // end (frac_compress_type == 2)
+
+	      // kluge: increase frac in any cell that was surrounded by part full cells.
+	      // attempt to avoid a corner case where some empty cells never
+	      // fill despite being confluences
+	      if (frac_compress_surround)
+		{
+		  Real f_min = 1.0;
+		  for (int dir = 0; dir < SpaceDim; dir++)
+		    {
+		      f_min = std::min(f_min, fo(iv+BASISV(dir)));
+		      f_min = std::min(f_min, fo(iv-BASISV(dir)));
+		    }
+		  f(iv) = std::max(f(iv),f_min);
+		}
+	    } // end for (BoxIterator
+	} // end for (DataIterator 
+    } // end  for (int lev = 0;  
 }
 
 
@@ -4362,41 +4413,8 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   
   updateInvalidIceFrac(a_iceFrac);
 
-
-  ParmParse pp("amr");
-  int frac_hard_compress_interval = -1;
-  pp.query("frac_hard_compress_interval",frac_hard_compress_interval);
-  bool hard_compress =  (frac_hard_compress_interval > 0) &&
-    (m_cur_step%frac_hard_compress_interval == 0);
-  //CompressFront(a_iceFrac, m_finest_level, hard_compress);
-
-  // Empty/fill cells that are advancing/retreating and have high/low frac
-  Real empty = TINY_FRAC;
-  Real full = 1.0 - TINY_FRAC;
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-      LevelData<FArrayBox>& levelF = *a_iceFrac[lev];
-      const LevelData<FArrayBox>& levelFo = *frac_start[lev];
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-        {
-	  FArrayBox& f = levelF[dit];
-	  const FArrayBox& fo = levelFo[dit];
-          for (BoxIterator bit(levelF[dit].box()); bit.ok(); ++bit)
-            {
-              const IntVect& iv = bit();
-              if ( (f(iv) < fo(iv)) && (f(iv) < empty) )
-		{
-		  f(iv) = 0.0;
-		}
-	      else if ( (f(iv) > fo(iv)) && (f(iv) > full) )
-		{
-		  f(iv) = 1.0;
-		}
-            }
-        }
-    }
-
+  // Front compression bodges 
+  CompressFront(a_iceFrac, frac_start, m_finest_level, m_cur_step);
   
   // record the calved ice area
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -4427,7 +4445,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   	  levelCalvedFrac[dit] += calved_frac;
   	}
     }
-
+  
   
   // clean up
   for (int lev=0; lev<= m_finest_level; lev++)
