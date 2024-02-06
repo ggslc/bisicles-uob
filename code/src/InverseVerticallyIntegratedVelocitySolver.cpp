@@ -219,6 +219,8 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   m_X1Regularization = 0.0;
   pp.query("X1Regularization",m_X1Regularization);
 
+  m_regularizeCGradient = 0;
+  pp.query("regularizeCGradient", m_regularizeCGradient);
   
   m_X0TimeRegularization = 0.0;
   pp.query("X0TimeRegularization",m_X0TimeRegularization);
@@ -1319,21 +1321,35 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
       // grad w.r.t x_0 (basal friction)  = - adjVel * vel * C 
       for (int lev = 0; lev <= m_finest_level; lev++)
 	{
-	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	    {
-	      
-	      FArrayBox& G = (*a_g[lev])[dit];
-	      const FArrayBox& C = (*m_Cmasked[lev])[dit];
-	      const FArrayBox& u = (*m_velb[lev])[dit];
-	      const FArrayBox& lambda = (*m_adjVel[lev])[dit];
-	      FArrayBox t(G.box(),1);
-	      FORT_CADOTBCTRL(CHF_FRA1(t,0),
-			      CHF_CONST_FRA1(C,0),
-			      CHF_CONST_FRA(u),
-			      CHF_CONST_FRA(lambda),
-			      CHF_BOX(t.box()));
-	      t *= -1.0;
-	      G.plus(t,0,CCOMP);
+      for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+      {
+
+        FArrayBox& G = (*a_g[lev])[dit];
+        const FArrayBox& C = (*m_Cmasked[lev])[dit];
+        const FArrayBox& u = (*m_velb[lev])[dit];
+        const FArrayBox& lambda = (*m_adjVel[lev])[dit];
+        FArrayBox t(G.box(),1);
+
+        if ( m_config.m_regularizeCGradient == 1 ){
+            // C * u * lambda / (modu/u_f + 1)**2
+            for (BoxIterator bit(m_grids[lev][dit]);bit.ok();++bit){
+                const IntVect& iv = bit();
+
+                t(iv)      = C(iv) * ( lambda(iv,0) * u(iv,0) +  lambda(iv,1) * u(iv,1) );
+                float modu = std::pow( std::pow(u(iv,0),2.)
+                               + std::pow(u(iv,1),2.), 0.5 ) + 1;
+                t(iv)     /= std::pow( modu/300. + 1, 2 );
+            }
+        }else{
+            FORT_CADOTBCTRL(CHF_FRA1(t,0),
+                CHF_CONST_FRA1(C,0),
+                CHF_CONST_FRA(u),
+                CHF_CONST_FRA(lambda),
+                CHF_BOX(t.box()));
+        }
+
+        t *= -1.0;
+        G.plus(t,0,CCOMP); 
 	    }
 	}
     } // end if m_optimizeX1
