@@ -13,7 +13,9 @@
  * Date: Jan 19, 2019
  *
  */
-#if FFTW_3
+/* Not using for now (TMM 14/02/24)
+#if FFTW_3*/
+#if USE_FFTW
 #include "BuelerGIA.H"
 #include <fftw3.h>
 #include "BisiclesF_F.H"
