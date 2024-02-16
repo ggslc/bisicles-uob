@@ -21,14 +21,18 @@ CHOMBO_HOME := $(BISICLES_HOME)/Chombo/lib
 endif
 
 #GIA code depends on fftw
-#Turning off for now (TMM 14/02/24)
-#USE_FFTW := TRUE
-USE_FFTW := FALSE
+USE_FFTW := TRUE
 #Guess FFTWDIR if it is not specified. 
 ifeq ($(FFTWDIR),)
 FFTWDIR=/usr
 endif
-
+#check FFTWDIR, since it is a source if confusion when absent#
+ifeq ($(USE_FFTW),TRUE)
+$(info FFTWDIR=$(FFTWDIR))
+ifeq ($(wildcard $(FFTWDIR)/include/fftw3.h),)
+$(error $(FFTWDIR)/include/fftw3.h does not exist)
+endif
+endif
 
 include $(CHOMBO_HOME)/mk/Make.defs
 include $(CHOMBO_HOME)/mk/Make.defs.config
