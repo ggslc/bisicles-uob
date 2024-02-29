@@ -144,6 +144,7 @@ public:
 
   /// \callergraph
   virtual Real power() const {return m_m;}
+  virtual Real fast_sliding_speed() const {return m_fastSlidingSpeed;}
   
 private:
   Real m_m;

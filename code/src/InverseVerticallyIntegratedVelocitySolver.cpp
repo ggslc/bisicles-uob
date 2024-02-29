@@ -1331,6 +1331,7 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
         FArrayBox t(G.box(),1);
 
         if ( m_config.m_regularizeCGradient == 1 ){
+            /* This was a hack for some reason
             // C * u * lambda / (modu/u_f + 1)**2
             for (BoxIterator bit(m_grids[lev][dit]);bit.ok();++bit){
                 const IntVect& iv = bit();
@@ -1339,6 +1340,22 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
                 float modu = std::pow( std::pow(u(iv,0),2.)
                                + std::pow(u(iv,1),2.), 0.5 ) + 1;
                 t(iv)     /= std::pow( modu/300. + 1, 2 );
+            {
+            */
+            // C * u.lambda *  modu^{m-1} / (modu/u_f + 1)^{m}
+            // This is just alpha * u.lambda. But how do you access alpha?? Where is it??
+
+            Real m = (*m_basalFrictionRelation).power();
+            Real fast_sliding_speed = (*m_basalFrictionRelation).fast_sliding_speed();
+            
+            for (BoxIterator bit(m_grids[lev][dit]);bit.ok();++bit){
+                const IntVect& iv = bit();
+
+                t(iv)      = C(iv) * ( lambda(iv,0) * u(iv,0) +  lambda(iv,1) * u(iv,1) );
+                float modu = std::pow( std::pow(u(iv,0),2.)
+                               + std::pow(u(iv,1),2.), 0.5 ) + 1;
+                t(iv)     /= std::pow( modu/fast_sliding_speed + 1, m );
+                t(iv)     *= std::pow( modu, m-1. );
             }
         }else{
             FORT_CADOTBCTRL(CHF_FRA1(t,0),
