@@ -250,9 +250,9 @@ public:
     /// Coefficient of \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradMuCoefsqRegularization
     Real m_gradMuCoefsqRegularization; 
 
-    
+    /// Divide -C * lambda * u by (u/fastSlidingSpeed+1)**2. 0 for no, 1 for yes.
+    int m_regularizeCGradient; 
 
-    
     /// Coefficient of \f$\int _\Omega (\nabla X_0 )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradX0sqRegularization
     Real m_gradX0sqRegularization; 
 
