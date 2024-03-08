@@ -1836,7 +1836,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           m_velocity[lev] = new LevelData<FArrayBox>(levelDBL, SpaceDim, 
                                                      ghostVect);
 
-          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1, ghostVect); 
+          m_iceFrac[lev] = new LevelData<FArrayBox>(levelDBL, 1,m_num_thickness_ghost*IntVect::Unit ); 
 	  m_faceVelAdvection[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 	  m_faceVelTotal[lev] = new LevelData<FluxBox>(m_amrGrids[lev], 1, IntVect::Unit);
 #if BISICLES_Z == BISICLES_LAYERED
@@ -1960,11 +1960,15 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	  if (containsIceFrac)
 	    {
 	      LevelData<FArrayBox>& iceFracData = *m_iceFrac[lev];
+	      bool not_redefine(false); // kludge to allow restart from checkpoints with ghostVector=(1,1), but makes me wonder why we bother
+	                            // to define earlier when read<T> redefines by default.
 	      dataStatus = read<FArrayBox>(a_handle,
 					   iceFracData,
 					   "iceFracData",
-				       levelDBL);
-          
+					   levelDBL,
+					   Interval(0,0),
+					   not_redefine);
+
 	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
 	      if (dataStatus != 0)
 		{
@@ -1973,7 +1977,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 		  setIceFrac(levelThickness, lev);
 		} // end if no ice fraction in data
 	      else
-		{
+		{ 
 		  // ensure that ice fraction is set to zero where there's no ice
 		  // or not, since this should have been done before writing
 		  // updateIceFrac(m_vect_coordSys[lev]->getH(), lev);
