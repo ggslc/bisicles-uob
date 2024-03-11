@@ -198,7 +198,7 @@ void ISMIP6OceanForcing::computeTFb_and_slope(LevelData<FArrayBox>& a_TFb,
 		     dzdy = s[dit](iv+BASISV(1)) - s[dit](iv-BASISV(1))
 		     - h[dit](iv+BASISV(1)) + h[dit](iv-BASISV(1));,
 		     dzdz = 0.0);
-	      a_slope[dit](iv) = std::sqrt(dzdx*dzdx + dzdy*dzdy);	      
+	      a_slope[dit](iv) = std::sqrt(dzdx*dzdx + dzdy*dzdy)/m_dx[0];	      
 	    }
 	  else
 	    {
