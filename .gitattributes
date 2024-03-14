@@ -1,7 +1,8 @@
-*.pdf linguist-detectable=false
-*.hdf5 linguist-detectable=false
-*.H5 linguist-detectable=false
 *.ChF linguist-language=fortran
-*.fig linguist-detectable=false
-*.ps linguist-detectable=false
-*.template linguist-detectable=false
+
+*.pdf -linguist-detectable
+*.hdf5 -linguist-detectable
+*.H5 -linguist-detectable
+*.fig -linguist-detectable
+*.ps -linguist-detectable
+*.template -linguist-detectable
