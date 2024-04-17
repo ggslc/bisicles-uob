@@ -208,8 +208,7 @@ void CrevasseCalvingModel::applyCriterion
 	  FArrayBox& removed = a_removedIce[dit];
 	  FArrayBox& iceFrac = a_iceFrac[dit];
 	  
-	  Box b = thck.box();
-	  b &= iceFrac.box();
+	  Box b = levelCoords.grids()[dit];
 	  for (BoxIterator bit(b); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit(); 
@@ -229,6 +228,8 @@ void CrevasseCalvingModel::applyCriterion
 
 	    } // end loop over cells
 	} // end loop over boxes
+      a_iceFrac.exchange();
+      a_thickness.exchange();
     } // end (a_stage == PostVelocitySolve || a_stage == PostRegrid)
 
 }
