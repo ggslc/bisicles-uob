@@ -1330,6 +1330,9 @@ protected:
   // if true, include (cell-averaged) viscous tensor components in plotfiles
   bool m_write_viscousTensor;
 
+  // if true, include (cell-averaged) von Mises stress in plotfiles
+  bool m_write_vonmisesStress;
+
   // if true, include base velocity in plotfiles
   bool m_write_baseVel;
 
