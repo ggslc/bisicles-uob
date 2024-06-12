@@ -345,8 +345,6 @@ DamageConstitutiveRelation::computeFaceMuDamage
   CellToEdge(*m_damageModel->damage(lev), faceDamage); 
 
    LevelData<FluxBox> faceWater (grids, 1, a_ghostVect);
-  //FIXME also a bit suspect : face-averaging the cell-centred damage when it might 
-  //be better to use the face-centered values that get computed for advection
    CellToEdge(*m_damageModel->water(lev), faceWater); 
 
   
@@ -357,11 +355,12 @@ DamageConstitutiveRelation::computeFaceMuDamage
 	  Box box = grids[dit];
 	  box.surroundingNodes(faceDir);
 
-	  computeLocalDamage(a_damage[dit][faceDir], a_mu[dit][faceDir], gradU[dit][faceDir],
-			     a_coordSys.getFaceH()[dit][faceDir], faceTopography[dit][faceDir],
-			     faceWater[dit][faceDir],
-			     a_coordSys.iceDensity(), a_coordSys.waterDensity(), 
-			     a_coordSys.gravity(), a_coordSys.seaLevel(), box);
+	  // SLC we never really used this apart from Sun 2017 so am removing for now. 
+	  // computeLocalDamage(a_damage[dit][faceDir], a_mu[dit][faceDir], gradU[dit][faceDir],
+	  // 		     a_coordSys.getFaceH()[dit][faceDir], faceTopography[dit][faceDir],
+	  // 		     faceWater[dit][faceDir],
+	  // 		     a_coordSys.iceDensity(), a_coordSys.waterDensity(), 
+	  // 		     a_coordSys.gravity(), a_coordSys.seaLevel(), box);
 
 
 	  modifyMu(a_damage[dit][faceDir], a_mu[dit][faceDir], faceDamage[dit][faceDir], 
