@@ -258,19 +258,19 @@ int main(int argc, char* argv[]) {
     // ---------------------------------------------
     // set mu coefficient
     // ---------------------------------------------
-    {
-      MuCoefficient* muCoefPtr =  MuCoefficient::parseMuCoefficient("muCoefficient");
+    
+    MuCoefficient* muCoefPtr =  MuCoefficient::parseMuCoefficient("muCoefficient");
 
-      if (muCoefPtr == NULL)
-	{
-	  const std::string err("failed to parse muCoefficient");
-	  pout() << err << endl;
-	  MayDay::Error(err.c_str());
-	}
+    if (muCoefPtr == NULL)
+      {
+	const std::string err("failed to parse muCoefficient");
+	pout() << err << endl;
+	MayDay::Error(err.c_str());
+      }
      
-      amrObject.setMuCoefficient(muCoefPtr);
-      delete muCoefPtr;
-    }
+    amrObject.setMuCoefficient(muCoefPtr);
+    
+    
 
     // ---------------------------------------------
     // set basal friction coefficient and relation
@@ -913,12 +913,17 @@ int main(int argc, char* argv[]) {
 	  DamageIceObserver* ptr = new DamageIceObserver();
 	  amrObject.addObserver(ptr);
 
-	  //whatever the constitutive relation was, wrap
-	  //it up in a DamageConstitutiveRelation tied
-	  //to the DamageIceObserver components
-	  DamageConstitutiveRelation* dcrptr = 
-	    new DamageConstitutiveRelation(constRelPtr, &ptr->damage());
-	  amrObject.setConstitutiveRelation(dcrptr);
+	  // replace the MuCoefficient object with one linked to the damage model
+	  muCoefPtr = new DamageMuCoefficient(&ptr->damage());
+	  amrObject.setMuCoefficient(muCoefPtr);
+
+	  // SLC - dropping the self consistent damage stuff (maybe make it an option)
+	  // //whatever the constitutive relation was, wrap
+	  // //it up in a DamageConstitutiveRelation tied
+	  // //to the DamageIceObserver components
+	  // DamageConstitutiveRelation* dcrptr = 
+	  //   new DamageConstitutiveRelation(constRelPtr, &ptr->damage());
+	  // amrObject.setConstitutiveRelation(dcrptr);
 
 	  CalvingModel* d_calving_model_ptr = new DamageCalvingModel(calving_model_ptr, &ptr->damage());
 	  amrObject.setCalvingModel(d_calving_model_ptr);
@@ -965,6 +970,12 @@ int main(int argc, char* argv[]) {
       {
         delete constRelPtr;
         constRelPtr = NULL;
+      }
+
+    if (muCoefPtr != NULL)
+      {
+        delete muCoefPtr;
+        muCoefPtr = NULL;
       }
 
     if (surf_flux_ptr != NULL)

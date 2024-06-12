@@ -149,7 +149,32 @@ private:
 				      const DisjointBoxLayout& a_grids); 
 };
   
+
+class DamageMuCoefficient : public MuCoefficient
+{
+  AMRDamage* m_damageModel;
   
+public:
+  
+  DamageMuCoefficient(AMRDamage* a_damage)
+  {
+    m_damageModel = a_damage;
+  }
+
+  ~DamageMuCoefficient() {};
+
+  /// factory method
+  /** return a pointer to a new MuCoefficient object
+   */
+  virtual MuCoefficient* new_muCoefficient() const;
+
+  virtual void setMuCoefficient(LevelData<FArrayBox>& a_muCoef,
+                                LevelSigmaCS& a_coordSys,int a_level,
+                                Real a_time,
+                                Real a_dt);
+  
+};
+
 
 /// Contains an AMRDamage, responds to changes in the ice sheet state
 class DamageIceObserver : public AmrIce::Observer 

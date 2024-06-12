@@ -131,7 +131,7 @@ MuCoefficient* UnitMuCoefficient::new_muCoefficient() const
 
 
 void UnitMuCoefficient::setMuCoefficient(LevelData<FArrayBox>& a_cellMuCoef,
-					 LevelSigmaCS& a_coordSys,
+					 LevelSigmaCS& a_coordSys, int a_level,
 					 Real a_time,
 					 Real a_dt)
 {
@@ -179,14 +179,14 @@ AxbyMuCoefficient::~AxbyMuCoefficient()
 
 void AxbyMuCoefficient::setMuCoefficient
 (LevelData<FArrayBox>& a_cellMuCoef,
- LevelSigmaCS& a_coordSys,
+ LevelSigmaCS& a_coordSys,int a_level,
  Real a_time,
  Real a_dt)
 {
 
   LevelData<FArrayBox> y_mu(a_cellMuCoef.disjointBoxLayout(),1,a_cellMuCoef.ghostVect());
-  m_x->setMuCoefficient(a_cellMuCoef, a_coordSys, a_time, a_dt);
-  m_y->setMuCoefficient(y_mu, a_coordSys, a_time, a_dt);
+  m_x->setMuCoefficient(a_cellMuCoef, a_coordSys, a_level, a_time, a_dt);
+  m_y->setMuCoefficient(y_mu, a_coordSys, a_level,a_time, a_dt);
   for (DataIterator dit(a_cellMuCoef.disjointBoxLayout()); dit.ok(); ++dit)
     {
       a_cellMuCoef[dit].axby(a_cellMuCoef[dit],y_mu[dit],m_a,m_b);
@@ -214,7 +214,7 @@ MuCoefficient* LevelDataMuCoefficient::new_muCoefficient() const
 }
 void LevelDataMuCoefficient::setMuCoefficient
 (LevelData<FArrayBox>& a_muCoef,
- LevelSigmaCS& a_coordSys,
+ LevelSigmaCS& a_coordSys,int a_level,
  Real a_time,
  Real a_dt)
 {
@@ -311,19 +311,19 @@ MuCoefficient* MultiLevelDataMuCoefficient::new_muCoefficient() const
 
 void MultiLevelDataMuCoefficient::setMuCoefficient
 (LevelData<FArrayBox>& a_cellMuCoef,
- LevelSigmaCS& a_coordSys,
+ LevelSigmaCS& a_coordSys,int a_level,
  Real a_time,
  Real a_dt) 
 {
     
   
-    setMuCoefficient(a_cellMuCoef,a_coordSys.dx(),a_time,a_dt); 
+  setMuCoefficient(a_cellMuCoef,a_coordSys.dx(),a_level,a_time,a_dt); 
   
 }
 
 void MultiLevelDataMuCoefficient::setMuCoefficient
 (LevelData<FArrayBox>& a_cellMuCoef,
- RealVect a_dx,
+ RealVect a_dx,int a_level,
  Real a_time,
  Real a_dt)
 {

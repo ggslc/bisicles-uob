@@ -966,7 +966,7 @@ MuCoefficient* PythonInterface::PythonMuCoefficient::new_muCoefficient() const
 
 void PythonInterface::PythonMuCoefficient::setMuCoefficient
 (LevelData<FArrayBox>& a_muCoef,
- LevelSigmaCS& a_coordSys,
+ LevelSigmaCS& a_coordSys,int a_level,
  Real a_time,
  Real a_dt)
 {

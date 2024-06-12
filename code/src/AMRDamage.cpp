@@ -488,14 +488,13 @@ void AMRDamage::computeDamageSource(Vector<LevelData<FArrayBox>* >& a_source,
 {
  
   
-  ParmParse pp("damage");
-  Real shear_alpha = -1.0;
-  pp.query("shear_alpha", shear_alpha);
-  Real shear_critical = 1.0e-10;
-  pp.query("shear_critical", shear_critical); 
-
-  Real max_shear = 0.0;
-  
+ 
+  Real damage_rate = 1.0e-1;
+  Real damage_exponent = 1.0;
+  Real damage_stress_scale = 1.0e+5;
+  Real damage_threshold = 1.0e+4;
+  Real temporary_A = 2.0e-17;
+ 
   for (int lev = 0 ; lev <= m_finestLevel; lev++)
     {
       const LevelSigmaCS& levelCoords = *a_geometry[lev];
@@ -506,7 +505,7 @@ void AMRDamage::computeDamageSource(Vector<LevelData<FArrayBox>* >& a_source,
 	  const FArrayBox& smb = (*a_surfThickSource[lev])[dit];
 	  const FArrayBox& bmb = (*a_baseThickSource[lev])[dit];
 	  const FArrayBox& vt = (*a_visTensor[lev])[dit];
-	  const FArrayBox& thick = levelCoords.getH()[dit];
+	  const FArrayBox& thk = levelCoords.getH()[dit];
 	  for (BoxIterator bit(source.box());bit.ok();++bit)
 	    {
 	      const IntVect& iv = bit();
@@ -517,22 +516,80 @@ void AMRDamage::computeDamageSource(Vector<LevelData<FArrayBox>* >& a_source,
 	      //damage source removed by surface and basal melting
 
 	     
-	      source(iv) = (surfDamageSource + baseDamageSource)*damage(iv)/( thick(iv) + 1.0e-10);
+	      source(iv) = (surfDamageSource + baseDamageSource)*damage(iv)/( thk(iv) + 1.0e-10);
 
-	      if (shear_alpha > 1.0e-10)
-		{
-		  Real shear = std::sqrt(std::pow( 0.5*(vt(iv,0) - vt(iv,3)), 2) + vt(iv,1)*vt(iv,2));
-		  max_shear = max(shear,max_shear);
-		  shear /= ( thick(iv) + 1.0e-10 );
-		  Real shearDamageSource = max(0., shear_alpha * (shear - shear_critical));
-		  source(iv) += shearDamageSource;
-		}
+	      
+	      Real Reff = std::max(0.0, vt(iv, 0)); // FIX - this is just x extensional resistive stress
+	      Reff /= std::max(thk(iv),1.0); // vert int -> vert avg 
+	      Real Y = 2.0 * temporary_A *  thk(iv)
+		* Reff * Reff * Reff * std::max(Reff - damage_threshold, 0.0);
+	      source(iv) += damage_rate * std::pow(Y/damage_stress_scale, damage_exponent);
+	    
 	    }
 	}
     }
 
-  pout () << "max shear = " << max_shear << std::endl; 
 }
+
+// version up to Jun 24
+// void AMRDamage::computeDamageSource(Vector<LevelData<FArrayBox>* >& a_source, 
+// 			      const Vector<LevelData<FArrayBox>* >& a_damage,
+// 			      const Vector<RefCountedPtr<LevelSigmaCS> >& a_geometry,
+// 			      const Vector<LevelData<FArrayBox> const * >& a_visTensor,
+// 			      const Vector<LevelData<FArrayBox>const * >& a_surfThickSource,
+// 			      const Vector<LevelData<FArrayBox>const * >& a_baseThickSource,
+// 			      Real a_dt)
+// {
+ 
+  
+//   ParmParse pp("damage");
+//   Real shear_alpha = -1.0;
+//   pp.query("shear_alpha", shear_alpha);
+//   Real shear_critical = 1.0e-10;
+//   pp.query("shear_critical", shear_critical); 
+
+//   Real max_shear = 0.0;
+  
+//   for (int lev = 0 ; lev <= m_finestLevel; lev++)
+//     {
+//       const LevelSigmaCS& levelCoords = *a_geometry[lev];
+//       for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+// 	{
+// 	  FArrayBox& source = (*a_source[lev])[dit];
+// 	  FArrayBox& damage = (*a_damage[lev])[dit];
+// 	  const FArrayBox& smb = (*a_surfThickSource[lev])[dit];
+// 	  const FArrayBox& bmb = (*a_baseThickSource[lev])[dit];
+// 	  const FArrayBox& vt = (*a_visTensor[lev])[dit];
+// 	  const FArrayBox& thick = levelCoords.getH()[dit];
+// 	  for (BoxIterator bit(source.box());bit.ok();++bit)
+// 	    {
+// 	      const IntVect& iv = bit();
+// 	      Real surfDamageSource(0.);
+// 	      if (smb(iv)<0.0){surfDamageSource = smb(iv);}
+// 	      Real baseDamageSource(0.);
+// 	      if (bmb(iv)<0.0){baseDamageSource = bmb(iv);}
+// 	      //damage source removed by surface and basal melting
+
+	     
+// 	      source(iv) = (surfDamageSource + baseDamageSource)*damage(iv)/( thick(iv) + 1.0e-10);
+
+// 	      if (shear_alpha > 1.0e-10)
+// 		{
+// 		  Real shear = std::sqrt(std::pow( 0.5*(vt(iv,0) - vt(iv,3)), 2) + vt(iv,1)*vt(iv,2));
+// 		  max_shear = max(shear,max_shear);
+// 		  shear /= ( thick(iv) + 1.0e-10 );
+// 		  Real shearDamageSource = max(0., shear_alpha * (shear - shear_critical));
+// 		  source(iv) += shearDamageSource;
+// 		}
+// 	    }
+// 	}
+//     }
+
+//   pout () << "max shear = " << max_shear << std::endl; 
+// }
+
+
+
 //compute the half time damage face flux
 void AMRDamage::computeFlux
 (Vector<LevelData<FluxBox>* >& a_faceFlux,
@@ -701,21 +758,22 @@ void AMRDamage::updateDamage
 	  source *= a_dt;
 	  damage += div;
 	  damage += source;
-	  
-	  const FArrayBox& water = (*m_water[lev])[dit];
-	  FArrayBox localDamage(box,1);
-	  DamageConstitutiveRelation::computeLocalDamageVT
-	    (localDamage, (*a_vt[lev])[dit], geometry[lev]->getH()[dit], 
-	     geometry[lev]->getTopography()[dit], water, 
-	     geometry[lev]->iceDensity(),
-	     geometry[lev]->waterDensity(), geometry[lev]->gravity(), 
-	     geometry[lev]->seaLevel(), box);
+
+	  // SLC new model - drop self-consistent crevasse stuff.
+	  // const FArrayBox& water = (*m_water[lev])[dit];
+	  // FArrayBox localDamage(box,1);
+	  // DamageConstitutiveRelation::computeLocalDamageVT
+	  //   (localDamage, (*a_vt[lev])[dit], geometry[lev]->getH()[dit], 
+	  //    geometry[lev]->getTopography()[dit], water, 
+	  //    geometry[lev]->iceDensity(),
+	  //    geometry[lev]->waterDensity(), geometry[lev]->gravity(), 
+	  //    geometry[lev]->seaLevel(), box);
 	
-	  // set D = max(D_tranport,D_local)
-	  //////!!!!
-	  ///damage.setVal(0.0); 
-	  //////!!!!
-	  FORT_FABMAX(CHF_FRA1(damage, 0), CHF_FRA1(localDamage, 0), CHF_BOX(box));
+	  // // set D = max(D_tranport,D_local)
+	  // //////!!!!
+	  // ///damage.setVal(0.0); 
+	  // //////!!!!
+	  // FORT_FABMAX(CHF_FRA1(damage, 0), CHF_FRA1(localDamage, 0), CHF_BOX(box));
 
 	  //limit to thickness
 	  FArrayBox max_damage(damage.box(), 1);
@@ -975,3 +1033,30 @@ void DamageCalvingModel::applyCriterion(LevelData<FArrayBox>& a_thickness,
 	  }// end for (DataIterator dit(levelCoords.grids()); dit.ok(); ++dit)
     } // end if (a_stage == PostThicknessAdvection)
 } // end applyCriterion
+
+
+MuCoefficient* DamageMuCoefficient::new_muCoefficient() const
+{
+  return static_cast<MuCoefficient*> (new DamageMuCoefficient(m_damageModel));    
+}
+
+void DamageMuCoefficient::setMuCoefficient(LevelData<FArrayBox>& a_cellMuCoef,
+					   LevelSigmaCS& a_coordSys,
+					   int a_level,
+					   Real a_time,
+					   Real a_dt)
+{
+  for (DataIterator dit = a_cellMuCoef.dataIterator(); dit.ok(); ++dit)
+    {
+      a_cellMuCoef[dit].setVal(1.0);
+      // asumes AMRDamage and AmrIce use the same grids - which they should
+      const FArrayBox& h =  a_coordSys.getH()[dit];
+      const FArrayBox& hD = (*m_damageModel->damage(a_level))[dit];
+      for (BoxIterator bit(a_cellMuCoef[dit].box()); bit.ok(); ++bit)
+	{
+	  const IntVect& iv = bit();
+	  a_cellMuCoef[dit](iv) -= std::min(1.0, hD(iv) / std::max(h(iv), 1.0));
+	}
+      CH_assert(a_cellMuCoef[dit].min() >= 0.0);
+    }
+}

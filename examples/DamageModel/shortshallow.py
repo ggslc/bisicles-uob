@@ -57,6 +57,8 @@ def topography24(x,y,*etc):
     y = y - 40e+3
     topography = Bx(x) + By(y,4.0e+3,5.0e+2,24.0e+3)
     topography = max(topography, -720.0)
+
+ 
     return topography
 
 #16 km channel half-width 

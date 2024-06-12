@@ -9,8 +9,8 @@ amr.is_periodic = 0 0 0
 main.constitutiveRelation = GlensLaw
 main.rateFactor = constRate
 constRate.epsSqr0 = 1.0e-12
-#constRate.A =  2e-17
-constRate.A =  3e-18
+constRate.A =  2e-17
+#constRate.A =  3e-18
 
 #geometry,temperarture & basal friction input data
 geometry.problem_type = Python
@@ -95,8 +95,8 @@ JFNKSolver.switchRate = 1.8
 #JFNKSolver.uMaxAbs = 1.0e+6
 
 #time stepping
-main.maxTime = 10  # maximum time to run to
-main.maxStep = 254010   # maximum number of steps to runx
+main.maxTime = 1000  # maximum time to run to
+main.maxStep = 354010   # maximum number of steps to runx
 amr.temporal_accuracy = 1
 amr.cfl = 0.25 
 amr.initial_cfl = 0.25 
@@ -105,7 +105,7 @@ amr.time_step_ticks = 0
 
 
 #plotting options
-amr.plot_interval = 1
+amr.plot_interval = 10
 #amr.plot_time_interval = 1
 amr.plot_prefix = plot.damage.
 
@@ -114,7 +114,7 @@ amr.write_viscous_tensor = true
 amr.write_thickness_sources = true
 
 #check points
-amr.check_interval = 2
+amr.check_interval = 200
 
 amr.check_prefix = chk.damage.
 

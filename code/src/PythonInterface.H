@@ -484,7 +484,7 @@ private:
     virtual MuCoefficient* new_muCoefficient() const;
     
     virtual void setMuCoefficient(LevelData<FArrayBox>& a_C,
-				  LevelSigmaCS& a_coordSys,
+				  LevelSigmaCS& a_coordSys,int a_level,
 				  Real a_time,
 				  Real a_dt);
   private:
