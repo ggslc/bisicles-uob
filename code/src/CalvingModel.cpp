@@ -479,12 +479,12 @@ CalvingModel* CalvingModel::parseCalvingModel(const char* a_prefix)
     {
       ptr = new RateProportionalToSpeedCalvingModel(pp);
     }
-   /**
+   
    else if (type == "VonMisesCalvingModel")
     {
       ptr = new VonMisesCalvingModel(pp);
     } 
-    **/
+ 
 
   return ptr;
 }
@@ -1351,6 +1351,7 @@ void VonMisesCalvingModel::applyCriterion
 
 	}
     }
+
 }
 
 
@@ -1390,6 +1391,7 @@ VonMisesCalvingModel::~VonMisesCalvingModel()
   
 }
 
+/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
 bool 
 VonMisesCalvingModel::getCalvingVel
 (LevelData<FluxBox>& a_faceCalvingVel,
@@ -1404,44 +1406,8 @@ VonMisesCalvingModel::getCalvingVel
   LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
   m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
   scale.exchange();
-  //interpolate to faces
-  //CellToEdge(scale, a_faceCalvingVel);
-  LevelData<FluxBox>& faceScale = a_faceCalvingVel;
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
-      for (int dir = 0; dir < SpaceDim; dir++)
-  	{
-  	  Box faceBox = frac.box();
-  	  faceBox.grow(-1);
-  	  faceBox.surroundingNodes(dir);
-  	  faceBox &= faceScale[dit][dir].box();
 
-  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
-  	    {
-  	      const IntVect& iv = bit();
-  	      // cell-centre indices on the - and + sides of the face
-  	      IntVect ivm = iv - BASISV(dir); 
-  	      IntVect ivp = iv;
-	      // one-sided...
-  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
-  		{
-  		  faceScale[dit][dir](iv) = scale[dit](ivm);
-  		}
-  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
-  		{
-  		  faceScale[dit][dir](iv) = scale[dit](ivp);
-  		}
-  	      else
-  		{
-  		  // normal linear interpolation
-  		  faceScale[dit][dir](iv) = 0.5 * (scale[dit](ivm) + scale[dit](ivp));
-  		}
-  	    }
-  	}
-    }
-
-  // Von Mises Block
+  // cell-centered Von Mises stress
   LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
   // Access the (cell-centered) viscous tensor (vertically integrated stress)
   // SHOULD USE FACE VISCOUS TENSOR!
@@ -1466,6 +1432,7 @@ VonMisesCalvingModel::getCalvingVel
       // valid region box for this patch
       const Box& thisBox = a_grids[dit];
 
+ 
   // Compute the Von Mises Stress (cell-centered)
   FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
           CHF_CONST_FRA(a_viscousTensor[dit]),
@@ -1478,16 +1445,55 @@ VonMisesCalvingModel::getCalvingVel
           CHF_BOX(thisBox));
 
     } // End loop over boxes on a single processor
-  // End Von Mises block
+  // End Von Mises calculation
 
-  // multiply by -velocity*(von mises stress)
+  //interpolate to faces
+  // NOTE (SBK 20240620) CAN'T GROW THE VON MISES STRESS, AS NOT WELL DEFINED
+  // AT BOX EDGES CURRENTLY
+  //CellToEdge(scale, a_faceCalvingVel);
+  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	{
+  	  Box faceBox = frac.box();
+  	  faceBox.grow(-1);
+  	  faceBox.surroundingNodes(dir);
+  	  faceBox &= faceScaleVM[dit][dir].box();
+
+  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+  	    {
+  	      const IntVect& iv = bit();
+  	      // cell-centre indices on the - and + sides of the face
+  	      IntVect ivm = iv - BASISV(dir); 
+  	      IntVect ivp = iv;
+	      // one-sided...
+  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
+  		{
+  		  faceScaleVM[dit][dir](iv) = scale[dit](ivm)*vonmises[dit](iv);
+  		}
+  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
+  		{
+  		  faceScaleVM[dit][dir](iv) = scale[dit](ivp)*vonmises[dit](iv);
+  		}
+  	      else
+  		{
+  		  // normal linear interpolation
+  		  faceScaleVM[dit][dir](iv) = 0.5 * (scale[dit](ivm)*vonmises[dit](iv) + scale[dit](ivp)*vonmises[dit](iv));
+  		}
+  	    }
+  	}
+    }
+    // end interpolate to faces
+
+    // multiply by -velocity
   for (DataIterator dit(a_grids); dit.ok(); ++dit)
     {
       for (int dir = 0; dir < SpaceDim; dir++)
 	{
 	  a_faceCalvingVel[dit][dir] *= -1.0;
 	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
-	  a_faceCalvingVel[dit][dir] *= vonmises[dit];
 	}
     }
 
@@ -1531,10 +1537,10 @@ VonMisesCalvingModel::getCalvingVel
 	    }
 	}
     }
-
   return true;
   
 }
+*/
 
 void
 VonMisesCalvingModel::getCalvingRate
@@ -1607,6 +1613,7 @@ VonMisesCalvingModel::getCalvingRate
     }
 
   int dbg = 0;dbg++; 
+
 }
 /**Von Mises Building Blocks**/
 
