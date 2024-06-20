@@ -1391,7 +1391,7 @@ VonMisesCalvingModel::~VonMisesCalvingModel()
   
 }
 
-/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
+
 bool 
 VonMisesCalvingModel::getCalvingVel
 (LevelData<FluxBox>& a_faceCalvingVel,
@@ -1400,6 +1400,9 @@ VonMisesCalvingModel::getCalvingVel
  const DisjointBoxLayout& a_grids,
  const AmrIce& a_amrIce,int a_level)
 {
+  return false
+  }
+/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
   if (!m_vector) return false; 
 
   // cell-centered scale
