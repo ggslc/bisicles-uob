@@ -9,6 +9,5 @@ NETCDF_LIBS=$(shell nc-config --libs) -lhdf5
 
 FFTWDIR = $(FFTW_INC)/..
 
-CPPFLAGS+=$(CRAY_XPMEM_INCLUDE_OPTS)
-LIBFLAGS+=$(CRAY_XPMEM_POST_LINK_OPTS)
-
+PETSC_DIR=/global/common/software/m1041/petsc-perlmutter-new
+PETSC_ARCH=arch-linux-c-opt
