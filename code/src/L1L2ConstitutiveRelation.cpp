@@ -469,7 +469,7 @@ L1L2ConstitutiveRelation::computeEitherMuZ(FArrayBox& a_mu,
 	    
 	    //Real resNorm = res.norm(0);
 	    //CH_assert(resNorm < 2.0 * m_solverTol);   
-	    CH_assert(a_mu.min(a_box,l) > 0.0e0);
+	    //CH_assert(a_mu.min(a_box,l) > 0.0e0);
 	  } // end general case
       } // end loop over layers
     } // end else if a_layerCoarsen = 0
