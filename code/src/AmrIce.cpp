@@ -2919,7 +2919,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	      //remove calved area.
 	      const FArrayBox& frac = (*m_iceFrac[lev])[dit];
 	      const FArrayBox& calved_frac = (*m_calvedIceArea[lev])[dit];
-	      Real frac_tol = 1.0e-10;
+	      Real frac_tol = TINY_FRAC;
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	      	{
 	      	  const IntVect& iv = bit();
@@ -2927,6 +2927,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 		    {
 		      Real remove(0.0);
 		      if (frac(iv) > frac_tol)
+			
 			{
 			  if (calved_frac(iv) > frac_tol)
 			    {
@@ -4001,10 +4002,11 @@ AmrIce::updateIceFrac(LevelData<FArrayBox>& a_thickness, int a_level)
           IntVect iv = bit();
 
 	  if (thisH(iv) < ice_eps)
-	     {
-	       thisFrac(iv,0) = 0.0;
-	       thisH(iv,0) = 0.0;
-	     }
+	    {
+	      //thisFrac(iv,0) = 0.0;
+	      //thisH(iv,0) = 0.0;
+	    }
+
         }
     }
 }
@@ -4138,7 +4140,7 @@ AmrIce::advectIceFrac(FArrayBox& a_frac,
     }
 }
 
-void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
+void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 		      const Vector<LevelData<FluxBox>* >& a_u,
 		      Real a_dt, Real a_tol)
 {
@@ -4150,35 +4152,37 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
   
   
   // domain mask coefficient: 0 in the interior, 1 close to the front and in ice free regions.
-  Real f_front = 1.0 - a_tol;
-  Real dfdx_tol = a_tol * 1.0e-4;
+  const RealVect& dx0 = m_vect_coordSys[0]->dx(); 
   Vector<LevelData<FArrayBox>* > mask(m_finest_level+1, NULL);
+  
   for (int lev=0; lev<= m_finest_level; lev++)
     {
-      Real dx = m_vect_coordSys[lev]->dx()[0]; 
+     
       LevelData<FArrayBox>& levelF = *a_f[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
-      mask[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Zero);
       
+      mask[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Zero);
+      const RealVect& dx = m_vect_coordSys[lev]->dx(); 
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
 	  FArrayBox& f = (*a_f[lev])[dit];
 	  const Box& box = grids[dit];
 	  FArrayBox& m = (*mask[lev])[dit];
-	  m.setVal(0.0);
+	  m.setVal(0.0); ///// NOTE NOTE NOTE
+	  
 	  for (BoxIterator bit(box); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit();
-	      if (f(iv) < f_front) m(iv) = 1.0;
+	      //if ((f(iv) < 1.0 - a_tol) && (f(iv) > a_tol)) m(iv) = 1.0;
 	       
 	      for (int dir=0; dir<SpaceDim; dir++){
-		for (int sign = -1; sign <=1 ; sign += 2){
-		  IntVect ivp = iv + sign*BASISV(dir);
-		  if (Abs(f(iv) - f(ivp)) > dfdx_tol * dx)
-		    {
-		      m(iv) = 1.0;
-		    } // if
-		} // sign
+	      	for (int sign = -1; sign <=1 ; sign += 2){
+	      	  IntVect ivp = iv + sign*BASISV(dir);
+	      	  if (Abs(f(iv) - f(ivp)) * dx0[dir] > a_tol * dx[dir])
+	      	    {
+	      	      m(iv) = 1.0;
+	      	    } // if
+	      	} // sign
 	      } // dir
 	    } // bit
 	} // dit
@@ -4206,6 +4210,7 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
           advectPhysPtr->setVelocities(&(levelCCVel[dit]),
 				       &((*a_u[lev])[dit]));
 	  FArrayBox src(grids[dit],1); src.setVal(0.0);
+
 	  patchGod->computeWHalf( (*fHalf[lev])[dit], levelF[dit],
 				  src, a_dt, grids[dit]);
 	}
@@ -4220,7 +4225,8 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
   // update f.
   for (int lev=0; lev<= m_finest_level; lev++)
     {
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
+      LevelData<FArrayBox>& levelF = *a_f[lev];
+      const LevelData<FArrayBox>& levelH =  (*m_vect_coordSys[lev]).getH();
       const DisjointBoxLayout& grids = levelF.getBoxes();
       const RealVect& dx = m_vect_coordSys[lev]->dx(); 
       for (DataIterator dit(grids); dit.ok(); ++dit)
@@ -4241,6 +4247,21 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
 		    * (*mask[lev])[dit](iv) 
 		    ;
 		} // dir
+	      // expriemental post transport compression scheme
+	      if ( (*mask[lev])[dit](iv) < 2.0*a_tol)
+	      	{
+	      	  Real fprev = levelF[dit](iv);
+	      	  if (fprev > 0.9) dF(iv) = 1.0 - fprev;
+	      	  if (fprev < 0.1) dF(iv) = -fprev;   
+	      	}
+	      // else if (dF(iv) <= 0.0) 
+	      // 	{
+	      // 	  Real fprev = levelF[dit](iv);
+	      // 	  if (levelH[dit](iv) < 1.0)
+	      // 	    dF(iv) = - levelF[dit](iv);
+	      // 	}	   
+	      
+	      
 	    } // bit
 	  levelF[dit] += dF; 
 	} // dit
@@ -4380,7 +4401,32 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 	{
 	  // u + uc
 	  (*unet[lev])[dit] += ( (*a_faceVelAdvection[lev])[dit]);
-	}
+
+	  // // bodge. Set front vel directly !!!!
+	  // for (int dir = 0; dir < SpaceDim; dir++)
+	  //   {
+	  //     const RealVect& dx = m_vect_coordSys[lev]->dx(); 
+	  //     FArrayBox& v =  (*unet[lev])[dit][dir];
+	  //     for (BoxIterator bit(v.box()); bit.ok(); ++bit)
+	  // 	{
+	  // 	  const IntVect& iv = bit();
+	  // 	  Real xn = dx[dir]*(iv[dir]);
+	  // 	  int tdir = (dir == 0)?1:0;
+	  // 	  Real xt = dx[tdir]*(iv[tdir] + 0.5);
+	  // 	  Real xm = std::sqrt(xn*xn + xt*xt);
+	  // 	  if (xm > 100.0e+3)
+	  // 	    {
+	  // 	      Real xnhat = xn / xm;
+	  // 	      v(iv) = -300.0 * std::sin(M_PI * time() / 500.0) * xnhat;
+	  // 	    }
+	  // 	  else
+	  // 	    {
+	  // 	      v(iv) = 0.0;
+	  // 	    }
+	  // 	}
+	  //   }
+
+	}     
     }
 
   // non-conservative (because div u != 0) advection
@@ -4414,7 +4460,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   updateInvalidIceFrac(a_iceFrac);
 
   // Front compression bodges 
-  CompressFront(a_iceFrac, frac_start, m_finest_level, m_cur_step);
+  //CompressFront(a_iceFrac, frac_start, m_finest_level, m_cur_step);
   
   // record the calved ice area
   for (int lev=0; lev<= m_finest_level; lev++)

@@ -287,11 +287,10 @@ AmrIce::writeAMRPlotFile()
   
   if (m_write_thickness_sources)
     {
-      numPlotComps += 2;  // surface and basal sources
+      numPlotComps += 2;  // active surface and basal sources
       if (!m_reduced_plot)
 	{
-	  numPlotComps += 4; // divThicknessFlux, calving flux and accumulated calving
-	  numPlotComps += 2; // calving rate and water depth
+	  numPlotComps += 4; // divThicknessFlux, supplied surface and basal sources, calving flux
 	}
     }
 
@@ -352,10 +351,7 @@ AmrIce::writeAMRPlotFile()
   string basalThicknessSourceName("basalThicknessSource");
   string surfaceThicknessSourceName("surfaceThicknessSource");
   string divergenceThicknessFluxName("divergenceThicknessFlux");
-  string calvedIceThicknessName("calvingFlux");
-  string calvedThicknessSourceName("calvedThicknessSource");
-  string calvingRateName("calvingRate");
-  string waterDepthName("waterDepth");
+  string calvingFluxName("calvingFlux");
 
   Vector<string> vectName(numPlotComps);
   //int dThicknessComp;
@@ -543,9 +539,7 @@ AmrIce::writeAMRPlotFile()
 	  vectName[comp] = divergenceThicknessFluxName; comp++;	
 	  vectName[comp] = basalThicknessSourceName; comp++;
 	  vectName[comp] = surfaceThicknessSourceName; comp++;
-	  vectName[comp] = calvedIceThicknessName; comp++;
-	  vectName[comp] = calvingRateName; comp++;
-	  vectName[comp] = waterDepthName; comp++;
+	  vectName[comp] = calvingFluxName; comp++;
 	}
     }
 
@@ -616,14 +610,12 @@ AmrIce::writeAMRPlotFile()
       levelCS.getSurfaceHeight(levelZsurf);
       LevelData<FArrayBox> levelSTS (m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelBTS (m_amrGrids[lev], 1, ghostVect);
-      LevelData<FArrayBox> levelCalvingRate(m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelWaterDepth(m_amrGrids[lev], 1, ghostVect);
       
       if (m_write_thickness_sources)
 	{
 	  m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
 	  m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
-	  (*m_calvingModelPtr).getCalvingRate(levelCalvingRate, *this, lev);
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
 
@@ -904,14 +896,7 @@ AmrIce::writeAMRPlotFile()
 		    {
 		      thisPlotData.divide(m_dt, comp, 1);
 		    }              
-		  comp++;
-
-		  thisPlotData.copy(levelCalvingRate[dit], 0, comp, 1);
-		  comp++;
-
-		  thisPlotData.copy(levelWaterDepth[dit], 0, comp, 1);
-		  comp++;
-		  
+		  comp++;		  
 		}
 	    }
 
@@ -2863,31 +2848,31 @@ void AmrIce::initCFData()
       m_cf_field_interval.push_back( Interval(0,0));
     }
 
- // vertical front mass balance
-  if (test(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME,ppf,false))
-    {
-      pout() << "AmrIceIO:: CF vertical front mb" << endl;
-      m_uniform_cf_data_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME);
-      m_uniform_cf_standard_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_CF_NAME);
-      m_uniform_cf_long_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_LONG_NAME);
-      m_uniform_cf_units.push_back("kg m^-2 yr^-1");
-      m_cf_field_function.push_back
-	([this](int a_lev, LevelData<FArrayBox>& a_buf)
-	 {
-	   LevelSigmaCS& levelCS = *m_vect_coordSys[a_lev];
-	   Real rhoi = levelCS.iceDensity();
+ // // vertical front mass balance
+ //  if (test(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME,ppf,false))
+ //    {
+ //      pout() << "AmrIceIO:: CF vertical front mb" << endl;
+ //      m_uniform_cf_data_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME);
+ //      m_uniform_cf_standard_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_CF_NAME);
+ //      m_uniform_cf_long_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_LONG_NAME);
+ //      m_uniform_cf_units.push_back("kg m^-2 yr^-1");
+ //      m_cf_field_function.push_back
+ // 	([this](int a_lev, LevelData<FArrayBox>& a_buf)
+ // 	 {
+ // 	   LevelSigmaCS& levelCS = *m_vect_coordSys[a_lev];
+ // 	   Real rhoi = levelCS.iceDensity();
 
-	   for (DataIterator dit=a_buf.dataIterator(); dit.ok(); ++dit)
-	     {
-	       //a_buf[dit].copy((*m_calvedIceArea[a_lev])[dit]);
-	       a_buf[dit].plus((*m_calvedIceThickness[a_lev])[dit]);
-	       a_buf[dit] *= rhoi;
-	     }
-	   return &a_buf;
-	} );
+ // 	   for (DataIterator dit=a_buf.dataIterator(); dit.ok(); ++dit)
+ // 	     {
+ // 	       //a_buf[dit].copy((*m_calvedIceArea[a_lev])[dit]);
+ // 	       a_buf[dit].plus((*m_calvedIceThickness[a_lev])[dit]);
+ // 	       a_buf[dit] *= rhoi;
+ // 	     }
+ // 	   return &a_buf;
+ // 	} );
 
-      m_cf_field_interval.push_back( Interval(0,0));
-    }
+ //      m_cf_field_interval.push_back( Interval(0,0));
+ //    }
 
  /* 
     Fields from Table A3 from Nowicki et al, Geosci. Model Dev., 9, 4521–4545, 2016 
@@ -2909,7 +2894,7 @@ void AmrIce::initCFData()
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_SHORT_NAME);
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_LONG_NAME);
-      m_uniform_cf_units.push_back("kg m^-1 yr^-1");
+      m_uniform_cf_units.push_back("kg m^-2 yr^-1");
       m_cf_field_function.push_back
 	([this](int a_lev, LevelData<FArrayBox>& a_buf)
 	 {
@@ -2919,7 +2904,7 @@ void AmrIce::initCFData()
 	   for (DataIterator dit=a_buf.dataIterator(); dit.ok(); ++dit)
 	     {
 	       a_buf[dit].copy((*m_calvedIceThickness[a_lev])[dit]);
-	       a_buf[dit] *= rhoi;
+	       a_buf[dit] *= rhoi/m_dt;
 	     }
 	   return &a_buf;
 	} );
