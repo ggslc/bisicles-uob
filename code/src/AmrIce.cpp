@@ -4386,7 +4386,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     }
 
   // non-conservative (because div u != 0) advection
-  PGAdvect(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
+  PGAdvectFrac(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
   updateInvalidIceFrac(frac_a);
   
   // u - uc
@@ -4430,7 +4430,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     }
 
   // non-conservative (because div u != 0) advection
-  PGAdvect(a_iceFrac, unet, a_dt, TINY_FRAC);
+  PGAdvectFrac(a_iceFrac, unet, a_dt, TINY_FRAC);
 
 
   // enforce 0 <= frac <=1 0
