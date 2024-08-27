@@ -4140,6 +4140,46 @@ AmrIce::advectIceFrac(FArrayBox& a_frac,
     }
 }
 
+/// Non-conservative variant of AdvectPhysics (df/dt + v.grad f = s)
+class NCAdvectPhysics : public AdvectPhysics
+{
+  /// Post-normal predictor calculation.
+  /**
+     AdvectPhysics adds a source term to conserve W when div vel != 0.
+     Here were avoid that term.
+  */
+  virtual void postNormalPred(FArrayBox&       a_dWMinus,
+                              FArrayBox&       a_dWPlus,
+                              const FArrayBox& a_W,
+                              const Real&      a_dt,
+                              const Real&      a_dx,
+                              const int&       a_dir,
+                              const Box&       a_box)
+  {
+  }
+
+// Factory method - this object is its own factory.  It returns a pointer
+// to new NCAdvectPhysics object with the same definition as this object.
+  virtual GodunovPhysics* new_godunovPhysics() const
+  {
+    NCAdvectPhysics* newPtr = new NCAdvectPhysics();
+    
+    // Pass the current initial and boundary condition (IBC) object to this new
+    // patch integrator so it can create its own IBC object and define it as it
+    // needs to (i.e. new domain and grid spacing if necessary)
+    newPtr->setPhysIBC(getPhysIBC());
+    // Define the same domain and dx
+    newPtr->define(m_domain,m_dx);
+
+    GodunovPhysics* retval = static_cast<GodunovPhysics*>(newPtr);
+
+    // Return the new object
+    return retval;
+}
+
+};
+
+
 void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 		      const Vector<LevelData<FluxBox>* >& a_u,
 		      Real a_dt, Real a_tol)
@@ -4168,7 +4208,7 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 	  FArrayBox& f = (*a_f[lev])[dit];
 	  const Box& box = grids[dit];
 	  FArrayBox& m = (*mask[lev])[dit];
-	  m.setVal(0.0); ///// NOTE NOTE NOTE
+	  m.setVal(1.0); ///// NOTE NOTE NOTE
 	  
 	  for (BoxIterator bit(box); bit.ok(); ++bit)
 	    {
@@ -4192,7 +4232,33 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
   Vector<LevelData<FluxBox>* > fHalf(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
     {
-      PatchGodunov* patchGod = m_thicknessPatchGodVect[lev]; 
+      
+      NCAdvectPhysics fracPhys;
+      fracPhys.setPhysIBC(m_thicknessIBCPtr);
+      
+      PatchGodunov patchGodunov;      
+      {
+	int normalPredOrder = 2;
+	bool useFourthOrderSlopes = true;
+	bool usePrimLimiting = true;
+	bool useCharLimiting = false;
+	bool useFlattening = false;
+	Real artificialViscosity = 0.0;
+	bool useArtificialViscosity = artificialViscosity > TINY_NORM;     
+      
+	patchGodunov.define(m_amrDomains[lev],m_amrDx[lev],
+			    &fracPhys,
+			    normalPredOrder,
+			    useFourthOrderSlopes,
+			    usePrimLimiting,
+			    useCharLimiting,
+			    useFlattening,
+			    useArtificialViscosity,
+			    artificialViscosity);
+      }
+
+      //PatchGodunov* patchGod = m_thicknessPatchGodVect[lev];
+      PatchGodunov* patchGod = &patchGodunov;
       AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(patchGod->getGodunovPhysicsPtr());
       if (advectPhysPtr == NULL)
         {
@@ -4214,6 +4280,13 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 	  patchGod->computeWHalf( (*fHalf[lev])[dit], levelF[dit],
 				  src, a_dt, grids[dit]);
 	}
+
+      
+      
+
+      
+
+      
       // coarse average fHalf downward
       if (lev > 0)
 	{
