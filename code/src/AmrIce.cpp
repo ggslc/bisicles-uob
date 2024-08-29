@@ -4181,53 +4181,13 @@ class NCAdvectPhysics : public AdvectPhysics
 
 
 void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
-		      const Vector<LevelData<FluxBox>* >& a_u,
-		      Real a_dt, Real a_tol)
+			  const Vector<LevelData<FluxBox>* >& a_u,
+			  Real a_dt, Real a_tol)
 {
-
-  // attempt to use the patch godunov methods to evolve f.
+  
+  // Use the patch godunov methods to evolve f.
   // f is not conserved: the eqn is df/dt + u. grad(f) = 0
-  // applies on a domain where dx * |grad(f)| < a_tol 
-
-  
-  
-  // domain mask coefficient: 0 in the interior, 1 close to the front and in ice free regions.
-  const RealVect& dx0 = m_vect_coordSys[0]->dx(); 
-  Vector<LevelData<FArrayBox>* > mask(m_finest_level+1, NULL);
-  
-  for (int lev=0; lev<= m_finest_level; lev++)
-    {
-     
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      
-      mask[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Zero);
-      const RealVect& dx = m_vect_coordSys[lev]->dx(); 
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-	  FArrayBox& f = (*a_f[lev])[dit];
-	  const Box& box = grids[dit];
-	  FArrayBox& m = (*mask[lev])[dit];
-	  m.setVal(1.0); ///// NOTE NOTE NOTE
-	  
-	  for (BoxIterator bit(box); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      //if ((f(iv) < 1.0 - a_tol) && (f(iv) > a_tol)) m(iv) = 1.0;
-	       
-	      for (int dir=0; dir<SpaceDim; dir++){
-	      	for (int sign = -1; sign <=1 ; sign += 2){
-	      	  IntVect ivp = iv + sign*BASISV(dir);
-	      	  if (Abs(f(iv) - f(ivp)) * dx0[dir] > a_tol * dx[dir])
-	      	    {
-	      	      m(iv) = 1.0;
-	      	    } // if
-	      	} // sign
-	      } // dir
-	    } // bit
-	} // dit
-    } // lev
-
+ 
   // face/half-time centred f
   Vector<LevelData<FluxBox>* > fHalf(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -4257,36 +4217,28 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 			    artificialViscosity);
       }
 
-      //PatchGodunov* patchGod = m_thicknessPatchGodVect[lev];
-      PatchGodunov* patchGod = &patchGodunov;
-      AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(patchGod->getGodunovPhysicsPtr());
-      if (advectPhysPtr == NULL)
-        {
-          MayDay::Error("AmrIce::timestep -- unable to upcast GodunovPhysics to AdvectPhysics");
-        }
-      patchGod->setCurrentTime(m_time);
+      patchGodunov.setCurrentTime(m_time);
       LevelData<FArrayBox>& levelF = *a_f[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
       fHalf[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
+
       LevelData<FArrayBox> levelCCVel(grids, SpaceDim, IntVect::Unit);
       EdgeToCell(*a_u[lev], levelCCVel);
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
-	  patchGod->setCurrentBox(grids[dit]);
-          advectPhysPtr->setVelocities(&(levelCCVel[dit]),
-				       &((*a_u[lev])[dit]));
-	  FArrayBox src(grids[dit],1); src.setVal(0.0);
+	  patchGodunov.setCurrentBox(grids[dit]);
+	  NCAdvectPhysics* NCAdvectPhysPtr = dynamic_cast<NCAdvectPhysics*>(patchGodunov.getGodunovPhysicsPtr());
+	  if (NCAdvectPhysPtr == NULL)
+	    {
+	      MayDay::Error("AmrIce::PGAdvectFrac -- unable to upcast GodunovPhysics to NCAdvectPhysics");
+	    }
 
-	  patchGod->computeWHalf( (*fHalf[lev])[dit], levelF[dit],
-				  src, a_dt, grids[dit]);
+          NCAdvectPhysPtr->setVelocities(&(levelCCVel[dit]),&((*a_u[lev])[dit]));
+	  FArrayBox src(grids[dit],1); src.setVal(0.0);
+	  patchGodunov.computeWHalf( (*fHalf[lev])[dit], levelF[dit],
+				     src, a_dt, grids[dit]);
 	}
 
-      
-      
-
-      
-
-      
       // coarse average fHalf downward
       if (lev > 0)
 	{
@@ -4316,39 +4268,19 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 		{
 		  dF(iv) -= 0.5 * a_dt / dx[dir]
 		    * (u[dir](iv + BASISV(dir)) + u[dir](iv))
-		    * (f[dir](iv + BASISV(dir)) - f[dir](iv))
-		    * (*mask[lev])[dit](iv) 
-		    ;
+		    * (f[dir](iv + BASISV(dir)) - f[dir](iv));
 		} // dir
-	      // expriemental post transport compression scheme
-	      if ( (*mask[lev])[dit](iv) < 2.0*a_tol)
-	      	{
-	      	  Real fprev = levelF[dit](iv);
-	      	  if (fprev > 0.9) dF(iv) = 1.0 - fprev;
-	      	  if (fprev < 0.1) dF(iv) = -fprev;   
-	      	}
-	      // else if (dF(iv) <= 0.0) 
-	      // 	{
-	      // 	  Real fprev = levelF[dit](iv);
-	      // 	  if (levelH[dit](iv) < 1.0)
-	      // 	    dF(iv) = - levelF[dit](iv);
-	      // 	}	   
-	      
-	      
 	    } // bit
 	  levelF[dit] += dF; 
 	} // dit
     } // lev
-
+  
   // clean up
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       if (fHalf[lev]) {
 	delete  (fHalf[lev]); fHalf[lev] = NULL;}
-      if (mask[lev]) {
-	delete  (mask[lev]); mask[lev] = NULL;}
     }
-  
   
 }
 
