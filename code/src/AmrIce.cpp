@@ -4158,6 +4158,94 @@ class NCAdvectPhysics : public AdvectPhysics
   {
   }
 
+  /// Compute the solution to the Riemann problem.
+  /**
+     Given input left and right states (WLeft,WRight) in a direction, a_dir,
+     compute a Riemann problem and generate WGdnv at the faces within a_box.
+
+     Differs from AdvectPhysics in that the calculation requires only the
+     cell-centered velocity
+  */
+  virtual void sriemann(FArrayBox&       a_WGdnv,
+                       const FArrayBox& a_WLeft,
+                       const FArrayBox& a_WRight,
+                       const FArrayBox& a_W,
+                       const Real&      a_time,
+                       const int&       a_dir,
+                       const Box&       a_box)
+  {
+     CH_assert(isDefined());
+
+  CH_assert(a_WGdnv.box().contains(a_box));
+
+  CH_assert(m_advVelPtr != NULL);
+  FluxBox& advVel = *m_advVelPtr;
+  // CH_assert(advVel.box().contains(a_box));
+
+  // Get the numbers of relevant variables
+  int numPrim = numPrimitives();
+
+  CH_assert(a_WGdnv .nComp() == numPrim);
+  CH_assert(a_WLeft .nComp() == numPrim);
+  CH_assert(a_WRight.nComp() == numPrim);
+
+  // Cast away "const" inputs so their boxes can be shifted left or right
+  // 1/2 cell and then back again (no net change is made!)
+  FArrayBox& shiftWLeft  = (FArrayBox&)a_WLeft;
+  FArrayBox& shiftWRight = (FArrayBox&)a_WRight;
+
+  // Solution to the Riemann problem
+
+  // Shift the left and right primitive variable boxes 1/2 cell so they are
+  // face centered
+  shiftWLeft .shiftHalf(a_dir, 1);
+  shiftWRight.shiftHalf(a_dir,-1);
+
+  CH_assert(shiftWLeft .box().contains(a_box));
+  CH_assert(shiftWRight.box().contains(a_box));
+
+  const FArrayBox& u = *m_cellVelPtr;
+  
+  // Riemann solver computes WGdnv all edges that are not on the physical
+  // boundary. THE DIFFERENT BIT
+  for (BoxIterator bit(a_box); bit.ok(); ++bit)
+    {
+      const IntVect& iv_face = bit();
+      const IntVect& iv_cell_right = iv_face;
+      IntVect iv_cell_left = iv_cell_right - BASISV(a_dir);
+      const Real& ul = u(iv_cell_left,a_dir);
+      const Real& ur = u(iv_cell_right,a_dir);
+      const Real& wl = shiftWLeft(iv_face);
+      const Real& wr = shiftWRight(iv_face);
+      
+      Real uf = 0.5*(ul + ur);
+      if (uf > 0.0)
+	{
+	  a_WGdnv(iv_face) = wl;
+	}
+      else if (uf < 0.0)
+	{
+	  a_WGdnv(iv_face) = wr;
+	}
+      else
+	{
+	  a_WGdnv(iv_face) = 0.5*(wr + wl) ;
+	}
+    }
+  
+  // Call boundary Riemann solver (note: periodic BC's are handled there).
+  m_bc->primBC(a_WGdnv,shiftWLeft ,a_W,a_dir,Side::Hi,a_time);
+  m_bc->primBC(a_WGdnv,shiftWRight,a_W,a_dir,Side::Lo,a_time);
+
+  // Shift the left and right primitive variable boxes back to their original
+  // position
+  shiftWLeft .shiftHalf(a_dir,-1);
+  shiftWRight.shiftHalf(a_dir, 1);
+
+    
+  }
+
+  
 // Factory method - this object is its own factory.  It returns a pointer
 // to new NCAdvectPhysics object with the same definition as this object.
   virtual GodunovPhysics* new_godunovPhysics() const
