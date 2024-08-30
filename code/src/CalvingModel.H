@@ -56,7 +56,17 @@ public:
   {
     return false;
   }
-    
+
+  ///cell centred frontal ablation vector, if implelmented. Returns false  by default
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level)
+  {
+    return false;
+  }
+
+  
   /// frontal ablation rate.
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);
@@ -587,6 +597,14 @@ public:
 			      const DisjointBoxLayout& a_grids,
 			      const AmrIce& a_amrIce,int a_level);
 
+  ///cell centred frontal ablation vector
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
+  
+
+  
   //frontal ablation scalar
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);

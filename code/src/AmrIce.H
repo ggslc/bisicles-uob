@@ -700,7 +700,8 @@ protected:
      enforce df/dt = 0 where |grad(f)| > a_ tol
   */
   void PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
-		const Vector<LevelData<FluxBox>* >& a_u,
+		    //FC const Vector<LevelData<FluxBox>* >& a_u,
+		    const Vector<LevelData<FArrayBox>* >& a_u,
 		Real a_dt, Real a_tol);
   
   /// update real-valued ice fraction through advection from neighboring cells

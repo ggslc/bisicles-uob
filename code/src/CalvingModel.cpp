@@ -1089,6 +1089,59 @@ RateAuBuhatCalvingModel::~RateAuBuhatCalvingModel()
 
 bool 
 RateAuBuhatCalvingModel::getCalvingVel
+(LevelData<FArrayBox>& a_centreCalvingVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  if (!m_vector) return false;
+  
+  // cell-centered proportion
+  LevelData<FArrayBox> prop(a_grids, 1, 2*IntVect::Unit);
+  m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
+  prop.exchange();
+  
+  // -velocity * proportion
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      prop[dit] *= -1;
+      a_centreCalvingVel[dit].copy(a_centreIceVel[dit]);
+      for (int dir = 0; dir < SpaceDim; ++dir)
+	{
+	  a_centreCalvingVel[dit].mult(prop[dit], 0, dir, 1);
+	}
+    }
+
+  if (m_independent)
+    {
+      // cell-centered independent part 
+      LevelData<FArrayBox> ccrate(a_grids, 1, 1*IntVect::Unit);
+      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
+      ccrate.exchange();
+     
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+      	{
+	  const FArrayBox& u = a_centreIceVel[dit];
+	  FArrayBox& u_c = a_centreCalvingVel[dit];
+	  Box gbox = a_grids[dit];
+	  gbox.grow(1);
+	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      Real umod = 1.0e-10 + std::sqrt(u(iv,0)*u(iv,0) + u(iv,1)*u(iv,1));
+	      u_c(iv,0) -=  ccrate[dit](iv)*u(iv,0) / umod;
+	      u_c(iv,1) -=  ccrate[dit](iv)*u(iv,1) / umod;
+	    } // bit
+	} // dit
+    } // m_independent
+  return true;
+  
+}
+
+
+
+bool 
+RateAuBuhatCalvingModel::getCalvingVel
 (LevelData<FluxBox>& a_faceCalvingVel,
  const LevelData<FluxBox>& a_faceIceVel,
  const LevelData<FArrayBox>& a_centreIceVel,
