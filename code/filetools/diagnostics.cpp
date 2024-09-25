@@ -1468,194 +1468,22 @@ void computeDischarge(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
 		      Vector<LevelData<FArrayBox>* >& topography,
 		      Vector<LevelData<FArrayBox>* >& thickness, 
 		      Vector<Real>& dx, Vector<int>& ratio, 
-		      Vector<std::string>& name, 
-		      Vector<LevelData<FArrayBox>* >& data, 
-		      Vector<LevelData<FArrayBox>* >& sectorMask, 
-		      Real a_iceDensity, Real a_waterDensity, Real a_gravity,
-		      Real mcrseDx, 
+		      Vector<LevelData<FArrayBox>* >& sectorMask,  
 		      int maskNo)
 {
 
   CH_TIME("computeDischarge");
-
   
-   
-  int numLevels = data.size();
-  Vector<LevelData<FArrayBox>* > ccVel(numLevels, NULL);
-  Vector<LevelData<FluxBox>* > fcVel(numLevels, NULL);
-  Vector<LevelData<FluxBox>* > fcThck(numLevels, NULL);
-  Vector<LevelData<BaseFab<int> >* > ccMask(numLevels, NULL);
-  Vector<LevelData<FArrayBox>* > ccSMB(numLevels, NULL);
-  Vector<LevelData<FArrayBox>* > ccBMB(numLevels, NULL);
+  int numLevels = coords.size();
   Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
   Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
   for (int lev = 0; lev < numLevels; lev++)
     {
       int comp = 0;
       const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
-      ccVel[lev] = new LevelData<FArrayBox>(grids,SpaceDim,IntVect::Unit);
-      fcVel[lev] = new LevelData<FluxBox>(grids,1,IntVect::Unit);
-      fcThck[lev] = new LevelData<FluxBox>(grids,1,IntVect::Unit);
-      ccMask[lev] = new LevelData<BaseFab<int> >(grids,1,IntVect::Unit);
-      ccSMB[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      ccBMB[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      for (DataIterator dit(grids);dit.ok();++dit)
-	{
-	  (*ccVel[lev])[dit].setVal(0.0);
-	  for (int dir = 0; dir < SpaceDim; dir++)
-	    {
-	      (*fcVel[lev])[dit][dir].setVal(0.0);
-	    }
-	}
       ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
       ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      
-      for (int j = 0; j < name.size(); j++)
-	{
-	  if (name[j] == "xVel")
-	    {
-	      data[lev]->copyTo(Interval(j,j),*ccVel[lev],Interval(0,0));
-	      comp++;
-	    }
-	  else if (name[j] == "yVel")
-	    {
-	      data[lev]->copyTo(Interval(j,j),*ccVel[lev],Interval(1,1));
-	      comp++;
-	    }
-	  else if (name[j] == "surfaceThicknessSource")
-	    {
-	      data[lev]->copyTo(Interval(j,j),*ccSMB[lev],Interval(0,0));
-	      comp++;
-	    }
-	  else if (name[j] == "basalThicknessSource")
-	    {
-	      data[lev]->copyTo(Interval(j,j),*ccBMB[lev],Interval(0,0));
-	      comp++;
-	    }
-	}
-      CH_assert(comp == 4);
-
-      ccVel[lev]->exchange();
-      if (lev > 0)
-	{
-	  const DisjointBoxLayout& crseGrids = topography[lev-1]->disjointBoxLayout();
-	  PiecewiseLinearFillPatch velFiller(grids , crseGrids, ccVel[lev]->nComp(), 
-					     crseGrids.physDomain(), ratio[lev-1], 1);
-	  Real time_interp_coeff = 0.0;
-	  velFiller.fillInterp(*ccVel[lev],*ccVel[lev-1] ,*ccVel[lev-1],
-			       time_interp_coeff,0, 0, ccVel[lev]->nComp());
-	}
-
-      CellToEdge(*ccVel[lev], *fcVel[lev]);
-
-      //modification to fluxes at the margins, that is where mask changes to open sea or land.
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-
-	  
-	  const FArrayBox& thck = (*thickness[lev])[dit];
-	  const FArrayBox& topg = (*topography[lev])[dit];
-	  
-	  FArrayBox usrf(topg.box(),1);
-	  Real seaLevel = 0.0;
-
-	  FORT_SURFACEHEIGHT(CHF_FRA1(usrf,0),
-			     CHF_CONST_FRA1(thck,0),
-			     CHF_CONST_FRA1(topg,0),
-			     CHF_CONST_REAL(a_iceDensity),
-			     CHF_CONST_REAL(a_waterDensity),
-			     CHF_CONST_REAL(seaLevel),
-			     CHF_BOX(topg.box()));
-
-	  BaseFab<int>& mask = (*ccMask[lev])[dit];
-	  
-	  int any = 0;
-
-	  FORT_SETFLOATINGMASK(CHF_FIA1(mask,0),
-	  		       CHF_CONST_FRA1(usrf,0),
-	  		       CHF_CONST_FRA1(topg,0),
-	  		       CHF_CONST_FRA1(thck,0),
-	  		       CHF_INT(any),
-	  		       CHF_REAL(a_iceDensity),
-	  		       CHF_REAL(a_waterDensity),
-	  		       CHF_REAL(seaLevel),
-	  		       CHF_BOX(mask.box()));
-    
-
-	    // for (int dir = 0; dir < SpaceDim; ++dir)
-	    //   {
-	    // 	Box faceBox = grids[dit];
-	    // 	faceBox.surroundingNodes(dir);
-	    // 	FArrayBox& faceVel = (*fcVel[lev])[dit][dir];
-	    // 	Box grownFaceBox = faceBox;
-	    // 	CH_assert(faceVel.box().contains(grownFaceBox));
-	    // 	FArrayBox vface(faceBox,1);
-	    // 	FArrayBox faceVelCopy(faceVel.box(), 1); faceVelCopy.copy(faceVel);
-	    // 	const FArrayBox& cellVel = (*ccVel[lev])[dit];
-	    // 	BaseFab<int> mask(grids[dit],1) ;
-		
-	    // 	FORT_EXTRAPTOMARGIN(CHF_FRA1(faceVel,0),
-	    // 			    CHF_FRA1(vface,0),CHF_CONST_FRA1(faceVelCopy,0),
-	    // 			    CHF_CONST_FRA1(cellVel,dir),
-	    // 			    CHF_CONST_FRA1(usrf,0),
-	    // 			    CHF_CONST_FRA1(topg,0),
-	    // 			    CHF_CONST_FRA1(thck,0),
-	    // 			    CHF_CONST_INT(dir),
-	    // 			    CHF_BOX(faceBox));
-	    //   }
-	}
-
-      // // face centered thickness from PPM
-      // RealVect levelDx = RealVect::Unit * dx[lev];
-      // RefCountedPtr<LevelData<FArrayBox> > levelThck(thickness[0]); levelThck.neverDelete();
-      // RefCountedPtr<LevelData<FArrayBox> > levelTopg(topography[0]); levelTopg.neverDelete();
-      // LevelDataIBC thicknessIBC(levelThck,levelTopg,levelDx);
-      // Real dt = 1.0e-3;
-      // AdvectPhysics advectPhys;
-      // advectPhys.setPhysIBC(&thicknessIBC);
-      
-      // int normalPredOrder = 2;
-      // bool useFourthOrderSlopes = true;
-      // bool usePrimLimiting = true;
-      // bool useCharLimiting = false;
-      // bool useFlattening = false;
-      // bool useArtificialViscosity = false;
-      // Real artificialViscosity = 0.0;
-      // PatchGodunov patchGod;
-      // patchGod.define(grids.physDomain(), dx[lev], &advectPhys,
-      // 		      normalPredOrder,
-      // 		      useFourthOrderSlopes,
-      // 		      usePrimLimiting,
-      // 		      useCharLimiting,
-      // 		      useFlattening,
-      // 		      useArtificialViscosity,
-      // 		      artificialViscosity);
-      // AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(patchGod.getGodunovPhysicsPtr());
-      // CH_assert(advectPhysPtr != NULL);
-      
-      // for (DataIterator dit(grids);dit.ok();++dit)
-      // 	{
-	  
-      // 	  FluxBox& fcvel = (*fcVel[lev])[dit];
-      // 	  FArrayBox& ccvel = (*ccVel[lev])[dit];
-	  
-	  
-	  
-      // 	  FluxBox& faceh = (*fcThck[lev])[dit];
-      // 	  FArrayBox& cch = (*thickness[lev])[dit];
-	  
-      // 	  FArrayBox src(grids[dit],1); 
-      // 	  src.copy( (*ccSMB[lev])[dit]) ;
-      // 	  src.plus( (*ccBMB[lev])[dit]) ;
-	  
-      // 	  advectPhysPtr->setVelocities(&ccvel,&fcvel);
-
-      // 	  patchGod.setCurrentTime(0.0);
-      // 	  patchGod.setCurrentBox(grids[dit]);
-      // 	  patchGod.computeWHalf(faceh, cch, src, dt, grids[dit]);
-
-      // 	}
-
+     
       //work out discharge across boundary and flux divergence inside region 
       for (DataIterator dit(grids);dit.ok();++dit)
     	{
@@ -1663,27 +1491,20 @@ void computeDischarge(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
     	  discharge.setVal(0.0);
 	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
 	  divuh.setVal(0.0);
-    	  //const BaseFab<int>& mask = (*ccMask[lev])[dit];
 	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
     	  const FArrayBox& thck = (*thickness[lev])[dit];
     	  const Box& b = grids[dit];
 	  
     	  for (int dir =0; dir < SpaceDim; dir++)
     	    {
- 
-	     
 	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
     	      for (BoxIterator bit(b);bit.ok();++bit)
     		{
     		  const IntVect& iv = bit();
     		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
     		    {
-
-
-		    
-		      
     		      Real epsThck = 1.0e-4;// TODO fix magic number
-		       if ((thck(iv) > epsThck) && (mask(iv) == GROUNDEDMASKVAL))
+		      if ((thck(iv) > epsThck) && (mask(iv) == GROUNDEDMASKVAL))
 		       	{
 		       	  // grounded and thick ice -> compute flux divergence
 		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
@@ -1691,48 +1512,28 @@ void computeDischarge(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
 		      if ((thck(iv) < epsThck) || (mask(iv) != GROUNDEDMASKVAL))
     			{
 			  // not grounded , or thin, compute discharge at boundary
-			  
     			  if (thck(iv + BASISV(dir)) > epsThck && (mask(iv + BASISV(dir)) == GROUNDEDMASKVAL) ) 
     			    {
     			      discharge(iv) += -flux(iv + BASISV(dir)) / dx[lev];
-			      
     			    }
     			  if (thck(iv - BASISV(dir)) > epsThck && (mask(iv - BASISV(dir)) == GROUNDEDMASKVAL) )
     			    {
     			      discharge(iv) += flux(iv) / dx[lev];
-			     
     			    }
     			}
-		      
-
-		      //end if (thck(iv) < epsThck)
-    		    }
-
+    		    }//end if (thck(iv) < epsThck)
     		} //end loop over cells
     	    } // end loop over direction
     	} // end loop over grids
     } //end loop over levels
 
-    
   Real sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
- 
   Real sumdivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
   pout() << " discharge = " << sumDischarge << " fluxDivergence = " << sumdivUH << std::endl ;
   
   for (int lev = 0; lev < numLevels; lev++)
     {
-      if (ccVel[lev] != NULL)
-	{
-	  delete ccVel[lev];ccVel[lev]= NULL;
-	}
-      if (fcVel[lev] != NULL)
-	{
-	  delete fcVel[lev];fcVel[lev]= NULL;
-	}
-      if (fcThck[lev] != NULL)
-	{
-	  delete fcThck[lev];fcThck[lev]= NULL;
-	}
+      
       if (ccDischarge[lev] != NULL)
 	{
 	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
@@ -1740,23 +1541,93 @@ void computeDischarge(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
       if (ccDivUH[lev] != NULL)
 	{
 	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
-	}
-      if (ccMask[lev] != NULL)
-	{
-	  delete ccMask[lev];ccMask[lev]= NULL;
-	}
-       if (ccSMB[lev] != NULL)
-	{
-	  delete ccSMB[lev];ccSMB[lev]= NULL;
-	}
-      if (ccBMB[lev] != NULL)
-	{
-	  delete ccBMB[lev];ccBMB[lev]= NULL;
-	}
-      
+	}      
     }
+}
 
 
+#include <functional>
+void computeDischarge(function<bool(int mask, Real thickness)> inside,
+		      const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
+		      const Vector<LevelData<FluxBox>* >& fluxOfIce,
+		      const Vector<LevelData<FArrayBox>* >& topography,
+		      const Vector<LevelData<FArrayBox>* >& thickness, 
+		      const Vector<Real>& dx, Vector<int>& ratio, 
+		      const Vector<LevelData<FArrayBox>* >& sectorMask,  
+		      int maskNo)
+{
+
+  CH_TIME("computeDischarge");
+  
+  int numLevels = coords.size();
+  Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
+  Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      int comp = 0;
+      const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
+      ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
+      ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
+     
+      //work out discharge across boundary and flux divergence inside region 
+      for (DataIterator dit(grids);dit.ok();++dit)
+    	{
+    	  FArrayBox& discharge = (*ccDischarge[lev])[dit];
+    	  discharge.setVal(0.0);
+	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
+	  divuh.setVal(0.0);
+	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
+    	  const FArrayBox& thck = (*thickness[lev])[dit];
+    	  const Box& b = grids[dit];
+	  
+    	  for (int dir =0; dir < SpaceDim; dir++)
+    	    {
+	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
+    	      for (BoxIterator bit(b);bit.ok();++bit)
+    		{
+    		  const IntVect& iv = bit();
+    		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
+    		    {
+    		      Real epsThck = 1.0e-4;// TODO fix magic number
+		      if (inside(thck(iv), mask(iv)))
+		       	{
+			  //inside the sub-region - compute div(flux)
+		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
+		       	}
+		      else
+    			{
+			  //outside - compute discharge/dx if neigbours are inside
+			  if (inside(thck(iv + BASISV(dir)), mask(iv + BASISV(dir))))
+			    {
+			      discharge(iv) += -flux(iv + BASISV(dir)) / dx[lev];
+    			    }
+			  if (inside(thck(iv - BASISV(dir)), mask(iv - BASISV(dir))))
+    			    {
+    			      discharge(iv) += flux(iv) / dx[lev];
+    			    }
+    			}
+    		    }//end if inside else
+    		} //end loop over cells
+    	    } // end loop over direction
+    	} // end loop over grids
+    } //end loop over levels
+
+  Real sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
+  Real sumdivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
+  pout() << " discharge = " << sumDischarge << " fluxDivergence = " << sumdivUH << std::endl ;
+  
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      
+      if (ccDischarge[lev] != NULL)
+	{
+	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
+	}
+      if (ccDivUH[lev] != NULL)
+	{
+	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
+	}      
+    }
 }
 
 
@@ -1991,8 +1862,10 @@ int main(int argc, char* argv[]) {
 	  
 
 	  pout() << endl;
-	  computeDischarge(coords, fluxOfIce,topography, thickness, dx, ratio, name, data, sectorMask,
-			 iceDensity, waterDensity,gravity,mcrseDx,maskNo);
+	  //computeDischarge(coords, fluxOfIce,topography, thickness, dx, ratio, sectorMask, maskNo);
+
+	  auto grounded = [Hmin](Real h, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > Hmin));} ;
+	  computeDischarge(grounded,coords, fluxOfIce,topography, thickness, dx, ratio, sectorMask, maskNo);
 	}
 	
 	computeGrounded(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
