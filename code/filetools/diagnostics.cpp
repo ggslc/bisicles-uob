@@ -38,6 +38,209 @@
 #include "FillFromReference.H"
 #include "IceThicknessIBC.H"
 #include "LevelDataIBC.H"
+#include <functional>
+
+void integrateScalarInside(Real& integral, 
+		     function<bool(int mask, Real thickness)> inside,
+		     const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
+		     const Vector<LevelData<FArrayBox>* >& integrand, 
+		     const Vector<LevelData<FArrayBox>* >& topography,
+		     const Vector<LevelData<FArrayBox>* >& thickness, 
+		     const Vector<LevelData<FArrayBox>* >& sectorMask,
+		     const Vector<Real>& dx, const Vector<int>& ratio, 
+		     int maskNo)
+{
+  int numLevels = coords.size();
+  Vector<LevelData<FArrayBox>* > maskedIntegrand(numLevels, NULL);
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      const DisjointBoxLayout& grids = integrand[lev]->disjointBoxLayout();
+      maskedIntegrand[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
+      for (DataIterator dit(grids);dit.ok();++dit)
+	{
+	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
+    	  const FArrayBox& thck = (*thickness[lev])[dit];
+	  const Box& b = grids[dit];
+	  const FArrayBox& f = (*integrand[lev])[dit];
+	  FArrayBox& g = (*maskedIntegrand[lev])[dit];
+	  g.setVal(0.0);
+	  for (BoxIterator bit(b);bit.ok();++bit)
+	    {
+	      const IntVect& iv = bit();
+	      if (std::abs ( (*sectorMask[lev])[dit](iv) - static_cast<Real>(maskNo)) < 1.0e-6 || maskNo == -1)
+		{
+		  if (inside(thck(iv), mask(iv)))
+		    {
+		      g(iv) = f(iv);
+		    }
+		}
+	    } // bit
+	} //dit
+    } //lev
+
+  integral = computeSum(maskedIntegrand, ratio, dx[0], Interval(0,0), 0);
+
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      if (maskedIntegrand[lev] != NULL)
+	{
+	  delete maskedIntegrand[lev];maskedIntegrand[lev]= NULL;
+	}  
+    }
+  
+}
+
+void integrateDischargeInside(Real& sumDischarge, Real& sumDivUH,
+			      function<bool(int mask, Real thickness)> inside,
+			      const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
+			      const Vector<LevelData<FluxBox>* >& fluxOfIce,
+			      const Vector<LevelData<FArrayBox>* >& topography,
+			      const Vector<LevelData<FArrayBox>* >& thickness, 
+			      const Vector<Real>& dx, const Vector<int>& ratio, 
+			      const Vector<LevelData<FArrayBox>* >& sectorMask,  
+			      int maskNo)
+{
+
+  CH_TIME("computeDischarge");
+  
+  int numLevels = coords.size();
+  Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
+  Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      int comp = 0;
+      const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
+      ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
+      ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
+     
+      //work out discharge across boundary and flux divergence inside region 
+      for (DataIterator dit(grids);dit.ok();++dit)
+    	{
+    	  FArrayBox& discharge = (*ccDischarge[lev])[dit];
+    	  discharge.setVal(0.0);
+	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
+	  divuh.setVal(0.0);
+	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
+    	  const FArrayBox& thck = (*thickness[lev])[dit];
+    	  const Box& b = grids[dit];
+	  
+    	  for (int dir =0; dir < SpaceDim; dir++)
+    	    {
+	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
+    	      for (BoxIterator bit(b);bit.ok();++bit)
+    		{
+    		  const IntVect& iv = bit();
+    		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
+    		    {
+    		      Real epsThck = 1.0e-4;// TODO fix magic number
+		      if (inside(thck(iv), mask(iv)))
+		       	{
+			  //inside the sub-region - compute div(flux)
+		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
+		       	}
+		      else
+    			{
+			  //outside - compute discharge/dx if neigbours are inside
+			  if (inside(thck(iv + BASISV(dir)), mask(iv + BASISV(dir))))
+			    {
+			      discharge(iv) += -flux(iv + BASISV(dir)) / dx[lev];
+    			    }
+			  if (inside(thck(iv - BASISV(dir)), mask(iv - BASISV(dir))))
+    			    {
+    			      discharge(iv) += flux(iv) / dx[lev];
+    			    }
+    			}
+    		    }//end if inside else
+    		} //end loop over cells
+    	    } // end loop over direction
+    	} // end loop over grids
+    } //end loop over levels
+
+  sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
+  sumDivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
+  
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      
+      if (ccDischarge[lev] != NULL)
+	{
+	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
+	}
+      if (ccDivUH[lev] != NULL)
+	{
+	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
+	}      
+    }
+}
+
+
+void reportConservationInside(function<bool(int mask, Real thickness)> inside,
+			      const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
+			      const Vector<LevelData<FluxBox>* >& fluxOfIce,
+			      const Vector<LevelData<FArrayBox>* >& surfaceThicknessSource, 
+			      const Vector<LevelData<FArrayBox>* >& basalThicknessSource,
+			      const Vector<LevelData<FArrayBox>* >& deltaThickness,
+			      const Vector<LevelData<FArrayBox>* >& divergenceThicknessFlux,
+			      const Vector<LevelData<FArrayBox>* >& topography,
+			      const Vector<LevelData<FArrayBox>* >& thickness, 
+			      const Vector<LevelData<FArrayBox>* >& sectorMask,
+			      const Vector<Real>& dx, const Vector<int>& ratio, 
+			      int maskNo)
+{
+
+  Real sumDischarge, sumDivUHComputed, sumSMB, sumBMB, sumDHDT, sumDivUHInput, area;
+  
+  integrateDischargeInside(sumDischarge, sumDivUHComputed,
+			   inside, coords, fluxOfIce,topography,
+			   thickness, dx, ratio, sectorMask, maskNo);
+
+  // just to make the args less reptitive...
+  auto sumScalar = [inside,coords,topography, thickness, sectorMask, dx, ratio, maskNo ]
+    (const Vector<LevelData<FArrayBox>* >& scalar)
+		   {
+		     Real sumScalar;
+		     integrateScalarInside(sumScalar, inside ,coords, scalar, topography, thickness, 
+					   sectorMask, dx, ratio, maskNo);
+		     return sumScalar;
+		   };
+  
+  sumSMB = sumScalar(surfaceThicknessSource);
+  sumBMB = sumScalar(basalThicknessSource);
+  sumDHDT = sumScalar(deltaThickness);
+  sumDivUHInput = sumScalar(divergenceThicknessFlux);
+
+  // Area calculation. Maybe put this elsehwere
+  {
+    Vector<LevelData<FArrayBox>* > one(thickness.size(),NULL);
+    for (int lev = 0; lev < one.size(); lev++)
+      {
+	const DisjointBoxLayout& grids = (*thickness[lev]).disjointBoxLayout();
+	one[lev] = new LevelData<FArrayBox>(grids, 1, IntVect::Zero);
+	for (DataIterator dit(grids); dit.ok(); ++dit)
+	  (*one[lev])[dit].setVal(1.0);
+      }
+    area = sumScalar(one);
+    for (int lev = 0; lev < one.size(); lev++)
+      {
+	if (one[lev])
+	  {
+	    delete one[lev]; one[lev] = NULL;
+	  }
+      }
+  }
+
+  pout() << std::endl << "area = " << area << " "
+	 << "discharge = " << sumDischarge << " "
+	 << "dhdt = " << sumDHDT << " "
+	 << "smb = " << sumSMB << " "
+	 << "bmb = " << sumBMB << " "
+	 << "fluxDivergenceRecontsr = " << sumDivUHComputed << " "
+	 << "fluxDivergenceFromFile = " << sumDivUHInput << " "
+	 << " (smb+bmb-flxDivReconstr-dhdt) = " << sumSMB + sumBMB - sumDivUHComputed - sumDHDT << " "
+	 << " (smb+bmb-flxDixFromFile-dhdt) = " << sumSMB + sumBMB - sumDivUHInput - sumDHDT << " "
+	 << std::endl;
+}
+
 
 void createDEM( Vector<LevelData<FArrayBox>* >& topography,  
 		Vector<LevelData<FArrayBox>* >& thickness, 
@@ -1463,172 +1666,9 @@ void computeFloating(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
 
 }
 
-void computeDischarge(const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-		      Vector<LevelData<FluxBox>* >& fluxOfIce,
-		      Vector<LevelData<FArrayBox>* >& topography,
-		      Vector<LevelData<FArrayBox>* >& thickness, 
-		      Vector<Real>& dx, Vector<int>& ratio, 
-		      Vector<LevelData<FArrayBox>* >& sectorMask,  
-		      int maskNo)
-{
-
-  CH_TIME("computeDischarge");
-  
-  int numLevels = coords.size();
-  Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
-  Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      int comp = 0;
-      const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
-      ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-     
-      //work out discharge across boundary and flux divergence inside region 
-      for (DataIterator dit(grids);dit.ok();++dit)
-    	{
-    	  FArrayBox& discharge = (*ccDischarge[lev])[dit];
-    	  discharge.setVal(0.0);
-	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
-	  divuh.setVal(0.0);
-	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
-    	  const FArrayBox& thck = (*thickness[lev])[dit];
-    	  const Box& b = grids[dit];
-	  
-    	  for (int dir =0; dir < SpaceDim; dir++)
-    	    {
-	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
-    	      for (BoxIterator bit(b);bit.ok();++bit)
-    		{
-    		  const IntVect& iv = bit();
-    		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
-    		    {
-    		      Real epsThck = 1.0e-4;// TODO fix magic number
-		      if ((thck(iv) > epsThck) && (mask(iv) == GROUNDEDMASKVAL))
-		       	{
-		       	  // grounded and thick ice -> compute flux divergence
-		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
-		       	}
-		      if ((thck(iv) < epsThck) || (mask(iv) != GROUNDEDMASKVAL))
-    			{
-			  // not grounded , or thin, compute discharge at boundary
-    			  if (thck(iv + BASISV(dir)) > epsThck && (mask(iv + BASISV(dir)) == GROUNDEDMASKVAL) ) 
-    			    {
-    			      discharge(iv) += -flux(iv + BASISV(dir)) / dx[lev];
-    			    }
-    			  if (thck(iv - BASISV(dir)) > epsThck && (mask(iv - BASISV(dir)) == GROUNDEDMASKVAL) )
-    			    {
-    			      discharge(iv) += flux(iv) / dx[lev];
-    			    }
-    			}
-    		    }//end if (thck(iv) < epsThck)
-    		} //end loop over cells
-    	    } // end loop over direction
-    	} // end loop over grids
-    } //end loop over levels
-
-  Real sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
-  Real sumdivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
-  pout() << " discharge = " << sumDischarge << " fluxDivergence = " << sumdivUH << std::endl ;
-  
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      
-      if (ccDischarge[lev] != NULL)
-	{
-	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
-	}
-      if (ccDivUH[lev] != NULL)
-	{
-	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
-	}      
-    }
-}
 
 
-#include <functional>
-void computeDischarge(function<bool(int mask, Real thickness)> inside,
-		      const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-		      const Vector<LevelData<FluxBox>* >& fluxOfIce,
-		      const Vector<LevelData<FArrayBox>* >& topography,
-		      const Vector<LevelData<FArrayBox>* >& thickness, 
-		      const Vector<Real>& dx, Vector<int>& ratio, 
-		      const Vector<LevelData<FArrayBox>* >& sectorMask,  
-		      int maskNo)
-{
 
-  CH_TIME("computeDischarge");
-  
-  int numLevels = coords.size();
-  Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
-  Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      int comp = 0;
-      const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
-      ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-     
-      //work out discharge across boundary and flux divergence inside region 
-      for (DataIterator dit(grids);dit.ok();++dit)
-    	{
-    	  FArrayBox& discharge = (*ccDischarge[lev])[dit];
-    	  discharge.setVal(0.0);
-	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
-	  divuh.setVal(0.0);
-	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
-    	  const FArrayBox& thck = (*thickness[lev])[dit];
-    	  const Box& b = grids[dit];
-	  
-    	  for (int dir =0; dir < SpaceDim; dir++)
-    	    {
-	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
-    	      for (BoxIterator bit(b);bit.ok();++bit)
-    		{
-    		  const IntVect& iv = bit();
-    		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
-    		    {
-    		      Real epsThck = 1.0e-4;// TODO fix magic number
-		      if (inside(thck(iv), mask(iv)))
-		       	{
-			  //inside the sub-region - compute div(flux)
-		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
-		       	}
-		      else
-    			{
-			  //outside - compute discharge/dx if neigbours are inside
-			  if (inside(thck(iv + BASISV(dir)), mask(iv + BASISV(dir))))
-			    {
-			      discharge(iv) += -flux(iv + BASISV(dir)) / dx[lev];
-    			    }
-			  if (inside(thck(iv - BASISV(dir)), mask(iv - BASISV(dir))))
-    			    {
-    			      discharge(iv) += flux(iv) / dx[lev];
-    			    }
-    			}
-    		    }//end if inside else
-    		} //end loop over cells
-    	    } // end loop over direction
-    	} // end loop over grids
-    } //end loop over levels
-
-  Real sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
-  Real sumdivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
-  pout() << " discharge = " << sumDischarge << " fluxDivergence = " << sumdivUH << std::endl ;
-  
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      
-      if (ccDischarge[lev] != NULL)
-	{
-	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
-	}
-      if (ccDivUH[lev] != NULL)
-	{
-	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
-	}      
-    }
-}
 
 
 
@@ -1857,129 +1897,56 @@ int main(int argc, char* argv[]) {
 	    pout() << ", sector = " << maskNo;
 	  }
 	pout() << endl;
+	{
+	  auto grounded = [Hmin](Real h, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > Hmin));} ;
+	  reportConservationInside(grounded,coords, fluxOfIce, surfaceThicknessSource,
+				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
+				   topography, thickness, sectorMask, dx, ratio, maskNo);   
+	}
+	pout() << endl << endl;
+
+	pout() << " Diagnostics for floating ice";
+	if (maskFile)
+	  {
+	    pout() << ", sector = " << maskNo;
+	  }
+	{
+	  auto floating = [Hmin](Real h, int mask){ return ((mask == FLOATINGMASKVAL) && (h > Hmin));} ;
+	  reportConservationInside(floating ,coords, fluxOfIce, surfaceThicknessSource,
+				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
+				   topography, thickness, sectorMask, dx, ratio, maskNo);   
+	}
+	pout() << endl << endl;
+	
+	pout() << " Diagnostics for ice sheet";
+	if (maskFile)
+	  {
+	    pout() << ", sector = " << maskNo;
+	  }
+	{
+	  auto ice = [Hmin](Real h, int mask){ return (h > Hmin);} ;
+	  reportConservationInside(ice ,coords, fluxOfIce, surfaceThicknessSource,
+				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
+				   topography, thickness, sectorMask, dx, ratio, maskNo);   
+	}
+	pout() << endl << endl;
+	
+	pout() << " Diagnostics for outside ice sheet";
+	if (maskFile)
+	  {
+	    pout() << ", sector = " << maskNo;
+	  }
 
 	{
 	  
-
-	  pout() << endl;
-	  //computeDischarge(coords, fluxOfIce,topography, thickness, dx, ratio, sectorMask, maskNo);
-
-	  auto grounded = [Hmin](Real h, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > Hmin));} ;
-	  computeDischarge(grounded,coords, fluxOfIce,topography, thickness, dx, ratio, sectorMask, maskNo);
+	  auto notice = [Hmin](Real h, int mask){ return (h < Hmin);} ;
+	  reportConservationInside(notice ,coords, fluxOfIce, surfaceThicknessSource,
+				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
+				   topography, thickness, sectorMask, dx, ratio, maskNo);   
 	}
-	
-	computeGrounded(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, topography, thickness, 
-			sectorMask, Hmin, dx, ratio, maskNo);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for floating ice";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	pout() << endl;
-	computeFloating(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, maskNo);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	pout() << endl;
-	computeIceSheet(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, maskNo);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for outside ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	pout() << endl;
-	computeOutsideIce(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, maskNo);
-	pout() << endl;
-	pout() << endl;
-
+	pout() << endl << endl;
       }
-
-    // now compute stats for all sectors
-    if (maskNoStart != maskNoEnd)
-      {
-	pout() << " Diagnostics for computational domain";
-	if (maskFile)
-	  {
-	    pout() << ", all sectors " << endl;
-	  }
-	pout() << " time = " << time  ;
-
-	computeIceStats(coords,topography, thickness, melangeThickness, sectorMask, dx, ratio, -1);
-	pout() << endl;
-	computeVolCons(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-		       deltaThickness, divergenceThicknessFlux, calvingFlux,
-		       topography, thickness, sectorMask, dx, ratio, -1);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for grounded ice, excluding thin ice";
-	if (maskFile)
-	  {
-	    pout() << ", all sectors ";
-	  }
-	pout() << endl;
-	computeGrounded(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, topography, thickness, 
-			sectorMask, Hmin, dx, ratio, -1);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for floating ice";
-	if (maskFile)
-	  {
-	    pout() << ", all sectors ";
-	  }
-	pout() << endl;
-	computeFloating(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, -1);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", all sectors ";
-	  }
-	pout() << endl;
-	computeIceSheet(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, -1);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for outside ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", all sectors ";
-	  }
-	pout() << endl;
-	computeOutsideIce(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-			deltaThickness, divergenceThicknessFlux, calvingFlux,
-			topography, thickness, sectorMask, dx, ratio, -1);
-	pout() << endl;
-	pout() << endl;
-
-      }
-    
+ 
     for (int lev=0;lev<numLevels;++lev)
       {
 	if (sectorMask[lev] != NULL) delete sectorMask[lev];
