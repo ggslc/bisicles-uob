@@ -181,6 +181,7 @@ void reportConservationInside(function<bool(int mask, Real thickness)> inside,
 			      const Vector<LevelData<FArrayBox>* >& basalThicknessSource,
 			      const Vector<LevelData<FArrayBox>* >& deltaThickness,
 			      const Vector<LevelData<FArrayBox>* >& divergenceThicknessFlux,
+			      const Vector<LevelData<FArrayBox>* >& calvingFlux,
 			      const Vector<LevelData<FArrayBox>* >& topography,
 			      const Vector<LevelData<FArrayBox>* >& thickness, 
 			      const Vector<LevelData<FArrayBox>* >& sectorMask,
@@ -188,7 +189,8 @@ void reportConservationInside(function<bool(int mask, Real thickness)> inside,
 			      int maskNo)
 {
 
-  Real sumDischarge, sumDivUHComputed, sumSMB, sumBMB, sumDHDT, sumDivUHInput, area;
+  Real sumDischarge, sumDivUHComputed, sumSMB, sumBMB, sumCalv, sumH, sumHAB,
+    sumDHDT, sumDivUHInput, area;
   
   integrateDischargeInside(sumDischarge, sumDivUHComputed,
 			   inside, coords, fluxOfIce,topography,
@@ -208,6 +210,15 @@ void reportConservationInside(function<bool(int mask, Real thickness)> inside,
   sumBMB = sumScalar(basalThicknessSource);
   sumDHDT = sumScalar(deltaThickness);
   sumDivUHInput = sumScalar(divergenceThicknessFlux);
+  sumCalv = sumScalar(calvingFlux);
+  sumH = sumScalar(thickness);
+
+  Vector<LevelData<FArrayBox>* > hab;
+  for (int lev = 0; lev < coords.size(); lev++)
+    {
+      hab.push_back(const_cast<LevelData<FArrayBox>* >(&(coords[lev]->getThicknessOverFlotation())));
+    }
+  sumHAB = sumScalar(hab);
 
   // Area calculation. Maybe put this elsehwere
   {
@@ -229,15 +240,19 @@ void reportConservationInside(function<bool(int mask, Real thickness)> inside,
       }
   }
 
-  pout() << std::endl << "area = " << area << " "
+  pout() << std::endl
+	 << "area = " << area << " "
+	 << "volume = " << sumH << " "
+	 << "volume above flotation " << sumHAB << " "
 	 << "discharge = " << sumDischarge << " "
 	 << "dhdt = " << sumDHDT << " "
 	 << "smb = " << sumSMB << " "
 	 << "bmb = " << sumBMB << " "
+	 << "calving = " << sumCalv << " "
 	 << "fluxDivergenceRecontsr = " << sumDivUHComputed << " "
 	 << "fluxDivergenceFromFile = " << sumDivUHInput << " "
-	 << " (smb+bmb-flxDivReconstr-dhdt) = " << sumSMB + sumBMB - sumDivUHComputed - sumDHDT << " "
-	 << " (smb+bmb-flxDixFromFile-dhdt) = " << sumSMB + sumBMB - sumDivUHInput - sumDHDT << " "
+	 << " (smb+bmb-calving-flxDivReconstr-dhdt) = " << sumSMB + sumBMB - sumCalv - sumDivUHComputed - sumDHDT << " "
+	 << " (smb+bmb-calving-flxDivFromFile-dhdt) = " << sumSMB + sumBMB - sumCalv - sumDivUHInput - sumDHDT << " "
 	 << std::endl;
 }
 
@@ -1875,78 +1890,34 @@ int main(int argc, char* argv[]) {
 
     for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
       {
-	pout() << " Diagnostics for computational domain";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	pout() << endl;
-	pout() << " time = " << time  ;
+	typedef std::map<std::string, function<bool(int mask, Real thickness)> > MapSF;
+	MapSF regions;
 
-	computeIceStats(coords,topography, thickness, melangeThickness, sectorMask, dx, ratio, maskNo);
-	pout() << endl;
-	computeVolCons(coords, fluxOfIce, surfaceThicknessSource, basalThicknessSource, 
-		       deltaThickness, divergenceThicknessFlux, calvingFlux,
-		       topography, thickness, sectorMask, dx, ratio, maskNo);
-	pout() << endl;
-	pout() << endl;
-
-	pout() << " Diagnostics for grounded ice, excluding thin ice";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	pout() << endl;
-	{
-	  auto grounded = [Hmin](Real h, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > Hmin));} ;
-	  reportConservationInside(grounded,coords, fluxOfIce, surfaceThicknessSource,
-				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
-				   topography, thickness, sectorMask, dx, ratio, maskNo);   
-	}
-	pout() << endl << endl;
-
-	pout() << " Diagnostics for floating ice";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	{
-	  auto floating = [Hmin](Real h, int mask){ return ((mask == FLOATINGMASKVAL) && (h > Hmin));} ;
-	  reportConservationInside(floating ,coords, fluxOfIce, surfaceThicknessSource,
-				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
-				   topography, thickness, sectorMask, dx, ratio, maskNo);   
-	}
-	pout() << endl << endl;
+	auto entire = [Hmin](Real h, int mask){ return true;} ;
+	regions["entire"] = entire;
 	
-	pout() << " Diagnostics for ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
-	{
-	  auto ice = [Hmin](Real h, int mask){ return (h > Hmin);} ;
-	  reportConservationInside(ice ,coords, fluxOfIce, surfaceThicknessSource,
-				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
-				   topography, thickness, sectorMask, dx, ratio, maskNo);   
-	}
-	pout() << endl << endl;
-	
-	pout() << " Diagnostics for outside ice sheet";
-	if (maskFile)
-	  {
-	    pout() << ", sector = " << maskNo;
-	  }
+	auto grounded = [Hmin](Real h, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > Hmin));} ;
+	regions["grounded"] = grounded;
 
-	{
-	  
-	  auto notice = [Hmin](Real h, int mask){ return (h < Hmin);} ;
-	  reportConservationInside(notice ,coords, fluxOfIce, surfaceThicknessSource,
-				   basalThicknessSource, deltaThickness, divergenceThicknessFlux, 
-				   topography, thickness, sectorMask, dx, ratio, maskNo);   
-	}
-	pout() << endl << endl;
+	auto floating = [Hmin](Real h, int mask){ return ((mask == FLOATINGMASKVAL) && (h > Hmin));} ;
+	regions["floating"] = floating;
+
+	auto ice = [Hmin](Real h, int mask){ return (h > Hmin);} ;
+	regions["ice"] = ice;
+
+	auto nonice = [Hmin](Real h, int mask){ return (h < Hmin);} ;
+	regions["nonice"] = ice;
+
+	for (MapSF::const_iterator mit = regions.begin(); mit != regions.end(); ++mit)
+	  {
+	    pout() << "region:" << mit->first << " { " ;
+	    reportConservationInside(mit->second,coords, fluxOfIce, surfaceThicknessSource,
+				     basalThicknessSource, deltaThickness, divergenceThicknessFlux,
+				     calvingFlux,topography, thickness, sectorMask, dx, ratio, maskNo);   
+	    pout() << "}" << endl;
+	  }
       }
- 
+    
     for (int lev=0;lev<numLevels;++lev)
       {
 	if (sectorMask[lev] != NULL) delete sectorMask[lev];
