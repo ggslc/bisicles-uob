@@ -721,9 +721,7 @@ int main(int argc, char* argv[]) {
 	domain[lev].refine(ratio[lev-1]);
       }
 
-    //load the sector mask, if it exists
-    //Vector<RefCountedPtr<LevelData<FArrayBox> > > sectorMask;
-    
+    //load the sector mask, if it exists    
     Box mdomainBox;
     Vector<std::string> mname;
     Vector<LevelData<FArrayBox>* > mdata;
@@ -758,44 +756,6 @@ int main(int argc, char* argv[]) {
 
       }
 
-    // Test mask
-    for (int lev=0; lev< numLevels; lev++)
-      {
-	for (DataIterator dit(grids[lev]);dit.ok();++dit)
-	  {
-	    const Box& b = grids[lev][dit];
-
-	    for (BoxIterator bit(b);bit.ok();++bit)
-	      {
-		const IntVect& iv = bit();
-		Real msk=(*sectorMask[lev])[dit](iv);
-		bool maskValExists=false;
-
-		for (int maskNo = maskNoStart; maskNo<= maskNoEnd; maskNo++)
-		  {
-		    if ( std::abs ( msk - static_cast<Real>(maskNo)) < 1.0e-6)
-		      {
-			maskValExists=true;
-		      }
-		  }
-		if (!maskValExists)
-		  {
-		    if (std::abs (msk) > 1.0e-6)
-		      {
-			// Assume non-masked areas are set to zero.
-			Real tmp=std::round(msk);
-			if (tmp < static_cast<Real>(maskNoStart))
-			  {
-			    tmp=std::max(static_cast<Real>(maskNoStart),tmp);
-			  }
-			(*sectorMask[lev])[dit](iv)=tmp;
-			//pout() << " Mask value " << msk << " adjusted value " << tmp << "  lev " << lev << endl;
-		      }
-		  }
-	      }    
-	  }
-      }
-
     Vector<LevelData<FArrayBox>* > thickness(numLevels,NULL);
     Vector<LevelData<FArrayBox>* > topography(numLevels,NULL);
     Vector<LevelData<FArrayBox>* > deltaThickness(numLevels,NULL);
@@ -826,39 +786,25 @@ int main(int argc, char* argv[]) {
     pout().setf(ios_base::scientific,ios_base::floatfield); 
     pout().precision(12);
 
-    pout() << " Create DEM " << endl  ;
-
     createDEM(topography, thickness, name, data, ratio, dx, mcrseDx);
-
-    pout() << " Create Sigma CS " << endl  ;
 
     Vector<RefCountedPtr<LevelSigmaCS > > coords(numLevels);
     createSigmaCS(coords,topography, thickness, 
 		  dx, ratio, iceDensity, waterDensity,gravity);
 
-    pout() << " Get thickness equation components " << endl  ;
-
     getThicknessSource(surfaceThicknessSource, basalThicknessSource, deltaThickness, 
 		       divergenceThicknessFlux, calvingFlux, melangeThickness,
 		       topography, dx, ratio, name, data);
 
-    pout() << " Calculate flux " << endl  ;
-
     computeFlux(fluxOfIce,coords,topography,thickness,surfaceThicknessSource,basalThicknessSource,
 		dx,ratio,name,data);
-
-    if (maskFile)
-      {
-	pout() << " Do sector calculations " << endl;
-      }
-    pout() << endl;
 
     // specified masks
     Vector<int> masks;
     for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
       masks.push_back(maskNo);
-    // adding the whole domain, always
-    masks.push_back(-1);
+    // adding the whole domain if there is a mask file
+    if (maskFile) masks.push_back(-1);
     
     // CSV style output of diagnostics
     pout() << "header,time,maskNo,region,quantity,unit,value" << endl;
