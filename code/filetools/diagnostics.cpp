@@ -40,13 +40,30 @@
 #include "LevelDataIBC.H"
 #include <functional>
 
+
+typedef BaseFab<int> IArrayBox; // just so it lines up neatly with FArrayBox :)
+
+void FtoI(IArrayBox& dest, const FArrayBox& src)
+{
+  CH_assert(src.box().contains(dest.box()));
+  CH_assert(src.nComp() >= dest.nComp());
+  for (int comp = 0; comp < dest.nComp(); comp++)
+    {
+      for (BoxIterator bit(dest.box()); bit.ok(); ++bit)
+	{
+	  dest(bit(), comp) = src(bit(),comp);
+	}
+    }
+}
+
+
 void integrateScalarInside(Real& integral, 
 		     function<bool(int mask, Real thickness)> inside,
 		     const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
 		     const Vector<LevelData<FArrayBox>* >& integrand, 
 		     const Vector<LevelData<FArrayBox>* >& topography,
 		     const Vector<LevelData<FArrayBox>* >& thickness, 
-		     const Vector<LevelData<FArrayBox>* >& sectorMask,
+		     const Vector<LevelData<IArrayBox>* >& sectorMask,
 		     const Vector<Real>& dx, const Vector<int>& ratio, 
 		     int maskNo)
 {
@@ -69,7 +86,7 @@ void integrateScalarInside(Real& integral,
 	  for (BoxIterator bit(b);bit.ok();++bit)
 	    {
 	      const IntVect& iv = bit();
-	      if (std::abs ( (*sectorMask[lev])[dit](iv) - static_cast<Real>(maskNo)) < 1.0e-6 || maskNo == -1)
+	      if (((*sectorMask[lev])[dit](iv) == maskNo) || maskNo == 0)
 		{
 		  if (inside(thck(iv), mask(iv)))
 		    {
@@ -99,7 +116,7 @@ void integrateDischargeInside(Real& sumDischarge, Real& sumDivUH,
 			      const Vector<LevelData<FArrayBox>* >& topography,
 			      const Vector<LevelData<FArrayBox>* >& thickness, 
 			      const Vector<Real>& dx, const Vector<int>& ratio, 
-			      const Vector<LevelData<FArrayBox>* >& sectorMask,  
+			      const Vector<LevelData<IArrayBox>* >& sectorMask,  
 			      int maskNo)
 {
 
@@ -132,9 +149,8 @@ void integrateDischargeInside(Real& sumDischarge, Real& sumDivUH,
     	      for (BoxIterator bit(b);bit.ok();++bit)
     		{
     		  const IntVect& iv = bit();
-    		  if ( std::abs ( (*sectorMask[lev])[dit](iv) - maskNo) < 1.0e-6 || maskNo == -1)
-    		    {
-    		      Real epsThck = 1.0e-4;// TODO fix magic number
+    		  if (((*sectorMask[lev])[dit](iv) == maskNo) || maskNo == 0)
+		    {
 		      if (inside(thck(iv), mask(iv)))
 		       	{
 			  //inside the sub-region - compute div(flux)
@@ -151,8 +167,8 @@ void integrateDischargeInside(Real& sumDischarge, Real& sumDivUH,
     			    {
     			      discharge(iv) += flux(iv) / dx[lev];
     			    }
-    			}
-    		    }//end if inside else
+    			}//end if inside else
+    		    }//end if mask
     		} //end loop over cells
     	    } // end loop over direction
     	} // end loop over grids
@@ -210,7 +226,7 @@ std::ostream& operator<<(std::ostream& o, NameUnitValue& a)
 			      const Vector<LevelData<FArrayBox>* >& calvingFlux,
 			      const Vector<LevelData<FArrayBox>* >& topography,
 			      const Vector<LevelData<FArrayBox>* >& thickness, 
-			      const Vector<LevelData<FArrayBox>* >& sectorMask,
+			      const Vector<LevelData<IArrayBox>* >& sectorMask,
 			      const Vector<Real>& dx, const Vector<int>& ratio, 
 			      int maskNo)
 {
@@ -365,8 +381,6 @@ void createSigmaCS(Vector<RefCountedPtr<LevelSigmaCS > >& coords,
       coords[lev]->setIceDensity(iceDensity);
       coords[lev]->setWaterDensity(waterDensity);
       coords[lev]->setGravity(gravity);
-      //topography[lev]->copyTo(Interval(0,0),coords[lev]->getTopography(),Interval(0,0));   
-      //thickness[lev]->copyTo(Interval(0,0),coords[lev]->getH(),Interval(0,0));
       // FAB - FAB copy copies ghosts 
       for (DataIterator dit(levelGrids); dit.ok(); ++dit)
 	{
@@ -380,16 +394,16 @@ void createSigmaCS(Vector<RefCountedPtr<LevelSigmaCS > >& coords,
        
 }
 
-void getThicknessSource(Vector<LevelData<FArrayBox>* >& surfaceThicknessSource, 
-			Vector<LevelData<FArrayBox>* >& basalThicknessSource,
-			Vector<LevelData<FArrayBox>* >& deltaThickness,
-			Vector<LevelData<FArrayBox>* >& divergenceThicknessFlux,
-			Vector<LevelData<FArrayBox>* >& calvingFlux,
-			Vector<LevelData<FArrayBox>* >& melangeThickness,
-			Vector<LevelData<FArrayBox>* >& topography,
-			Vector<Real>& dx, Vector<int>& ratio, 
-			Vector<std::string>& name, 
-			Vector<LevelData<FArrayBox>* >& data)
+void extractThicknessSource(Vector<LevelData<FArrayBox>* >& surfaceThicknessSource, 
+			    Vector<LevelData<FArrayBox>* >& basalThicknessSource,
+			    Vector<LevelData<FArrayBox>* >& deltaThickness,
+			    Vector<LevelData<FArrayBox>* >& divergenceThicknessFlux,
+			    Vector<LevelData<FArrayBox>* >& calvingFlux,
+			    Vector<LevelData<FArrayBox>* >& melangeThickness,
+			    Vector<LevelData<FArrayBox>* >& topography,
+			    const Vector<Real>& dx, const Vector<int>& ratio, 
+			    const Vector<std::string>& name, 
+			    const Vector<LevelData<FArrayBox>* >& data)
 
 {
   int numLevels = data.size();
@@ -470,13 +484,14 @@ void getThicknessSource(Vector<LevelData<FArrayBox>* >& surfaceThicknessSource,
 
 void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce, 
 		 const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-		 Vector<LevelData<FArrayBox>* >& topography,
-		 Vector<LevelData<FArrayBox>* >& thickness,
-		 Vector<LevelData<FArrayBox>* >& surfaceThicknessSource, 
-		 Vector<LevelData<FArrayBox>* >& basalThicknessSource, 
-		 Vector<Real>& dx, Vector<int>& ratio, 
-		 Vector<std::string>& name, 
-		 Vector<LevelData<FArrayBox>* >& data)
+		 const Vector<LevelData<FArrayBox>* >& topography,
+		 const Vector<LevelData<FArrayBox>* >& thickness,
+		 const Vector<LevelData<FArrayBox>* >& surfaceThicknessSource, 
+		 const Vector<LevelData<FArrayBox>* >& basalThicknessSource, 
+		 const Vector<Real>& dx, Real dt,
+		 const Vector<int>& ratio, 
+		 const Vector<std::string>& name, 
+		 const Vector<LevelData<FArrayBox>* >& data)
 {
 
   
@@ -569,7 +584,6 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
       LevelDataIBC thicknessIBC(levelThck,levelTopg,levelDx);
       AdvectPhysics advectPhys;
       advectPhys.setPhysIBC(&thicknessIBC);
-      Real dt = 1.0e-10;
       int normalPredOrder = 2;
       bool useFourthOrderSlopes = true;
       bool usePrimLimiting = true;
@@ -599,7 +613,6 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 	  FArrayBox src(grids[dit],1); 
 	  src.copy( (*surfaceThicknessSource[lev])[dit]) ;
 	  src.plus( (*basalThicknessSource[lev])[dit]) ;
-	 
 	  CH_assert(advectPhysPtr != NULL);
 	  
 	  advectPhysPtr->setVelocities(&ccvel,&fcvel);
@@ -672,8 +685,7 @@ int main(int argc, char* argv[]) {
     number_procs=1;
 #endif
    
-    CH_TIMERS("stats");
-    CH_TIMER("loadplot",tp);
+    
     if(argc < 5) 
       { 
 	std::cerr << " usage: " << argv[0] << " <plot file> <ice_density> <water_density> <gravity> [mask_file] [mask_no_start = 0] [mask_no_end = mask_no_start] " << std::endl; 
@@ -694,6 +706,7 @@ int main(int argc, char* argv[]) {
       {
     	maskNoEnd = atoi(argv[7]);
       }
+    
     Real Hmin = 1.0e-10;
 
     Box domainBox;
@@ -703,10 +716,8 @@ int main(int argc, char* argv[]) {
     Vector<int > ratio;
     int numLevels;
 
-    pout() << " Reading plot file " << endl  ;
-
     Real dt ,crseDx, time;
-    CH_START(tp);
+   
     ReadAMRHierarchyHDF5(std::string(plotFile), grids, data, name , 
 			 domainBox, crseDx, dt, time, ratio, numLevels);
 
@@ -720,7 +731,6 @@ int main(int argc, char* argv[]) {
 	domain[lev] = domain[lev-1];
 	domain[lev].refine(ratio[lev-1]);
       }
-
     //load the sector mask, if it exists    
     Box mdomainBox;
     Vector<std::string> mname;
@@ -731,27 +741,32 @@ int main(int argc, char* argv[]) {
     Real mdt ,mcrseDx, mtime;
 
     if (maskFile)
-      {
-	pout() << " Reading mask " << endl  ;    	
+      {   	
 	ReadAMRHierarchyHDF5(std::string(maskFile), mgrids, mdata, mname , 
 			     mdomainBox, mcrseDx, mdt, mtime, mratio, mnumLevels);
       }
-    
-    CH_STOP(tp);
+   
 
-    Vector<LevelData<FArrayBox>* > sectorMask(numLevels,NULL);
+    
+    Vector<LevelData<IArrayBox>* > sectorMask(numLevels,NULL);
     for (int lev=0;lev<numLevels;++lev)
       {
-	sectorMask[lev] = new LevelData<FArrayBox>(grids[lev],1,IntVect::Unit);
+	sectorMask[lev] = new LevelData<IArrayBox>(grids[lev],1,IntVect::Unit);
 
 	for (DataIterator dit(grids[lev]); dit.ok(); ++dit)
 	  {
-	    (*sectorMask[lev])[dit].setVal(0.0);
+	    (*sectorMask[lev])[dit].setVal(0);
 	  }
 
 	if (maskFile)
 	  {
-	    FillFromReference(*sectorMask[lev], *mdata[0], RealVect::Unit*dx[lev], RealVect::Unit*mcrseDx,true);
+	    // reading real values...
+	    LevelData<FArrayBox> tmp(grids[lev],1,IntVect::Unit);
+	    FillFromReference(tmp, *mdata[0], RealVect::Unit*dx[lev], RealVect::Unit*mcrseDx,true);
+	    for (DataIterator dit(grids[lev]); dit.ok(); ++dit)
+	      {
+		FtoI((*sectorMask[lev])[dit],tmp[dit]);
+	      }
 	  }
 
       }
@@ -769,7 +784,7 @@ int main(int argc, char* argv[]) {
 
     for (int lev=0;lev<numLevels;++lev)
       {
-	// Extra ghost cells are needed to calculate advection using 4th order Godunov. 
+	// Extra ghost cells are needed to calculate advection using PPM. 
 	thickness[lev] = new LevelData<FArrayBox>(grids[lev],1,4*IntVect::Unit);
 	topography[lev] = new LevelData<FArrayBox>(grids[lev],1,4*IntVect::Unit);
 	deltaThickness[lev] = new LevelData<FArrayBox>(grids[lev],1,IntVect::Unit);
@@ -792,25 +807,18 @@ int main(int argc, char* argv[]) {
     createSigmaCS(coords,topography, thickness, 
 		  dx, ratio, iceDensity, waterDensity,gravity);
 
-    getThicknessSource(surfaceThicknessSource, basalThicknessSource, deltaThickness, 
+    extractThicknessSource(surfaceThicknessSource, basalThicknessSource, deltaThickness, 
 		       divergenceThicknessFlux, calvingFlux, melangeThickness,
 		       topography, dx, ratio, name, data);
 
     computeFlux(fluxOfIce,coords,topography,thickness,surfaceThicknessSource,basalThicknessSource,
-		dx,ratio,name,data);
+		dx,dt,ratio,name,data);
 
-    // specified masks
-    Vector<int> masks;
-    for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
-      masks.push_back(maskNo);
-    // adding the whole domain if there is a mask file
-    if (maskFile) masks.push_back(-1);
     
     // CSV style output of diagnostics
-    pout() << "header,time,maskNo,region,quantity,unit,value" << endl;
-    for (int imask = 0; imask < masks.size(); imask++)
+    pout() << "csvheader,time,maskNo,region,quantity,unit,value" << endl;
+    for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
       {
-	int maskNo = masks[imask];
 	
 	typedef std::map<std::string, function<bool(int mask, Real thickness)> > MapSF;
 	MapSF regions;
@@ -839,7 +847,7 @@ int main(int argc, char* argv[]) {
 				     calvingFlux,topography, thickness, sectorMask, dx, ratio, maskNo);
 	    for (int i = 0; i < report.size(); i++)
 	      {
-		pout() << "data," << time << "," << maskNo << "," << mit->first << "," << report[i] << endl;
+		pout() << "csvdata," << time << "," << maskNo << "," << mit->first << "," << report[i] << endl;
 	      }
 	  }
       }
@@ -861,7 +869,7 @@ int main(int argc, char* argv[]) {
 		  
   }  // end nested scope
   CH_TIMER_REPORT();
-
+  dumpmemoryatexit();
 #ifdef CH_MPI
   MPI_Finalize();
 #endif
