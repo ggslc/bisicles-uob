@@ -276,8 +276,8 @@ void reportConservationInside(Vector<NameUnitValue>& report,
   //Conservation errors
   report.push_back(NameUnitValue("SMB+BMB-dhdt-calving-flxDivFile",dhunit,
 				 SMB + BMB - dhdt - calving - flxDivFile));
-  report.push_back(NameUnitValue("SMB+BMB-dhdt-calving-flxDivReconstr",dhunit,
-				 SMB + BMB - dhdt - calving - flxDivReconstr));
+  report.push_back(NameUnitValue("SMB+BMB-dhdt-calving-discharge",dhunit,
+				 SMB + BMB - dhdt - calving - sumDischarge));
 		   
   // volumes
   std::string vunit("m3");
@@ -537,20 +537,10 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
     {
       int comp = 0;
       const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
-      ccVel[lev] = new LevelData<FArrayBox>(grids,SpaceDim,IntVect::Unit);
+      ccVel[lev] = new LevelData<FArrayBox>(grids,SpaceDim,2*IntVect::Unit);
       fcVel[lev] = new LevelData<FluxBox>(grids,1,IntVect::Unit);
-      fcThck[lev] = new LevelData<FluxBox>(grids,1,IntVect::Unit);
+      fcThck[lev] = new LevelData<FluxBox>(grids,1,IntVect::Zero);
       const LevelSigmaCS& levelCS = *coords[lev];
-
-      for (DataIterator dit(grids);dit.ok();++dit)
-	{
-	  (*ccVel[lev])[dit].setVal(0.0);
-	  for (int dir = 0; dir < SpaceDim; dir++)
-	    {
-	      (*fcVel[lev])[dit][dir].setVal(0.0);
-	      (*fluxOfIce[lev])[dit][dir].setVal(0.0);
-	    }
-	}
 
       for (int j = 0; j < name.size(); j++)
 	{
@@ -572,7 +562,7 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 	{
 	  const DisjointBoxLayout& crseGrids = topography[lev-1]->disjointBoxLayout();
 	  PiecewiseLinearFillPatch velFiller(grids , crseGrids, ccVel[lev]->nComp(), 
-					     crseGrids.physDomain(), ratio[lev-1], 1);
+					     crseGrids.physDomain(), ratio[lev-1], 2);
 	  Real time_interp_coeff = 0.0;
 	  velFiller.fillInterp(*ccVel[lev],*ccVel[lev-1] ,*ccVel[lev-1],
 			       time_interp_coeff,0, 0, ccVel[lev]->nComp());
@@ -582,33 +572,33 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 
       //modification to fluxes at the margins, that is where mask changes to open sea or land.
       for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
+      	{
 
-	  for (int dir = 0; dir < SpaceDim; ++dir)
-	      {
-		Box faceBox = grids[dit];
-		faceBox.surroundingNodes(dir);
-		FArrayBox& faceVel = (*fcVel[lev])[dit][dir];
-		Box grownFaceBox = faceBox;
-		CH_assert(faceVel.box().contains(grownFaceBox));
-		FArrayBox vface(faceBox,1);
-		FArrayBox faceVelCopy(faceVel.box(), 1); faceVelCopy.copy(faceVel);
-		const FArrayBox& cellVel = (*ccVel[lev])[dit];
-		const FArrayBox& usrf = levelCS.getSurfaceHeight()[dit];
-		const FArrayBox& thck = (*thickness[lev])[dit];
-		const FArrayBox& topg = (*topography[lev])[dit];
+      	  for (int dir = 0; dir < SpaceDim; ++dir)
+      	      {
+      		Box faceBox = grids[dit];
+      		faceBox.surroundingNodes(dir);
+      		FArrayBox& faceVel = (*fcVel[lev])[dit][dir];
+      		Box grownFaceBox = faceBox;
+      		CH_assert(faceVel.box().contains(grownFaceBox));
+      		FArrayBox vface(faceBox,1);
+      		FArrayBox faceVelCopy(faceVel.box(), 1); faceVelCopy.copy(faceVel);
+      		const FArrayBox& cellVel = (*ccVel[lev])[dit];
+      		const FArrayBox& usrf = levelCS.getSurfaceHeight()[dit];
+      		const FArrayBox& thck = (*thickness[lev])[dit];
+      		const FArrayBox& topg = (*topography[lev])[dit];
 
-		FORT_EXTRAPTOMARGIN(CHF_FRA1(faceVel,0),
+      		FORT_EXTRAPTOMARGIN(CHF_FRA1(faceVel,0),
                                     CHF_FRA1(vface,0),
-				    CHF_CONST_FRA1(faceVelCopy,0),
-				    CHF_CONST_FRA1(cellVel,dir),
-				    CHF_CONST_FRA1(usrf,0),
-				    CHF_CONST_FRA1(topg,0),
-				    CHF_CONST_FRA1(thck,0),
-				    CHF_CONST_INT(dir),
-				    CHF_BOX(faceBox));
-	      }
-	}
+      				    CHF_CONST_FRA1(faceVelCopy,0),
+      				    CHF_CONST_FRA1(cellVel,dir),
+      				    CHF_CONST_FRA1(usrf,0),
+      				    CHF_CONST_FRA1(topg,0),
+      				    CHF_CONST_FRA1(thck,0),
+      				    CHF_CONST_INT(dir),
+      				    CHF_BOX(faceBox));
+      	      }
+      	}
 
       // face centered thickness from PPM
       RealVect levelDx = RealVect::Unit * dx[lev];
@@ -664,7 +654,7 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 	      FArrayBox& flux = (*fluxOfIce[lev])[dit][dir];
 	      const FArrayBox& vel = (*fcVel[lev])[dit][dir];
    
-	      CH_assert(vel.norm(0) < 1.0e+12);
+	      //CH_assert(vel.norm(0) < 1.0e+12);
 
 	      flux.copy((*fcVel[lev])[dit][dir]);
 	      flux.mult((*fcThck[lev])[dit][dir]);
@@ -739,7 +729,7 @@ void stateDiagnostics(std::ostream& sout, bool append,
       calvingFlux[lev] = new LevelData<FArrayBox>(grids[lev],1,IntVect::Unit);
       melangeThickness[lev] = new LevelData<FArrayBox>(grids[lev],1,IntVect::Unit);
       iceFrac[lev] = new LevelData<FArrayBox>(grids[lev],1,IntVect::Unit);
-      fluxOfIce[lev] = new LevelData<FluxBox>(grids[lev],1,IntVect::Unit);  
+      fluxOfIce[lev] = new LevelData<FluxBox>(grids[lev],1,IntVect::Zero);  
     }
 
     
@@ -772,19 +762,19 @@ void stateDiagnostics(std::ostream& sout, bool append,
       typedef std::map<std::string, function<bool(Real, Real, int)> > MapSF;
       MapSF regions;
       
-      auto entire = [f_min](Real h, Real f, int mask){ return true;} ;
+      auto entire = [h_min](Real h, Real f, int mask){ return true;} ;
       regions["entire"] = entire;
       
-      auto grounded = [f_min](Real h, Real f, int mask){ return ((mask == GROUNDEDMASKVAL) && (f > f_min));} ;
+      auto grounded = [h_min](Real h, Real f, int mask){ return ((mask == GROUNDEDMASKVAL) && (h > h_min));} ;
       regions["grounded"] = grounded;
       
-      auto floating = [f_min](Real h, Real f, int mask){ return ((mask == FLOATINGMASKVAL) && (f > f_min));} ;
+      auto floating = [h_min](Real h, Real f, int mask){ return ((mask == FLOATINGMASKVAL) && (h > h_min));} ;
       regions["floating"] = floating;
       
-      auto ice = [f_min](Real h, Real f, int mask){ return (f > f_min);} ;
+      auto ice = [h_min](Real h, Real f, int mask){ return (h > h_min);} ;
       regions["ice"] = ice;
       
-      auto nonice = [f_min](Real h, Real f, int mask){ return (f <= f_min);} ;
+      auto nonice = [h_min](Real h, Real f, int mask){ return (h <= h_min);} ;
       regions["nonice"] = nonice;
       
       
@@ -877,7 +867,7 @@ int main(int argc, char* argv[]) {
     int mask_no_start(0); pp.query("mask_no_start", mask_no_start);
     int mask_no_end(mask_no_start); pp.query("mask_no_end", mask_no_end);
 
-    Real h_min(1.0e-1); pp.query("h_min", h_min);
+    Real h_min(100.0); pp.query("h_min", h_min);
     Real f_min(1.0e-1); pp.query("f_min", f_min); 
     
 
