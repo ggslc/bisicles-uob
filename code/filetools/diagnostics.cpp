@@ -687,7 +687,7 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 
 }
 
-void stateDiagnostics(std::ostream& sout, bool append,
+void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
 		      const Vector<LevelData<IArrayBox>* >& sectorMask,
 		      int maskNoStart, int maskNoEnd,
 		      const Vector<LevelData<FArrayBox>* >& data,
@@ -753,7 +753,7 @@ void stateDiagnostics(std::ostream& sout, bool append,
   // CSV style output of diagnostics
   if (!append)
     {
-      sout << "csvheader,time,maskNo,region,quantity,unit,value" << endl;
+      sout << "csvheader,filename,time,maskNo,region,quantity,unit,value" << endl;
     }
   
   for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
@@ -788,7 +788,7 @@ void stateDiagnostics(std::ostream& sout, bool append,
 	  
 	  for (int i = 0; i < report.size(); i++)
 	    {
-	      sout << "csvdata," << time << "," << maskNo << "," << mit->first << "," << report[i] << endl;
+	      sout << "csvdata," << plot_file << "," << time << "," << maskNo << "," << mit->first << "," << report[i] << endl;
 	    }
 	}
     }
@@ -931,7 +931,7 @@ int main(int argc, char* argv[]) {
 
       }
 
-    stateDiagnostics(sout, append, sectorMask, mask_no_start, mask_no_end,
+    stateDiagnostics(sout, append, plot_file, sectorMask, mask_no_start, mask_no_end,
 		     data, grids, name, numLevels,  dx, dt, time,  ratio,
 		     ice_density, water_density, gravity, h_min, f_min);
 
