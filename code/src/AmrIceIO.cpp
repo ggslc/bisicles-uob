@@ -56,6 +56,7 @@ using std::string;
 #include "ExtrapBCF_F.H"
 #include "amrIceF_F.H"
 #include "BisiclesF_F.H"
+#include "CalvingF_F.H"
 #include "IceThermodynamics.H"
 #include "JFNKSolver.H"
 #include "InverseVerticallyIntegratedVelocitySolver.H"
@@ -96,6 +97,7 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   m_write_dHDt = true;
   m_write_fluxVel = true;
   m_write_viscousTensor = false;
+  m_write_vonmisesStress = false;
   m_write_baseVel = true;
   m_write_internal_energy = false;
   m_write_map_file = false;
@@ -122,6 +124,7 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   a_pp.query("plot_style_amr", m_plot_style_amr);
   a_pp.query("write_flux_velocities", m_write_fluxVel);
   a_pp.query("write_viscous_tensor", m_write_viscousTensor);
+  a_pp.query("write_vonmises_stress", m_write_vonmisesStress);
   a_pp.query("write_base_velocities", m_write_baseVel);
   a_pp.query("write_internal_energy", m_write_internal_energy);
   a_pp.query("write_thickness_sources", m_write_thickness_sources);
@@ -285,6 +288,12 @@ AmrIce::writeAMRPlotFile()
 	}
     }
   
+  if (m_write_vonmisesStress)
+    {
+      // effective drag and viscosity coefficients
+      numPlotComps += 1; 
+    }
+
   if (m_write_thickness_sources)
     {
       numPlotComps += 2;  // surface and basal sources
@@ -342,6 +351,7 @@ AmrIce::writeAMRPlotFile()
   string zxVTname("zxViscousTensor");
   string zyVTname("zyViscousTensor");
   string zzVTname("zzViscousTensor");
+  string vmSname("VonMisesStress");
   string viscosityCoefName("viscosityCoef");
   //string yViscosityCoefName("yViscosityCoef");
   //string zViscosityCoefName("zViscosityCoef");
@@ -533,6 +543,11 @@ AmrIce::writeAMRPlotFile()
 	}
     }
 
+  if (m_write_vonmisesStress)
+    {
+      vectName[comp] = vmSname; comp++; 
+    }
+
   if (m_write_thickness_sources)
     {
       vectName[comp] = activeBasalThicknessSourceName; comp++;
@@ -634,12 +649,25 @@ AmrIce::writeAMRPlotFile()
       LevelData<FArrayBox>* viscosityCoefficientPtr = NULL;
       LevelData<FArrayBox>* viscousTensorPtr = NULL;
       
-      if (m_write_viscousTensor)      
+      if (m_write_viscousTensor || m_write_vonmisesStress)      
         {
           dragCoefficientPtr = const_cast<LevelData<FArrayBox>* >(dragCoefficient(lev));
           viscosityCoefficientPtr = const_cast<LevelData<FArrayBox>*>(viscosityCoefficient(lev));
           viscousTensorPtr = const_cast<LevelData<FArrayBox>*>(viscousTensor(lev));
         }
+
+      //if (m_write_vonmisesStress)
+      //  {
+          LevelData<FArrayBox> vonmises(m_amrGrids[lev], 1, 2*IntVect::Unit);
+          // locate specific components of the viscous tensor the multicomponent arrays.
+          // the derivComponent function is in LevelMappedDerivatives.
+          int xxComp = derivComponent(0,0);
+          int xyComp = derivComponent(1,0);
+          int yxComp = derivComponent(0,1);
+          int yyComp = derivComponent(1,1);
+
+          Real eps = 1.0e-10;
+      //  }
       
       DataIterator dit = m_amrGrids[lev].dataIterator();
       for (dit.begin(); dit.ok(); ++dit)
@@ -860,6 +888,22 @@ AmrIce::writeAMRPlotFile()
 		  comp += SpaceDim * SpaceDim;
 		}
 	    }
+
+      if (m_write_vonmisesStress)
+        {
+          // Compute the Von Mises Stress (cell-centered)
+          FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+                CHF_CONST_FRA((*viscousTensorPtr)[dit]),
+                CHF_CONST_FRA1(thisH,0),
+                CHF_INT(xxComp),
+                CHF_INT(xyComp),
+                CHF_INT(yxComp),
+                CHF_INT(yyComp),
+                CHF_CONST_REAL(eps),
+                CHF_BOX(gridBox));
+	      thisPlotData.copy( vonmises[dit],0,comp);
+	      comp++;
+        }
 	 
 	  if (m_write_thickness_sources)
 	    {
