@@ -43,6 +43,7 @@ c--------------------------------------------------------------
 
        integer CHF_AUTOIX[i]
        REAL_T txx, txy, tyx, tyy, tvm
+       REAL_T dxx, dxy, dyy
 
        CHF_AUTOMULTIDO[box; i]
 #if (CH_SPACEDIM == 1)
@@ -57,7 +58,13 @@ c--------------------------------------------------------------
        txy = T(CHF_AUTOIX[i], xyComp)
        tyx = T(CHF_AUTOIX[i], yxComp)
 
-       tvm = (txx**2 + tyy**2 - txx*tyy + 3*(half*(txy+tyx))**2)**half
+       ! Convert from resistive stress to deviatoric stress
+
+       dxx = (2*txx - tyy)/3
+       dyy = (2*tyy - txx)/3
+       dxy = 0.5*(txy+tyx)
+
+       tvm = (dxx**2 + dyy**2 - dxx*dyy + 3*(dxy)**2)**half
 
        ! Divide by h to convert from viscous tensor to stress
        vm(CHF_AUTOIX[i]) = tvm/(h(CHF_AUTOIX[i])+eps);
