@@ -253,6 +253,7 @@ AmrIce::setDefaults()
   m_tagAllIce  = false;
   m_tagAllIceOnLevel0 = false;  
   m_tagEntireDomain = false;
+  m_tagInRegions = false;
   m_groundingLineTaggingMinVel = 200.0;
   m_groundingLineTaggingMaxBasalFrictionCoef = 1.2345678e+300;
   m_tag_thin_cavity = false;
@@ -1052,6 +1053,66 @@ AmrIce::initialize()
     {
       ppAmr.get("div_H_grad_vel_tagging_val", m_divHGradVel_tagVal);
     }
+
+  ppAmr.query("tag_in_regions",m_tagInRegions);
+  isThereATaggingCriterion |= m_tagInRegions;
+
+  // if we set this to be true, require that we also provide the filename
+  // containing the regions, which we will read in here.
+  if (m_tagInRegions)
+    {
+      std::string fname = "";
+      ppAmr.get("tag_regions_file", fname);
+      ifstream is(fname.c_str(), ios::in);
+      
+      /** format:
+          Number of regions
+          and then for each region (defined in "real" space, not index space):
+          xlo ylo xhi yhi resolution
+      */
+      int lineno = 1;
+      if (is.fail())
+        {
+          pout() << "Can't open " << fname << std::endl;
+          MayDay::Error("Cannot open file containing tagging regions");
+        }
+      
+      int numRegions;
+      is >> numRegions;
+      if (numRegions < 1)
+        {
+          MayDay::Error("number of refinement regions must be positive");
+        }
+
+      m_tag_regions_lo.resize(numRegions);
+      m_tag_regions_hi.resize(numRegions);
+      /// resolutions for tagging regions  
+      m_tag_regions_resolution.resize(numRegions);
+
+      for (int i=0; i<numRegions; i++)
+        {
+          //advance to next line
+          while (is.get() != '\n');
+          lineno++;
+
+          Real xlo, ylo, xhi, yhi, resolution;
+          is >> xlo;
+          is >> ylo;
+          is >> xhi;
+          is >> yhi;
+          is >> resolution;
+          RealVect lo(xlo,ylo);
+          
+          RealVect hi(xhi,yhi);
+          m_tag_regions_lo[i] = lo;
+          m_tag_regions_hi[i] = hi;
+          m_tag_regions_resolution[i] = resolution;          
+        } // end loop over reading tagging regions from file
+          
+    } // end if specifying regions with min(resolution)
+
+
+
 
 
   // here is a good place to set default to grad(vel)

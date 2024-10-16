@@ -1056,6 +1056,32 @@ protected:
   /// tag all cells for refinement (refine entire domain)
   bool m_tagEntireDomain;
 
+  /// specify minimum resolution for specified regions
+  /** 
+      If true, read a set of rectangular regions and minumum resolutions
+      from a file, then tag to satisfy that requirement.  
+      set via amr.tag_in_regions in inputs file.
+      Filename specified via amr.tag_regions_file in inputs file, and should 
+      have the format:
+      Number of regions
+      and then for each region (defined in "real" space, not index space):
+      xlo ylo xhi yhi resolution
+      (ensuring that the region defined by (xlo,ylo)(xhi,yhi) will be 
+      refined so that the mesh spacing is "resolution" or finer.  
+      If "resolution" is finer than the resolution of the finest allowable 
+      level (as defined via either max_level or tags_cap), then that region 
+      will simply be refined to the finest level.
+  */
+  bool m_tagInRegions;
+
+  /// loVects for tagging regions
+  Vector<RealVect> m_tag_regions_lo;
+  /// hiVects for tagging regions  
+  Vector<RealVect> m_tag_regions_hi;
+  /// resolutions for tagging regions  
+  Vector<Real> m_tag_regions_resolution;
+  
+
 
   //attempt to eliminate floating ice that is unconnected to grounded ice 
   bool m_eliminate_remote_ice;
