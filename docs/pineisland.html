@@ -106,6 +106,7 @@ variables:
         double thk(y, x) ;
         double topg(y, x) ;
         double beta(y, x) ;
+        double beta_m3(y, x) ;
         double xvel(y, x) ;
         double yvel(y, x) ;
         double velc(y, x) ;
@@ -154,7 +155,7 @@ data:
   BISICLES cannot (yet) read  netCDF data directly, instead we must use the nctoamr tool to 
   convert it into a Chombo AMR hierarchy stored in an .hdf5 file. Run
   <pre>
-    $BISICLES_HOME/BISICLES/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.ex pig-bisicles-1km.nc pig-bisicles-1km.2d.hdf5 thk topg beta temp000000 temp000001 temp000002 temp000003 temp000004 temp000005 temp000006 temp000007 temp000008 temp000009  xvel yvel velc divuh divuhc
+    $BISICLES_HOME/BISICLES/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.ex pig-bisicles-1km.nc pig-bisicles-1km.2d.hdf5 thk topg beta beta_m3 temp000000 temp000001 temp000002 temp000003 temp000004 temp000005 temp000006 temp000007 temp000008 temp000009  xvel yvel velc divuh divuhc
   </pre>
   and you should end up with a file called pig-bisicles-1km.2d.hdf5 that has the same data as pig-bisicles-1km.nc.
   You can inspect the contents of this file with the h5ls and h5dump programs, but it won't be pretty. Instead,

@@ -1326,9 +1326,17 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
 	      const FArrayBox& C = (*m_Cmasked[lev])[dit];
 	      const FArrayBox& u = (*m_velb[lev])[dit];
 	      const FArrayBox& lambda = (*m_adjVel[lev])[dit];
+	      FArrayBox alpha(u.box(), 1);
+
+	      Real scale = 1.0 ; // check!
+	      m_basalFrictionRelation->computeAlpha(alpha, u, C, scale,
+						    *m_coordSys[lev],
+						    dit, lev, alpha.box());
+						    
+	      
 	      FArrayBox t(G.box(),1);
 	      FORT_CADOTBCTRL(CHF_FRA1(t,0),
-			      CHF_CONST_FRA1(C,0),
+			      CHF_CONST_FRA1(alpha,0),
 			      CHF_CONST_FRA(u),
 			      CHF_CONST_FRA(lambda),
 			      CHF_BOX(t.box()));

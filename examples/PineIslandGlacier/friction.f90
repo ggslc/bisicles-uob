@@ -14,7 +14,7 @@ module ncdump
     end if
   end subroutine nccheck
 
- subroutine ncsavebike(x,y,thck,topg,beta, uvel, vvel, velc, &
+ subroutine ncsavebike(x,y,thck,topg,beta, beta_m3, uvel, vvel, velc, &
       divuh, divuhc, temp,bheatflux, bdiss, n,m,upn,file)
     ! create a netcdf file on a bisicles grid
     ! given bisicles grid cell-centered data
@@ -23,7 +23,7 @@ module ncdump
     integer,intent(in) :: n,m,upn
     real(kind=8), dimension(1:n) ,intent(in):: x
     real(kind=8), dimension(1:m) ,intent(in):: y
-    real(kind=8), dimension(1:n,1:m) ,intent(in):: thck, topg, beta, uvel, vvel,&
+    real(kind=8), dimension(1:n,1:m) ,intent(in):: thck, topg, beta, beta_m3, uvel, vvel,&
          velc, divuh, divuhc, bheatflux, bdiss
     real(kind=8), dimension(1:n,1:m,1:upn) ,intent(in):: temp
     character(len=10) :: tempname
@@ -51,6 +51,7 @@ module ncdump
     call nccheck( nf90_def_var(nc_id, "thk", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "topg", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "beta", nf90_real8, cell_dim_id, var_id) )
+    call nccheck( nf90_def_var(nc_id, "beta_m3", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "xvel", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "yvel", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "velc", nf90_real8, cell_dim_id, var_id) )
@@ -81,6 +82,8 @@ module ncdump
     call nccheck( nf90_put_var(nc_id, var_id , topg) )
     call nccheck( nf90_inq_varid(nc_id, "beta", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , beta) )
+    call nccheck( nf90_inq_varid(nc_id, "beta_m3", var_id) )
+    call nccheck( nf90_put_var(nc_id, var_id , beta_m3) )
     call nccheck( nf90_inq_varid(nc_id, "xvel", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , uvel) )
     call nccheck( nf90_inq_varid(nc_id, "yvel", var_id) )
@@ -345,7 +348,7 @@ program t
        glen_n = 3.0, maxseabeta = 100.0, lambda = 4.0e+3
   
   real (kind = 8), dimension(1:ewn,1:nsn) :: topg, lsrf, usrf, thck, uvel, vvel, velc,divuh, &
-       divuhc, beta, betar, dsx, dsy, umod, umodsia, bheatflux, bdiss, tmp
+       divuhc, beta, beta_m3, betar, dsx, dsy, umod, umodsia, bheatflux, bdiss, tmp
   
   real (kind = 8), dimension(1:ewn,1:nsn,1:upn) :: temp, flwa
 
@@ -503,19 +506,18 @@ program t
   !basal traction coefficient
   where (typ.eq.typ_grounded)
      where (velc.gt.0.0)
-        umodsia = (2.0d0*flwa(1:ewn,1:nsn,5) *thck**(glen_n+1)) / (glen_n+1.0d0) * (rhoi* grav)**glen_n  & 
-             * sqrt(dsx**2 + dsy**2)**glen_n
-        beta = (1 + rhoi* grav * thck * sqrt(dsx**2 + dsy**2)) / ( max(1.0d-6,umod - umodsia))
+        !umodsia = (2.0d0*flwa(1:ewn,1:nsn,5) *thck**(glen_n+1)) / (glen_n+1.0d0) * (rhoi* grav)**glen_n  & 
+        !     * sqrt(dsx**2 + dsy**2)**glen_n
+        !beta = (1 + rhoi* grav * thck * sqrt(dsx**2 + dsy**2)) / ( max(1.0d-6,umod - umodsia))
 
-         !beta is the effective drag f(u) (Tb = f(u) * u), and wewant to run with Tb = beta * |u|^1/3
-        !beta = beta * umod**(2.0/3.0)
+        beta = (1 + rhoi* grav * thck * sqrt(dsx**2 + dsy**2)) / ( max(1.0d-6,umod))
         !beta
      elsewhere
         beta = 100.0
      end where
   end where
 
-  beta = min(beta,maxbeta * 1.0e+4**(2.0/3.0))
+  beta = min(beta,maxbeta)
   beta = max(beta,minbeta)
 
   call growbeta(beta,typ,ewn,nsn,20,maxseabeta)
@@ -539,7 +541,14 @@ program t
 
   call growbeta(beta,typ,ewn,nsn,1,maxseabeta)
 
- 
+  !beta is the effective drag f(u) (Tb = f(u) * u), and we may want to run with Tb = beta * |u|^1/3
+  beta_m3 = beta * umod**(2.0/3.0)
+  where (typ.eq.typ_iceshelf)
+     beta_m3 = minbeta
+  end where
+
+  beta_m3 = min(beta_m3,maxbeta*10.d+0)
+  beta_m3 = max(beta_m3,minbeta)
   
   !set basal heat flux to 100 mW m^2. Units requires are J a^-1 m^-2
   bheatflux = 100*1e-3 * 365 * 24 * 3600
@@ -552,7 +561,7 @@ program t
   end where
 
   filename =  'pig-bisicles-1km.nc'
-  call ncsavebike(x,y,thck,topg,beta,uvel,vvel,velc,divuh,divuhc,temp,bheatflux,bdiss,ewn,nsn,upn,filename)
+  call ncsavebike(x,y,thck,topg,beta,beta_m3,uvel,vvel,velc,divuh,divuhc,temp,bheatflux,bdiss,ewn,nsn,upn,filename)
 
   
 end program t 
