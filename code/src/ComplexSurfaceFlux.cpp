@@ -235,6 +235,15 @@ CompositeFlux::~CompositeFlux()
     }
 }
 
+void CompositeFlux::init ( const AmrIceBase& a_amrIce )
+{ 
+  for (int i=0; i<m_fluxes.size(); i++)
+    {
+      m_fluxes[i]->init( a_amrIce );
+    }
+}
+
+
 void CompositeFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 					  const AmrIceBase& a_amrIce, 
 					  int a_level, Real a_dt)

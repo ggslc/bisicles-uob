@@ -364,6 +364,9 @@ public:
 				    const AmrIceBase& a_amrIce, 
 				    int a_level, Real a_dt);
   
+  
+  virtual void init ( const AmrIceBase& a_amrIce );
+
 private:
   // Disallowed for all the usual reasons
   void operator=(const CompositeFlux& a_input)
