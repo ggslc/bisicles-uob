@@ -967,8 +967,12 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   //attempt to avoid occasional divergence in shelf
   Real adjReg = 1.0;
   plus(m_Cmasked,adjReg);
+  scale(m_Cmasked, m_basalFrictionRelation->power() );//hack - just to see if this helps (it does seem to help)
   solveStressEqn(m_adjVel,true,m_adjRhs,m_Cmasked,m_C0,m_A,m_muCoef);
+  scale(m_Cmasked, 1.0/m_basalFrictionRelation->power());//hack - just to see if this helps 
   plus(m_Cmasked,-adjReg);
+
+  //hack - just to see if this helps
   
   //compute gradient 
   setToZero(a_g);
