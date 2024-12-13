@@ -350,10 +350,10 @@ private:
  */
 class CompositeFlux : public SurfaceFlux
 {
-  
+ public: 
   Vector<SurfaceFlux*> m_fluxes;
 
-public:
+
   CompositeFlux(const Vector<SurfaceFlux*>& a_fluxes);
 
   virtual ~CompositeFlux();

@@ -78,6 +78,7 @@ using std::string;
 
 
 #include "BuelerGIA.H"
+#include "ComplexSurfaceFlux.H"
 
 #include "NamespaceHeader.H"
 
@@ -1435,6 +1436,41 @@ AmrIce::writeCheckpointFile(const string& a_file)
       nComp++;
       header.m_real["giaUpdatedTime"] = giaFluxPtr->getUpdatedTime();
     } // end if we have a BuelerGIAFlux
+
+
+  // now use dynamic casting to see if we're looking at a CompositeFlux
+
+    CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+    if (giaCompositeFluxPtr != NULL)
+    {
+      int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+      for (int i = 0; i<nfluxes; i++)
+      {
+        giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);  
+        if (giaFluxPtr != NULL)
+        {
+          // we were able to cast to a BuelerGIAFlux pointer
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "thicknessAboveFlotation0";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "thicknessAboveFlotationOld";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "upliftData";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "udotData";
+          header.m_string[compStr] = compName;
+          nComp++;
+          header.m_real["giaUpdatedTime"] = giaFluxPtr->getUpdatedTime();
+        } // end if we have a BuelerGIAFlux within the CompositeFlux
+      } // end loop over CompositeFlux fluxes
+    } // end if we have a CompositeFlux
+
 //#endif // BUELERGIA
     // do any generic TopographyFlux sorts of things
   } // end if there is a topographyFlux
@@ -1539,6 +1575,41 @@ AmrIce::writeCheckpointFile(const string& a_file)
         write(handle, *tmp, "udotData",
           tmp->ghostVect());
       } // end if we have a BuelerGIAFlux
+
+      // now use dynamic casting to see if we're looking at a CompositeFlux
+      CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+      if (giaCompositeFluxPtr != NULL)
+      {
+        int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+        for (int i = 0; i<nfluxes; i++)
+          {
+            giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);
+
+            if (giaFluxPtr != NULL)
+            {
+            // we were able to cast to a BuelerGIAFlux pointer   
+            if (s_verbosity >= 3) {
+              pout() << "Writing Composite GIA checkpoint" << endl;
+            }
+            RefCountedPtr<LevelData<FArrayBox>> tmp;
+            tmp = giaFluxPtr->getTAF0();
+            write(handle, *tmp, "thicknessAboveFlotation0",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getTAFold();
+            write(handle, *tmp, "thicknessAboveFlotationOld",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getUn();
+            write(handle, *tmp, "upliftData",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getUdot();
+            write(handle, *tmp, "udotData",
+              tmp->ghostVect());
+          } // end if we have a BuelerGIAFlux within the Composite FLux
+        } // end loop over CompositeFlux fluxes
+      } // end if we have a CompositeFlux
+
+
+
 //#endif //BUELERGIA
       // do any generic TopographyFlux sorts of things
     } // end if there is a topographyFlux 
@@ -2288,6 +2359,106 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
 
         } // end if we have a BuelerGIAFlux
+
+      // now use dynamic casting to see if we're looking at a CompositeFlux
+        CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+        if (giaCompositeFluxPtr != NULL)
+        {
+          int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+          for (int i = 0; i<nfluxes; i++)
+          {
+            giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);
+            if (giaFluxPtr != NULL) {
+              pout() << "Checkpoint Composite GIA read-in." << endl;
+              // we were able to cast to a BuelerGIAFlux pointer
+              // set the time of the GIA object.
+              if (header.m_real.find("giaUpdatedTime") == header.m_real.end())
+              {
+                MayDay::Warning("checkpoint file does not contain GIA updated time, but not restarting, setting to 0");
+              }
+              else
+              {
+
+                giaFluxPtr->setUpdatedTime(header.m_real["giaUpdatedTime"]); 
+              } 
+              // try to read initial thickness above flotation
+              DisjointBoxLayout giaDBL = (giaFluxPtr->m_tafpadhat0)->disjointBoxLayout(); 
+              LevelData<FArrayBox> tafpadhat0;
+              tafpadhat0.define(giaDBL,1);
+    	      int dataStatus = read<FArrayBox>(a_handle,
+    	        			   tafpadhat0,
+    	        			   "thicknessAboveFlotation0",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain initial ice thickness above flotation -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setTAF0(tafpadhat0);
+              }
+              // try to read previous thickness above flotation
+              DisjointBoxLayout giaDBLold = (giaFluxPtr->m_tafpadhatold)->disjointBoxLayout(); 
+              LevelData<FArrayBox> tafpadhatold;
+              tafpadhat0.define(giaDBLold,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   tafpadhatold,
+    	        			   "thicknessAboveFlotationOld",
+    	        		       giaDBLold);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain initial ice thickness above flotation -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setTAFold(tafpadhatold);
+              }   
+              // try to read fft uplift
+              LevelData<FArrayBox> upadhat;
+              giaDBL = (giaFluxPtr->m_upadhat)->disjointBoxLayout();
+              upadhat.define(giaDBL,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   upadhat,
+    	        			   "upliftData",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain uplift data -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setUn(upadhat);
+              }
+
+              // try to read initial thickness above flotation
+              LevelData<FArrayBox> udot;
+              giaDBL = (giaFluxPtr->m_udot)->disjointBoxLayout();
+              udot.define(giaDBL,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   udot,
+    	        			   "udotData",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain uplift data -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setUdot(udot);
+              }
+            } // end if we have a BuelerGIAFlux within the CompositeFlux
+          } // end loop over CompositeFlux fluxes
+        } // end if we have a CompositeFlux
+
+
 //#endif // BUELERGIA	
         // do any generic TopographyFlux sorts of things
       } // end if there is a topographyFlux
