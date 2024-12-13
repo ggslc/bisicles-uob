@@ -649,6 +649,24 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
 }
 
 
+// default implementation -- in most cases this will return a Vector 
+// of length 1, with a_root as the name
+void SurfaceFlux::plot_names(const string& a_root, 
+                             Vector<string>& a_plot_names) const
+{
+  int num_comps = num_plot_components();
+  a_plot_names.resize(num_comps, a_root);
+}
+
+// default implementation simply calls evaluate function
+void
+SurfaceFlux::plot_data(LevelData<FArrayBox>& a_data,
+                       const AmrIceBase& a_amrIce, 
+                       int a_level, Real a_dt)
+{
+  evaluate(a_data, a_amrIce, a_level,a_dt);
+}
+
 
 
 #ifdef HAVE_PYTHON

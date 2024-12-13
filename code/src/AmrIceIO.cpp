@@ -102,6 +102,7 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   m_write_internal_energy = false;
   m_write_map_file = false;
   m_write_thickness_sources = false;
+  m_write_topography_sources = false;
   m_write_ismip6 = false;
   m_write_layer_velocities = false;
   m_write_mask = false;
@@ -128,6 +129,7 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   a_pp.query("write_base_velocities", m_write_baseVel);
   a_pp.query("write_internal_energy", m_write_internal_energy);
   a_pp.query("write_thickness_sources", m_write_thickness_sources);
+  a_pp.query("write_topography_sources", m_write_topography_sources);
   a_pp.query("write_ismip6", m_write_ismip6);
   a_pp.query("write_layer_velocities", m_write_layer_velocities);
   a_pp.query("write_map_file", m_write_map_file);
@@ -303,7 +305,15 @@ AmrIce::writeAMRPlotFile()
 	  numPlotComps += 2; // calving rate and water depth
 	}
     }
+    
+    if (m_write_topography_sources)
+    {
+      if (m_topographyFluxPtr != NULL)
+        {
+          numPlotComps += m_topographyFluxPtr->num_plot_components(); 
+	    }
 
+    }
 
 #endif
   // generate data names
@@ -564,6 +574,22 @@ AmrIce::writeAMRPlotFile()
 	}
     }
 
+  if (m_write_topography_sources)
+    {
+      if (m_topographyFluxPtr != NULL)
+        {
+          Vector<string> topoNames;
+          string GIAroot("topographyFlux");
+          m_topographyFluxPtr->plot_names(GIAroot, topoNames);
+          for (int i=0; i<topoNames.size(); i++)
+            {
+              vectName[comp] = topoNames[i];
+              comp++;
+            } 
+        }                
+    }
+  
+
   if (m_write_ismip6)
     {      
       vectName[comp] = sTempName; comp++;
@@ -631,6 +657,7 @@ AmrIce::writeAMRPlotFile()
       levelCS.getSurfaceHeight(levelZsurf);
       LevelData<FArrayBox> levelSTS (m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelBTS (m_amrGrids[lev], 1, ghostVect);
+      LevelData<FArrayBox> levelGIA;
       LevelData<FArrayBox> levelCalvingRate(m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelWaterDepth(m_amrGrids[lev], 1, ghostVect);
       
@@ -642,6 +669,17 @@ AmrIce::writeAMRPlotFile()
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
 
+    if (m_write_topography_sources)
+        {
+          if (m_topographyFluxPtr != NULL)
+            {
+              int numTopoData = m_topographyFluxPtr->num_plot_components();
+              levelGIA.define(m_amrGrids[lev], numTopoData, ghostVect);
+              // set dt to zero for the plotfile data evaluation
+              Real tempDt = 0;
+              m_topographyFluxPtr->plot_data(levelGIA, *this, lev, tempDt);
+            }
+        }
 
       // set these up here because calls to dragCoefficient may lead
       // to calls to things like CoarseAverage which contain dataIterator loops
@@ -959,6 +997,18 @@ AmrIce::writeAMRPlotFile()
 		}
 	    }
 
+
+          if (m_write_topography_sources)
+            {
+              if (m_topographyFluxPtr != NULL)
+                {
+                  int numTopoData = m_topographyFluxPtr->num_plot_components();
+		          thisPlotData.copy(levelGIA[dit], 0, comp, numTopoData);
+                  comp += numTopoData; 
+
+                }
+            }
+          
 	  if (m_write_ismip6)
 	    {      
 	      thisPlotData.copy( (*m_sTemperature[lev])[dit],0,comp);

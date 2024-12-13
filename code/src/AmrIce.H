@@ -1373,6 +1373,9 @@ protected:
   //if true, include thickness source terms in plot files
   bool m_write_thickness_sources;
 
+  // if true, include topography flux terms in plot files
+  bool m_write_topography_sources;
+
   //if true, include fields required for ISMIP6 in plot files
   bool m_write_ismip6;
 
