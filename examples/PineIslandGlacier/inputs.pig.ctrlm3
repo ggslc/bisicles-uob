@@ -1,3 +1,5 @@
+main.poutBaseName = pout_ctrl_m3
+
 #domain details
 main.domain_size = 256e+3 384e+3 1.0e+3
 amr.num_cells = 64 96 10 #4km (half data) resolution
@@ -5,19 +7,14 @@ amr.is_periodic = 0 0 0
 
 #bulk constitutive relation and parameters
 main.constitutiveRelation = L1L2
-#main.rateFactor = constRate
-#constRate.epsSqr0 = 1.0e-12
-#constRate.A =  4.0e-17
-main.rateFactor = arrheniusRate
-ArrheniusRate.epsSqr0 = 1.0e-12
-
+main.rateFactor = patersonRate
+PatersonRate.epsSqr0 = 1.0e-12
 
 #geometry,temperature & basal friction input data
 geometry.problem_type = LevelData
 geometry.beta_type = LevelData
-temperature.type = LevelData
-#temperature.type = constant
-#temperature.value = 268
+temperature.type = constant
+temperature.value = 268
 
 amr.sigma = 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
 
@@ -32,6 +29,7 @@ inputLevelData.temperatureName = temp000000
 #basal friction relation parameters
 main.basalFrictionRelation = powerLaw
 BasalFrictionPowerLaw.m = 0.3333
+BasalFrictionPowerLaw.fastSlidingSpeed= -1.0
 
 #physical constants
 constants.ice_density=918
@@ -68,10 +66,9 @@ JFNKSolver.maxIter = 10
 JFNKSolver.absTol = 1.0e+0
 JFNKSolver.relTol = 1.0e-3
 JFNKSolver.solverType = 0 #Relax solver
-JFNKSolver.solverType = 4 #Relax solver
 JFNKSolver.RelaxRelTol = 2.0e-3
 JFNKSolver.maxRelaxIter = 20
-JFNKSolver.normType = 2 # 0
+JFNKSolver.normType = 0
 JFNKSolver.verbosity = 5
 JFNKSolver.vtopRelaxTol = 0.005
 JFNKSolver.vtopRelaxMinIter = 8
@@ -158,11 +155,8 @@ amr.verbosity = 5
     control.yVel.n = 1
 
     #Tikhonov regularization coefficients
-    control.gradCsqRegularization = 1.0e-5
-    control.gradMuCoefsqRegularization = 1.0e-5
-    #control.gradX0sqRegularization = 1.0
-    #control.gradX1sqRegularization = 1.0
-
+    control.gradCsqRegularization = 1.0
+    control.gradMuCoefsqRegularization = 1.0
 
     #some box constraints. 
     control.boundMethod = Projection
@@ -172,11 +166,10 @@ amr.verbosity = 5
     control.upperX1 = 0.5
     
     control.writeInnerSteps = false
-    control.outerStepFileNameBase = ctrl.m3.
-
-
     control.CGmaxIter = 128
-    control.CGhang = 1.1
+    control.CGhang = 0.9999
+
+    control.outerStepFileNameBase = ctrl.m3.
 
     control.minLevelForOptimization = 2 # refine to level 2 based on the observed speed, then optmize
 
