@@ -21,6 +21,7 @@ p/
 #data
 *.nc
 *.hdf5
+pout.*
 
 #files that should generally be ignored
 code/libamrfile/libamrfile_python.png
