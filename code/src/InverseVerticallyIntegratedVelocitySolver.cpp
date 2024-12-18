@@ -961,18 +961,20 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 
   //solve the adjoint problem
   pout() << " solving adjoint equations... " << std::endl;
-  //adjoint equation is linear, but we need to start from m_velb
-  //to get the correct effective viscosity
+  //adjoint stress balance is linear, but we need to start from m_velb
+  //to get the correct effective viscosity and basal drag
   assign(m_adjVel,m_velb);
   //attempt to avoid occasional divergence in shelf
   Real adjReg = 1.0;
   plus(m_Cmasked,adjReg);
-  scale(m_Cmasked, m_basalFrictionRelation->power() );//hack - just to see if this helps (it does seem to help)
+  // Scaling C by m_basalFrictionRelation->power() results in a better approximation to the adjoint stress balance
+  // there are more efficient wasy to achive this, but this is the simplest
+  scale(m_Cmasked, m_basalFrictionRelation->power() );
   solveStressEqn(m_adjVel,true,m_adjRhs,m_Cmasked,m_C0,m_A,m_muCoef);
-  scale(m_Cmasked, 1.0/m_basalFrictionRelation->power());//hack - just to see if this helps 
+  // Put C back the way it was
+  scale(m_Cmasked, 1.0/m_basalFrictionRelation->power());
   plus(m_Cmasked,-adjReg);
 
-  //hack - just to see if this helps
   
   //compute gradient 
   setToZero(a_g);
