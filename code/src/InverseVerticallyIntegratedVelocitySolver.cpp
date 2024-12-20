@@ -34,6 +34,8 @@
 #define MUCOMP 1
 #define NXCOMP MUCOMP + 1
 
+
+
 InverseVerticallyIntegratedVelocitySolver::Configuration::Configuration()
   :m_velObs_c(NULL),
    m_velObs_x(NULL),
@@ -932,12 +934,8 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   Real hobj = computeSum(m_divuhMisfit, m_refRatio, m_dx[0][0]); 
   Real sumGradCSq = computeSum(m_gradCSq,m_refRatio, m_dx[0][0]);
   Real sumGradMuSq = computeSum(m_gradMuCoefSq,m_refRatio, m_dx[0][0]);
-  Real sumGradX0Sq = computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(0,0));
-
-  writeLevel(m_gradXSq[1]);
-  CH_assert(sumGradX0Sq < 1.0e+50)
-  
-  Real sumGradX1Sq = computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(1,1));
+  Real sumGradX0Sq =  computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(0,0));
+  Real sumGradX1Sq =computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(1,1));
   Real normX0 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(0,0));
   Real normX1 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(1,1));
 
