@@ -784,19 +784,19 @@ InverseVerticallyIntegratedVelocitySolver::mapX(const Vector<LevelData<FArrayBox
       levelC.exchange();
       levelMuCoef.exchange();
 
-      if (m_config.m_gradCsqRegularization > 0.0)
+      //if (m_config.m_gradCsqRegularization > 0.0)
 	{
 	  IceUtility::applyHelmOp(*m_lapC[lev], levelC, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
 	  IceUtility::applyGradSq(*m_gradCSq[lev], levelC,m_grids[lev], m_dx[lev]);
 	}
 
-      if (m_config.m_gradMuCoefsqRegularization > 0.0)
+	//if (m_config.m_gradMuCoefsqRegularization > 0.0)
 	{
 	  IceUtility::applyHelmOp(*m_lapMuCoef[lev], levelMuCoef, 0.0, 1.0, m_grids[lev], m_dx[lev]);
 	  IceUtility::applyGradSq(*m_gradMuCoefSq[lev], levelMuCoef,  m_grids[lev], m_dx[lev]);
 	}
 
-      if (m_config.m_gradX0sqRegularization > 0.0 || m_config.m_gradX1sqRegularization > 0.0)
+	//if (m_config.m_gradX0sqRegularization > 0.0 || m_config.m_gradX1sqRegularization > 0.0)
 	{
 	  IceUtility::applyHelmOp(*m_lapX[lev], levelX, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
 	  IceUtility::applyGradSq(*m_gradXSq[lev], levelX,m_grids[lev], m_dx[lev]);
@@ -932,12 +932,20 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   Real hobj = computeSum(m_divuhMisfit, m_refRatio, m_dx[0][0]); 
   Real sumGradCSq = computeSum(m_gradCSq,m_refRatio, m_dx[0][0]);
   Real sumGradMuSq = computeSum(m_gradMuCoefSq,m_refRatio, m_dx[0][0]);
+  Real sumGradX0Sq = computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(0,0));
+
+  writeLevel(m_gradXSq[1]);
+  CH_assert(sumGradX0Sq < 1.0e+50)
+  
+  Real sumGradX1Sq = computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(1,1));
   Real normX0 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(0,0));
   Real normX1 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(1,1));
 
   a_fm = vobj + hobj;
   a_fp =  m_config.m_gradCsqRegularization * sumGradCSq
     + m_config.m_gradMuCoefsqRegularization * sumGradMuSq
+    + m_config.m_gradX0sqRegularization * sumGradX0Sq
+    + m_config.m_gradX1sqRegularization * sumGradX1Sq
     + X0Regularization() * normX0*normX0
     + X1Regularization() * normX1*normX1;
   
@@ -945,6 +953,8 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 	 << " ||divuh misfit||^2 = " << hobj
 	 << " || grad C ||^2 = " << sumGradCSq
          << " || grad muCoef ||^2 = " << sumGradMuSq
+    	 << " || grad X0 ||^2 = " << sumGradX0Sq
+         << " || grad X1 ||^2 = " << sumGradX1Sq
 	 << " || X0 ||^2 = " << normX0*normX0
 	 << " || X1 ||^2 = " << normX1*normX1
 	 << std::endl;
@@ -1493,6 +1503,7 @@ void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
 	  if ((m_config.m_gradX0sqRegularization > 0.0) && m_config.m_optimizeX0)
 	    {
 	      t.copy((*m_lapX[lev])[dit],CCOMP,0); t*= -m_config.m_gradX0sqRegularization;
+	      CH_assert(t.norm() < 1.2345678e+300);
 	      G.plus(t,0,CCOMP);
 	    }
 
