@@ -695,12 +695,13 @@ protected:
                      const Vector<LevelData<FluxBox>* >& a_faceVelAdvection,  
                      Real a_dt);
   
-  /// general purpose *non-conservative* advection  df/dt + u. grad(f) = 0
+  /// Ice fraction *non-conservative* advection  df/dt + u. grad(f) = 0
   /**
-     enforce df/dt = 0 where dx|grad(f)| > a_ tol
+     enforce df/dt = 0 where |grad(f)| > a_ tol
   */
-  void PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
-		const Vector<LevelData<FluxBox>* >& a_u,
+  void PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
+		    //FC const Vector<LevelData<FluxBox>* >& a_u,
+		    const Vector<LevelData<FArrayBox>* >& a_u,
 		Real a_dt, Real a_tol);
   
   /// update real-valued ice fraction through advection from neighboring cells
