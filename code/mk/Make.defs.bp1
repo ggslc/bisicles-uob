@@ -6,8 +6,4 @@ PYTHON_HOME=/usr
 PYTHON_INC=-I$(PYTHON_HOME)/include/python3.6m
 PYTHON_LIBS=-L$(PYTHON_HOME)/lib -lpython3.6m
 
-PYTHON_HOME=/software/local/languages/miniforge3/envs/python-3.12.3/
-PYTHON_INC=-I$(PYTHON_HOME)/include/python3.12
-PYTHON_LIBS=-lpython3.12
-
 LDFLAGS=-L/lib64 -ldl
