@@ -1385,6 +1385,8 @@ protected:
   Real m_stable_sources_mask_dx;
   bool m_grounding_line_stable;
   
+  Real m_CriticalHeightAboveFlotation;
+    
   
 
   /** if true, scale thickness sources (surface flux and basal flux) by 

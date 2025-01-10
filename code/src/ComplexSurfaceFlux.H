@@ -455,6 +455,63 @@ private:
 
 };
 
+/// SurfaceFlux which has a power law dependence on depth
+/**
+
+   Usually used in conjunction with MaskedFlux to impose a depth 
+   dependent ice shelf melt rate. The surface flux is computed as
+   
+   \f$ f = coef * depth ^ power \f$  
+*/
+class DepthPowerFlux : public SurfaceFlux
+{
+public:
+  /// 
+  /**
+     @param a_power the power to raise the depth to in the function \f$h_i\f$
+     @param a_coef the coefficient \f$f_i\f$
+     @param a_minWaterDepth set flux to zero in sub-shelf cavities thinner than a_minWaterDepth
+   */
+  DepthPowerFlux(const Real a_power, 
+		      const Real a_coef,
+		      const Real a_minWaterDepth = -1.0,
+		      const Real a_thermoclineDepth = 0.0);
+
+  ~DepthPowerFlux(){};
+
+  virtual SurfaceFlux* new_surfaceFlux();
+
+  virtual void surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
+				    const AmrIceBase& a_amrIce, 
+				    int a_level, Real a_dt);
+  
+
+protected:
+  Real m_power;
+  Real m_coef;
+  Real m_minWaterDepth;
+  Real m_thermoclineDepth;
+
+private:
+   // Disallowed for all the usual reasons
+  void operator=(const DepthPowerFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  // Disallowed for all the usual reasons
+  DepthPowerFlux(const DepthPowerFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  DepthPowerFlux()
+  {
+    MayDay::Error("invalid operator");
+  }
+
+};
+
 
 /// Normalizes any flux so that the integrated flux has a specified value
 /**
