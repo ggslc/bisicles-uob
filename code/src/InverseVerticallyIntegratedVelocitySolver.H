@@ -276,6 +276,9 @@ public:
 
     /// Maximum number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGmaxIter, default 16
     Real m_CGmaxIter;
+	
+    /// Minimm number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGminIter, default 1. Added by MJT
+    Real m_CGminIter;
 
     /// Tolerance for the 'outer' nonlinear conjugate gradient method. Set with <prefix>.CGtol, default 1.0e-3
     Real m_CGtol;
@@ -294,6 +297,9 @@ public:
 
     /// Give up when succesive CG steps don't progress quickly enough . Set with <prefix>.CGhang, default 0.999
     Real m_CGhang;
+	
+    /// Limit for CGhang, above which the run will continue. Default 10. Added by MJT.
+    Real m_CGhangLimit;
 
     /// Restart CG at a fixed interval. Set with <prefix>.CGrestartInterval, default 9999
     Real m_CGrestartInterval;
