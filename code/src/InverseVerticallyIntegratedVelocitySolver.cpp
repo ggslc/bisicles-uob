@@ -116,6 +116,9 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_CGmaxIter = 16;
   pp.query("CGmaxIter",m_CGmaxIter);
+    
+  m_CGminIter = 3;							//MJT
+  pp.query("CGminIter",m_CGminIter);		//MJT
   
   m_CGtol = 1.0e-3;
   pp.query("CGtol",m_CGtol);
@@ -134,6 +137,9 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_CGhang = 0.999;
   pp.query("CGhang",m_CGhang);
+  
+  m_CGhangLimit = 10.0;						//MJT
+  pp.query("CGhangLimit",m_CGhangLimit);	//MJT
   
   m_CGrestartInterval = 9999;
   pp.query("restartInterval",m_CGrestartInterval);
@@ -516,19 +522,22 @@ int InverseVerticallyIntegratedVelocitySolver::solve
     {
       
       m_outerCounter = 0;
-      m_innerCounter = 0; 
+      m_innerCounter = 0; 		// MJT
 
       int CGmaxIter = m_config.m_CGmaxIter;
+	  int CGminIter = m_config.m_CGminIter;
       if ( (m_time - m_prev_time) < m_config.m_minTimeBetweenOptimizations)
 	{
 	  // just initialize the optimization, which means computing the first objective etc.
 	  CGmaxIter = 0;
+	  CGminIter = -1;			// MJT
 	}
   
       pout() << " Optimization: CGmaxIter = " << CGmaxIter << "  m_time = " << m_time << "  m_prev_time = " << m_prev_time  << std::endl;
       
       // attempt the optimization
-      CGOptimize(*this ,  X , CGmaxIter , m_config.m_CGtol , m_config.m_CGhang,
+      //CGOptimize(*this ,  X , CGmaxIter , m_config.m_CGtol , m_config.m_CGhang,										//MJT
+      CGOptimize(*this ,  X , CGmaxIter , CGminIter , m_config.m_CGtol , m_config.m_CGhang , m_config.m_CGhangLimit,	//MJT
 		 m_config.m_CGsecantParameter, m_config.m_CGsecantStepMaxGrow, 
 		 m_config.m_CGsecantMaxIter , m_config.m_CGsecantTol, m_outerCounter);
       m_optimization_done = true;
