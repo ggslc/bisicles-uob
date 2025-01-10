@@ -422,8 +422,8 @@ void init_bisicles_instance(BisiclesWrapper& a_wrapper)
     }
   else if (rateFactorType == "patersonRate")
     {
-      PatersonRateFactor rateFactor(seconds_per_unit_time);
-      ParmParse arPP("PatersonRate");
+      ParmParse arPP("patersonRate");
+      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
       amrObject.setRateFactor(&rateFactor);
     }
   else if (rateFactorType == "zwingerRate")
@@ -447,7 +447,8 @@ void init_bisicles_instance(BisiclesWrapper& a_wrapper)
   
   if (basalRateFactorType == "patersonRate")
     {
-      PatersonRateFactor rateFactor(seconds_per_unit_time);
+	  ParmParse arPP("basalPatersonRate");
+      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
       rateFactor.setA0(1.0);
       amrObject.setBasalRateFactor(&rateFactor);
     }
