@@ -126,6 +126,12 @@ USE_64        = TRUE
 USE_HDF       = TRUE
 #make sure BISICLES_HOME is correct
 BISICLES_HOME=#####
+
+#set USE_FFTW to TRUE if fftw3 is installed and you want the BuelerGIA component 
+USE_FFTW=FALSE
+#make sure FFTWDIR is correct (contains e.g include/fftw3.h if you set USE_FFTW=TRUE
+FFTWDIR=/usr
+
 #note that HDFINCFLAGS and HDFLIBFLAGS must also currently be defined 
 # for parallel builds (due to a Chombo build-system ideosyncracy which 
 # will be fixed in an upcoming Chombo release). If no serial hdf5 build 

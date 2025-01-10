@@ -126,13 +126,13 @@ c-------------------------------------------------------------------------------
 c     alpha <- alpha / (|u|/|ur| + 1 )^(m). The regularized Coulomb law of Joughin 2019: does not depend on pressure
 c     but instead has characteristic 'fast flow' |ur|.
 c
-c     The full rule is Tb = Cb * |u|^(m)* u/|u| * (|u|/|ur| + 1)^(1/n), where n is typically 1/3.
-c     Joughin 2019 is equivalent but has Tb =  Cj * |u|^(m)* u/|u| * (|u|+|ur|)^m, i.e Cb = Cj/(|ur|^m). 
+c     The full rule is Tb = Cb * |u|^(m)* u/|u| / (|u|/|ur| + 1)^(1/n), where n is typically 1/3.
+c     Joughin 2019 is equivalent but has Tb =  Cj * |u|^(m)* u/|u| / (|u|+|ur|)^m, i.e Cb = Cj/(|ur|^m). 
 c     Cb is convenient because it then has the same units as in the usual power law
 c     (our m is Joughin's 1/m )
 c
 c     Also supports modified rule with alpha <- alpha * N /( Nr^1/m  (|u|/|ur| + N^1/m )^(m)
-c     That is Tb =  Cjn * N * |u|^(m)* u/|u| / ( Nr^1/m*|u|+ N^1/m*|ur|)^m
+c     That is Tb =  Cjn * N/Nr * |u|^(m)* u/|u| / ( |u|/|ur| + (N/Nr)^1/m)^m
 c     When |u| >> |u_r|, |Tb| -> Cjn * N/Nr (Coulomb law that depends on pressure)
 c     When |u| << |u_r|, |Tb| -> Cjn * |u|^(m) / |ur|^m
 c     N is effective pressure, Nr is a reference (high!) pressure
@@ -144,7 +144,7 @@ c-------------------------------------------------------------------------------
      &     CHF_CONST_REAL[m], CHF_BOX[box])
 
       integer CHF_AUTODECL[i]
-      REAL_T usq, usq0, q, om
+      REAL_T usq, usq0, qu, qn, om
 
       om = one / m
       usq0 = TINY_VEL**2
@@ -155,15 +155,17 @@ c-------------------------------------------------------------------------------
      &     + u(CHF_AUTOIX[i],2)**2]
 
 c     maybe a bit belt and braces...
-      q = (usq**half)/(abs(ur) + TINY_VEL)
+      qu = (usq**half)/(abs(ur) + TINY_VEL)
       
       if (Nr .lt. TINY_THICKNESS) then
          alpha(CHF_AUTOIX[i]) = alpha(CHF_AUTOIX[i])
-     &        * ( q + one )**(-m)
+     &        * ( qu + one )**(-m)
       else
+         qn = N(CHF_AUTOIX[i])/Nr
          alpha(CHF_AUTOIX[i]) = alpha(CHF_AUTOIX[i])
-     &        *     N(CHF_AUTOIX[i])
-     &        * ( q * Nr**om + N(CHF_AUTOIX[i])**om )**(-m)
+     &        *  N(CHF_AUTOIX[i])/Nr
+     &        * (qu + qn**om)**(-m)
+     
       end if
 
       CHF_ENDDO

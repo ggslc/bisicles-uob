@@ -20,20 +20,6 @@ ifeq ($(CHOMBO_HOME),)
 CHOMBO_HOME := $(BISICLES_HOME)/Chombo/lib
 endif
 
-#GIA code depends on fftw
-USE_FFTW := TRUE
-#Guess FFTWDIR if it is not specified. 
-ifeq ($(FFTWDIR),)
-FFTWDIR=/usr
-endif
-#check FFTWDIR, since it is a source if confusion when absent#
-ifeq ($(USE_FFTW),TRUE)
-$(info FFTWDIR=$(FFTWDIR))
-ifeq ($(wildcard $(FFTWDIR)/include/fftw3.h),)
-$(error $(FFTWDIR)/include/fftw3.h does not exist)
-endif
-endif
-
 include $(CHOMBO_HOME)/mk/Make.defs
 include $(CHOMBO_HOME)/mk/Make.defs.config
 
@@ -65,6 +51,9 @@ include $(NONE_DEFS)
 endif
 endif
 
+
+
+
 #if PYTHON_INC was not defined, warn
 ifeq ($(PYTHON_INC),)
 $(info python will not be enabled)
@@ -75,6 +64,15 @@ ifneq ($(PYTHON_INC),)
 CPPFLAGS :=$(PYTHON_INC) -DHAVE_PYTHON	$(CPPFLAGS)
 LIBFLAGS+=$(PYTHON_LIBS) 
 endif
+
+#check FFTWDIR
+ifeq ($(USE_FFTW),TRUE)
+$(info FFTWDIR=$(FFTWDIR))
+ifeq ($(wildcard $(FFTWDIR)/include/fftw3.h),)
+$(error $(FFTWDIR)/include/fftw3.h does not exist)
+endif
+endif
+
 
 SVN_URL := unknown
 SVN_REP := unknown

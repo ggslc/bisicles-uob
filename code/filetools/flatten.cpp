@@ -251,30 +251,29 @@ int main(int argc, char* argv[]) {
             fi.interpToFine(flatLevelData,*data[lev], true);
           } // end if this level exists
       }
+
+    //coarsen from finer levels to the DBL on the same level as flatLevel
+    for (int lev = data.size() - 1 ; lev > max(flatLevel,0) ; lev--)
+      {
+	CoarseAverage av(grids[lev], nComp, ratio[lev-1]);
+	av.averageToCoarse(*data[lev-1],*data[lev]);
+      }
+    
     //direct copy on same level (if it exists)
     if ((flatLevel >= 0) && (flatLevel < numLevels))
       {
         data[flatLevel]->copyTo(ivl,flatLevelData,ivl);
       }
-    
-    //average from finer levels
-    nRef = 1;
-    int startLevel = max(0,flatLevel +1);
-    if (flatLevel < 0)
+    else if (flatLevel < 0)
       {
-        for (int lev=flatLevel; lev<startLevel; lev++)
-          {
-            nRef *= 2;
-          }
-      }
-    for (int lev = startLevel ; lev < data.size() ; lev++)
-      {
-        if (lev > 0)
-          {
-            nRef *= ratio[lev-1];
-          }
-	CoarseAverage av(grids[lev], nComp, nRef);
-	av.averageToCoarse(flatLevelData,*data[lev]);		 
+	// coarsen to levels below the coarse grid.
+	nRef = 1;
+	for (int lev = flatLevel; lev < 0; lev++)
+	  {
+	    nRef *= 2;
+	  }
+	CoarseAverage av(grids[0], nComp, nRef);
+	av.averageToCoarse(flatLevelData,*data[0]);
       }
 
     if (out_file_type == hdf5)
@@ -322,7 +321,8 @@ int main(int argc, char* argv[]) {
 #ifdef HAVE_NETCDF
 	    
 	    std::string flattenInfo("slc removed this feature to see if it was causing chaos");
-	    NCIO::writeFAB(out_file, names, cf_standard_names, cf_units, cf_long_names, validFab, flatDx, x0, epsg, domain_diagnostic_data, flattenInfo.c_str(), in_file_header);
+	    NCIO::writeFAB(out_file, names, cf_standard_names, cf_units, cf_long_names, validFab, flatDx, time,
+			   x0, epsg, domain_diagnostic_data, flattenInfo.c_str(), in_file_header);
 #else
 	    MayDay::Error("netcdf output specified but netcdf support not built")
 #endif
