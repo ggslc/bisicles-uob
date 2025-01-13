@@ -62,7 +62,7 @@ void FtoI(IArrayBox& dest, const FArrayBox& src)
    between a_mask_label_start and a_mask_no, to multi-level real fractional coverage areas for each 
    distinct mask label. Resulting a_mask_fraction FABS will have a_mask_no components
 */
-void maskToAMR(Vector<LevelData<FArrayBox>* > a_mask_fraction,
+void maskToAMR(Vector<LevelData<FArrayBox>* >& a_mask_fraction,
 	       const Vector<Real>& a_mask_fraction_dx,
 	       const LevelData<FArrayBox>& a_mask,
 	       int a_mask_id_start,
