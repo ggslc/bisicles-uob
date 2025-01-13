@@ -959,12 +959,19 @@ int main(int argc, char* argv[]) {
 	// create storage for sector mask fractions - one FAB component for each mask label
 	int n_mask_nos = 1 + mask_no_end - mask_no_start;
 	
-	for (int lev = 0; lev < numLevels; lev++)
+	for (int lev = 0; lev < data.size(); lev++)
 	  {
 	    sector_mask_fraction[lev] = new LevelData<FArrayBox>(grids[lev],n_mask_nos,IntVect::Unit);
 	  }
 	
 	maskToAMR(sector_mask_fraction, dx, *mdata[0], mask_no_start, n_mask_nos, mcrseDx);
+
+	//free heap
+	for (int lev = 0; lev < mdata.size(); lev++)
+	  {
+	    if (mdata[lev]) delete mdata[lev];
+	  }
+	
       }
     
 
@@ -976,10 +983,12 @@ int main(int argc, char* argv[]) {
 
 
     // free heap
-    for (int lev = 0; lev < numLevels; lev++)
+    for (int lev = 0; lev < data.size(); lev++)
       {
 	if (sector_mask_fraction[lev]) delete sector_mask_fraction[lev];
+	if (data[lev]) delete data[lev];
       }
+   
     		  
   }  // end nested scope
   CH_TIMER_REPORT();
