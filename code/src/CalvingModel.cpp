@@ -1400,9 +1400,7 @@ VonMisesCalvingModel::getCalvingVel
  const DisjointBoxLayout& a_grids,
  const AmrIce& a_amrIce,int a_level)
 {
-  return false;
-  }
-/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
+
   if (!m_vector) return false; 
 
   // cell-centered scale
@@ -1449,7 +1447,7 @@ VonMisesCalvingModel::getCalvingVel
 
     } // End loop over boxes on a single processor
   // End Von Mises calculation
-
+/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
   //interpolate to faces
   // NOTE (SBK 20240620) CAN'T GROW THE VON MISES STRESS, AS NOT WELL DEFINED
   // AT BOX EDGES CURRENTLY
@@ -1489,6 +1487,23 @@ VonMisesCalvingModel::getCalvingVel
   	}
     }
     // end interpolate to faces
+*/
+
+
+  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	  {
+
+  	    for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
+        { 
+  	      const IntVect& iv = bit();
+          faceScaleVM[dit][dir](iv) = scale[dit](iv)*vonmises[dit](iv);
+        }
+      }
+    }
 
     // multiply by -velocity
   for (DataIterator dit(a_grids); dit.ok(); ++dit)
@@ -1543,7 +1558,7 @@ VonMisesCalvingModel::getCalvingVel
   return true;
   
 }
-*/
+
 
 void
 VonMisesCalvingModel::getCalvingRate
