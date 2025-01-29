@@ -2983,7 +2983,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	  if (m_evolve_ice_frac)
 	    {
 	      //remove calved area.
-	      const FArrayBox& frac = (*m_iceFrac[lev])[dit];
+	      FArrayBox& frac = (*m_iceFrac[lev])[dit];
 	      const FArrayBox& calved_frac = (*m_calvedIceArea[lev])[dit];
 	      Real frac_tol = TINY_FRAC;
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
@@ -3009,6 +3009,14 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 		      newH(iv) -= remove;
 		      (*m_calvedIceThickness[lev])[dit](iv) += remove;
 		    }
+
+		  /// BODGE - just trying 
+		  Real tol = 1.0e-3;
+		  if ((newH(iv) < tol) && (newH(iv) < oldH(iv)))
+		    {
+		      frac(iv) = 0.0;
+		    }
+		  
 	      	}
 	    }
 	  
@@ -3848,6 +3856,29 @@ void AmrIce::defineVelRHS(Vector<LevelData<FArrayBox>* >& a_vectRhs)
                                            m_amrDomains[lev],m_time, m_dt);
     }
 
+  ParmParse pp("bodges");
+  bool frac_rhs_bodge(false);
+  pp.query("frac_rhs_bodge", frac_rhs_bodge);
+  if (frac_rhs_bodge)
+    {
+      /// BODGE - just trying this out. set rhs <- rhs/frac to speed up ice in calving zone.
+      for (int lev=0; lev<=m_finest_level; lev++)
+	{
+	  LevelData<FArrayBox>& lrhs = *rhs[lev];
+	  const DisjointBoxLayout grids = lrhs.disjointBoxLayout();
+	  for (DataIterator dit(grids); dit.ok(); ++dit)
+	    {
+	      FArrayBox t(lrhs[dit].box(), 1);
+	      t.copy( (*m_iceFrac[lev])[dit]);
+	      t += 1.0e-10;
+	      for (int dir =0; dir <SpaceDim; dir++)
+		{
+		  lrhs[dit].divide(t,0,dir);
+		}
+	    }
+	}
+ 
+    }
 }
 
 
