@@ -1444,6 +1444,71 @@ VonMisesCalvingModel::~VonMisesCalvingModel()
   
 }
 
+bool 
+VonMisesCalvingModel::getCalvingVel
+(LevelData<FArrayBox>& a_centreCalvingVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  if (!m_vector) return false;
+  
+  // cell-centered scale
+  LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
+  m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
+  scale.exchange();
+
+  LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
+  const LevelData<FArrayBox>& viscousTensor = *a_amrIce.viscousTensor(a_level);
+  const LevelSigmaCS& geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& thickness = geometry.getH();
+  
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+  
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+      // Compute the Von Mises Stress (cell-centered)
+      FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+		    CHF_CONST_FRA(viscousTensor[dit]),
+		    CHF_CONST_FRA1(thickness[dit],0),
+		    CHF_INT(xxComp),
+		    CHF_INT(xyComp),
+		    CHF_INT(yxComp),
+		    CHF_INT(yyComp),
+		    CHF_CONST_REAL(eps),
+		    CHF_BOX(thisBox));
+      
+    } // End loop over boxes on a single processor
+  // End Von Mises calculation
+
+  // -velocity * sigma_vm * scale
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+
+      a_centreCalvingVel[dit].copy(a_centreIceVel[dit]);
+      for (int dir = 0; dir < SpaceDim; ++dir)
+	{
+	  a_centreCalvingVel[dit].mult(vonmises[dit], 0, dir, 1);
+	  a_centreCalvingVel[dit].mult(scale[dit], 0, dir, 1);
+	  a_centreCalvingVel[dit] *= -1.0; // opposing direction
+	}
+    }
+  
+  return true;
+  
+}
+
 
 bool 
 VonMisesCalvingModel::getCalvingVel

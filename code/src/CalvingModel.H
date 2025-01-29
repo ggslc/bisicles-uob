@@ -613,7 +613,7 @@ public:
 
 /// A Calving model that provides a rate with a part proportional to speed and effective (Von Mises) stress and a part independent of speed and stress
 /**
-   The rate is either a face-centred vector (opposed to ice velocity)
+   The rate is either a cell-centred vector (opposed to ice velocity)
    or a cell-centered scalar
 
    The rate is r = a u/|u| + sig_vm/sig_max u
@@ -649,12 +649,19 @@ public:
   
   virtual CalvingModel* new_CalvingModel();
 
-  ///frontal ablation vector.
+  ///face-frontal ablation vector.
   virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
 			      const LevelData<FluxBox>& a_faceIceVel,
 			      const LevelData<FArrayBox>& a_centreIceVel,
 			      const DisjointBoxLayout& a_grids,
 			      const AmrIce& a_amrIce,int a_level);
+
+  ///cell centred frontal ablation vector
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
+
   
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);
