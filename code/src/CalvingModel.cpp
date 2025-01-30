@@ -11,9 +11,11 @@
 #include "CalvingModel.H"
 #include "MaskedCalvingModel.H"
 #include "CrevasseCalvingModel.H"
+#include "LevelMappedDerivatives.H"
 #include "IceConstants.H"
 #include "AmrIce.H"
 #include "ParmParse.H"
+#include "CalvingF_F.H"
 #include "NamespaceHeader.H"
 
 /// a default implementation
@@ -481,9 +483,11 @@ CalvingModel* CalvingModel::parseCalvingModel(const char* a_prefix)
     {
   
       ptr = new RateAuBuhatCalvingModel(pp);
-    }
-  
-  
+    }   
+   else if (type == "VonMisesCalvingModel")
+    {
+      ptr = new VonMisesCalvingModel(pp);
+    } 
 
   return ptr;
 }
@@ -1316,5 +1320,437 @@ RateAuBuhatCalvingModel::getCalvingRate
 
   int dbg = 0;dbg++; 
 }
+
+VonMisesCalvingModel::VonMisesCalvingModel(ParmParse& a_pp)
+{
+      Real startTime = -1.2345678e+300;
+      a_pp.query("start_time",  startTime);
+      Real endTime = 1.2345678e+300;
+      a_pp.query("end_time",  endTime);
+ 
+      Vector<int> frontLo(2,false); 
+      a_pp.getarr("front_lo",frontLo,0,frontLo.size());
+      Vector<int> frontHi(2,false);
+      a_pp.getarr("front_hi",frontHi,0,frontHi.size());
+      bool preserveSea = false;
+      a_pp.query("preserveSea",preserveSea);
+      bool preserveLand = false;
+      a_pp.query("preserveLand",preserveLand);
+
+      m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(frontLo,frontHi,preserveSea,preserveLand);
+
+      std::string prefix (a_pp.prefix());
+      m_scale = SurfaceFlux::parse( (prefix + ".scale").c_str());
+      if (!m_scale) m_scale = new zeroFlux(); 
+      m_independent = SurfaceFlux::parse( (prefix + ".independent").c_str());
+      if (!m_independent) m_independent  = new zeroFlux(); 
+      m_vector = false;
+      a_pp.query("vector", m_vector);
+
+      
+}
+
+/** Von Mises building blocks **/
+void VonMisesCalvingModel::applyCriterion
+(LevelData<FArrayBox>& a_thickness,
+ LevelData<FArrayBox>& a_calvedIce,
+ LevelData<FArrayBox>& a_addedIce,
+ LevelData<FArrayBox>& a_removedIce,  
+ LevelData<FArrayBox>& a_iceFrac, 
+ const AmrIce& a_amrIce,
+ int a_level,
+ Stage a_stage)
+{
+
+  (*m_domainEdgeCalvingModel).applyCriterion( a_thickness, a_calvedIce, a_addedIce, a_removedIce, a_iceFrac,a_amrIce, a_level, a_stage);
+
+  const LevelSigmaCS& levelCoords = *a_amrIce.geometry(a_level);
+  for (DataIterator dit(levelCoords.grids()); dit.ok(); ++dit)
+    {
+      FArrayBox& thck = a_thickness[dit];
+      FArrayBox& calved = a_calvedIce[dit];
+      FArrayBox& added = a_addedIce[dit];
+      FArrayBox& removed = a_removedIce[dit];
+      FArrayBox& frac = a_iceFrac[dit];
+      const BaseFab<int>& mask = levelCoords.getFloatingMask()[dit];
+      Real frac_eps = TINY_FRAC;
+      const Box& b = levelCoords.grids()[dit];
+      for (BoxIterator bit(b); bit.ok(); ++bit)
+	{
+	  const IntVect& iv = bit();
+	  Real prevThck = thck(iv);
+
+	  // if (frac(iv) < frac_eps * frac_eps)
+	  //   {
+	  //     frac(iv) = 0.0;
+	  //   }
+	  
+	  // if (frac(iv) < frac_eps)
+	  //   {
+	  //     thck(iv) = 0.0;
+	  //   }
+
+	  //  // if (frac(iv) < 0.5)
+	  //  //   {
+	  //  //     thck(iv) *= frac(iv);
+	  //  //   }
+
+		  
+	  // // Record gain/loss of ice
+	  if (calved.box().contains(iv))
+	    {
+	      updateCalvedIce(thck(iv),prevThck,mask(iv),added(iv),calved(iv),removed(iv));
+	    }
+
+	}
+    }
+
+}
+
+
+
+CalvingModel* VonMisesCalvingModel::new_CalvingModel()
+  {
+    VonMisesCalvingModel* ptr = new VonMisesCalvingModel(*this);
+    ptr->m_startTime = m_startTime;
+    ptr->m_endTime = m_endTime;
+    ptr->m_scale = m_scale->new_surfaceFlux();
+    ptr->m_independent = m_independent->new_surfaceFlux();
+    ptr->m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(*m_domainEdgeCalvingModel);
+    return ptr; 
+  }
+
+VonMisesCalvingModel::~VonMisesCalvingModel()
+{
+
+  if (m_domainEdgeCalvingModel != NULL)
+    {
+      delete m_domainEdgeCalvingModel;
+      m_domainEdgeCalvingModel = NULL;
+    }
+
+  if (m_scale != NULL)
+    {
+      delete m_scale;
+      m_scale = NULL;
+    }
+
+    if (m_independent != NULL)
+    {
+      delete m_independent;
+      m_independent = NULL;
+    }
+
+  
+}
+
+bool 
+VonMisesCalvingModel::getCalvingVel
+(LevelData<FArrayBox>& a_centreCalvingVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  if (!m_vector) return false;
+  
+  // cell-centered scale
+  LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
+  m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
+  scale.exchange();
+
+  LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
+  const LevelData<FArrayBox>& viscousTensor = *a_amrIce.viscousTensor(a_level);
+  const LevelSigmaCS& geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& thickness = geometry.getH();
+  
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+  
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+      // Compute the Von Mises Stress (cell-centered)
+      FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+		    CHF_CONST_FRA(viscousTensor[dit]),
+		    CHF_CONST_FRA1(thickness[dit],0),
+		    CHF_INT(xxComp),
+		    CHF_INT(xyComp),
+		    CHF_INT(yxComp),
+		    CHF_INT(yyComp),
+		    CHF_CONST_REAL(eps),
+		    CHF_BOX(thisBox));
+      
+    } // End loop over boxes on a single processor
+  // End Von Mises calculation
+
+  // -velocity * sigma_vm * scale
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+
+      a_centreCalvingVel[dit].copy(a_centreIceVel[dit]);
+      for (int dir = 0; dir < SpaceDim; ++dir)
+	{
+	  a_centreCalvingVel[dit].mult(vonmises[dit], 0, dir, 1);
+	  a_centreCalvingVel[dit].mult(scale[dit], 0, dir, 1);
+	  a_centreCalvingVel[dit] *= -1.0; // opposing direction
+	}
+    }
+  
+  return true;
+  
+}
+
+
+bool 
+VonMisesCalvingModel::getCalvingVel
+(LevelData<FluxBox>& a_faceCalvingVel,
+ const LevelData<FluxBox>& a_faceIceVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+
+  if (!m_vector) return false; 
+
+  // cell-centered scale
+  LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
+  m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
+  scale.exchange();
+
+  // cell-centered Von Mises stress
+  LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
+  // Access the (cell-centered) viscous tensor (vertically integrated stress)
+  // SHOULD USE FACE VISCOUS TENSOR!
+  const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
+  //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
+  const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& a_thickness = a_geometry.getH();
+
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+
+ 
+  // Compute the Von Mises Stress (cell-centered)
+  FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+          CHF_CONST_FRA(a_viscousTensor[dit]),
+          CHF_CONST_FRA1(a_thickness[dit],0),
+          CHF_INT(xxComp),
+          CHF_INT(xyComp),
+          CHF_INT(yxComp),
+          CHF_INT(yyComp),
+          CHF_CONST_REAL(eps),
+          CHF_BOX(thisBox));
+
+    } // End loop over boxes on a single processor
+  // End Von Mises calculation
+/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
+  //interpolate to faces
+  // NOTE (SBK 20240620) CAN'T GROW THE VON MISES STRESS, AS NOT WELL DEFINED
+  // AT BOX EDGES CURRENTLY
+  //CellToEdge(scale, a_faceCalvingVel);
+  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	{
+  	  Box faceBox = frac.box();
+  	  faceBox.grow(-1);
+  	  faceBox.surroundingNodes(dir);
+  	  faceBox &= faceScaleVM[dit][dir].box();
+
+  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+  	    {
+  	      const IntVect& iv = bit();
+  	      // cell-centre indices on the - and + sides of the face
+  	      IntVect ivm = iv - BASISV(dir); 
+  	      IntVect ivp = iv;
+	      // one-sided...
+  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
+  		{
+  		  faceScaleVM[dit][dir](iv) = scale[dit](ivm)*vonmises[dit](iv);
+  		}
+  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
+  		{
+  		  faceScaleVM[dit][dir](iv) = scale[dit](ivp)*vonmises[dit](iv);
+  		}
+  	      else
+  		{
+  		  // normal linear interpolation
+  		  faceScaleVM[dit][dir](iv) = 0.5 * (scale[dit](ivm)*vonmises[dit](iv) + scale[dit](ivp)*vonmises[dit](iv));
+  		}
+  	    }
+  	}
+    }
+    // end interpolate to faces
+*/
+
+
+  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	  {
+
+  	    for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
+        { 
+  	      const IntVect& iv = bit();
+          faceScaleVM[dit][dir](iv) = scale[dit](iv)*vonmises[dit](iv);
+        }
+      }
+    }
+
+    // multiply by -velocity
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      for (int dir = 0; dir < SpaceDim; dir++)
+	{
+	  a_faceCalvingVel[dit][dir] *= -1.0;
+	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
+	}
+    }
+
+  if (m_independent)
+    {
+      // cell-centered independent part 
+      LevelData<FArrayBox> ccrate(a_grids, 1, 2*IntVect::Unit);
+     
+      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
+      ccrate.exchange();
+      LevelData<FArrayBox> ccvel(a_grids, SpaceDim, 2*IntVect::Unit);
+     
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+	{
+	  const FArrayBox& vel = a_centreIceVel[dit];
+	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
+	  Box gbox = a_grids[dit];
+	  gbox.grow(1);
+	  for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
+	      //if (norm > 1.0e-10)
+		{
+		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
+		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
+		}
+	    }
+	}
+      // interpolate to centers and add to a_faceCalvingVel
+
+      ccvel.exchange();
+      LevelData<FluxBox> flux(a_grids, 1, IntVect::Unit);
+      CellToEdge(ccvel, flux);
+      
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+	{
+	  for (int dir = 0; dir < SpaceDim; dir++)
+	    {	      
+	      a_faceCalvingVel[dit][dir] += flux[dit][dir];
+	    }
+	}
+    }
+  return true;
+  
+}
+
+
+void
+VonMisesCalvingModel::getCalvingRate
+(LevelData<FArrayBox>& a_calvingRate, const AmrIce& a_amrIce,int a_level)
+{
+  const DisjointBoxLayout& a_grids = a_calvingRate.disjointBoxLayout();
+  // CH_assert(false); // we don't want to use this
+  m_scale->evaluate(a_calvingRate, a_amrIce, a_level, a_amrIce.dt());
+  LevelData<FArrayBox> indep(a_calvingRate.disjointBoxLayout(), 1, 2*IntVect::Unit);
+  if (m_independent) m_independent->evaluate(indep, a_amrIce, a_level, a_amrIce.dt());
+
+  // Von Mises Block
+  LevelData<FArrayBox> vonmises(a_calvingRate.disjointBoxLayout(), 1, 2*IntVect::Unit);
+  // Access the (cell-centered) viscous tensor (vertically integrated stress)
+  // SHOULD USE FACE VISCOUS TENSOR!
+  const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
+  //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
+  const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
+  const LevelData<FArrayBox>& a_thickness = a_geometry.getH();
+
+  // locate specific components of the viscous tensor the multicomponent arrays.
+  // the derivComponent function is in LevelMappedDerivatives.
+  int xxComp = derivComponent(0,0);
+  int xyComp = derivComponent(1,0);
+  int yxComp = derivComponent(0,1);
+  int yyComp = derivComponent(1,1);
+
+  Real eps = 1.0e-10;
+
+  // Loop over individual boxes on a single processor
+  DataIterator dit=a_grids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      // valid region box for this patch
+      const Box& thisBox = a_grids[dit];
+
+  // Compute the Von Mises Stress (cell-centered)
+  FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+          CHF_CONST_FRA(a_viscousTensor[dit]),
+          CHF_CONST_FRA1(a_thickness[dit],0),
+          CHF_INT(xxComp),
+          CHF_INT(xyComp),
+          CHF_INT(yxComp),
+          CHF_INT(yyComp),
+          CHF_CONST_REAL(eps),
+          CHF_BOX(thisBox));
+
+    } // End loop over boxes on a single processor
+  // End Von Mises block
+
+
+  const LevelData<FArrayBox>& vel = *a_amrIce.velocity(a_level); // flux vel might be better  
+  for (DataIterator dit(vel.dataIterator()); dit.ok(); ++dit)
+    {
+      Box b = a_calvingRate[dit].box();
+      for (BoxIterator bit(b); bit.ok(); ++bit)
+	{
+	  const IntVect& iv = bit();
+	  Real usq = 0.0;
+	  for (int dir = 0; dir < SpaceDim; dir++)
+	    {
+	      usq += vel[dit](iv,dir)*vel[dit](iv,dir);
+	    }	
+	  a_calvingRate[dit](iv) *= std::sqrt(usq)*vonmises[dit](iv);
+	}
+      if  (m_independent)
+	{
+	  a_calvingRate[dit] += indep[dit];
+	}
+    }
+
+  int dbg = 0;dbg++; 
+
+}
+/**Von Mises Building Blocks**/
 
 #include "NamespaceFooter.H"

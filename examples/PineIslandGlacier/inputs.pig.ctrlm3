@@ -155,8 +155,8 @@ amr.verbosity = 5
     control.yVel.n = 1
 
     #Tikhonov regularization coefficients
-    control.gradCsqRegularization = 1.0
-    control.gradMuCoefsqRegularization = 1.0
+    control.gradCsqRegularization = 1.0e3
+    control.gradMuCoefsqRegularization = 1.0e-5
 
     #some box constraints. 
     control.boundMethod = Projection
@@ -168,7 +168,7 @@ amr.verbosity = 5
     control.writeInnerSteps = false
     control.CGmaxIter = 128
     control.CGhang = 0.9999
-
+    #control.CGsecantParameter = 1.0e-9
     control.outerStepFileNameBase = ctrl.m3.
 
     control.minLevelForOptimization = 2 # refine to level 2 based on the observed speed, then optmize
