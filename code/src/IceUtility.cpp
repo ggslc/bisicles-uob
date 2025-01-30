@@ -274,7 +274,7 @@ void IceUtility::applyGradSq
 		  const IntVect& iv = bit();
 		  Real g = oneOnTwoDx * (a_phi[dit](iv + BASISV(dir),icomp)
 					 - a_phi[dit](iv - BASISV(dir),icomp));
-		    a_gradPhiSq[dit](iv) += g*g;
+		  a_gradPhiSq[dit](iv, icomp) += g*g;
 		    
 		}
 	    }

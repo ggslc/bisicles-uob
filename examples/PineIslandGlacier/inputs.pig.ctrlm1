@@ -1,4 +1,4 @@
-main.poutBaseName = pout_ctrl_@BASALBETA
+main.poutBaseName = pout_ctrl_m1
 
 #domain details
 main.domain_size = 256e+3 384e+3 1.0e+3
@@ -23,13 +23,13 @@ inputLevelData.frictionFile = pig-bisicles-1km.2d.hdf5
 inputLevelData.temperatureFile = pig-bisicles-1km.2d.hdf5
 inputLevelData.thicknessName = thk
 inputLevelData.topographyName = topg
-inputLevelData.frictionName = beta_@BASALBETA
+inputLevelData.frictionName = beta_m1
 inputLevelData.temperatureName = temp000000
 
 #basal friction relation parameters
 main.basalFrictionRelation = powerLaw
-BasalFrictionPowerLaw.m = @BASALM
-BasalFrictionPowerLaw.fastSlidingSpeed= @BASALU0
+BasalFrictionPowerLaw.m = 1.0
+BasalFrictionPowerLaw.fastSlidingSpeed= -1.0
 
 #physical constants
 constants.ice_density=918
@@ -169,7 +169,7 @@ amr.verbosity = 5
     control.CGmaxIter = 128
     control.CGhang = 0.9999
 
-    control.outerStepFileNameBase = ctrl.@BASALBETA.
+    control.outerStepFileNameBase = ctrl.m1.
 
     control.minLevelForOptimization = 2 # refine to level 2 based on the observed speed, then optmize
 
