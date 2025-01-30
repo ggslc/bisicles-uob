@@ -422,8 +422,8 @@ void init_bisicles_instance(BisiclesWrapper& a_wrapper)
     }
   else if (rateFactorType == "patersonRate")
     {
-      PatersonRateFactor rateFactor(seconds_per_unit_time);
-      ParmParse arPP("PatersonRate");
+      ParmParse arPP("patersonRate");
+      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
       amrObject.setRateFactor(&rateFactor);
     }
   else if (rateFactorType == "zwingerRate")
@@ -447,7 +447,8 @@ void init_bisicles_instance(BisiclesWrapper& a_wrapper)
   
   if (basalRateFactorType == "patersonRate")
     {
-      PatersonRateFactor rateFactor(seconds_per_unit_time);
+	  ParmParse arPP("basalPatersonRate");
+      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
       rateFactor.setA0(1.0);
       amrObject.setBasalRateFactor(&rateFactor);
     }
@@ -1302,6 +1303,10 @@ void bisicles_new_instance(int *instance_key, const char *input_fname, MPI_Comm 
 
 #ifdef CH_USE_PETSC
   PETSC_COMM_WORLD = Chombo_MPI::comm;
+#ifndef PETSC_NULLPTR
+#define PETSC_NULLPTR PETSC_NULL
+#endif
+
   PetscInitialize(PETSC_NULL,PETSC_NULL,PETSC_NULL,PETSC_NULL);
 #endif
 

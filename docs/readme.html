@@ -49,14 +49,13 @@
   but we never do that), plus both C++ and FORTRAN compilers, a GNU-compatible make, subversion, and Perl.
   Python is optional but highly recommended - BISICLES has numerous optional python components.
   On the whole, life is easiest with gcc (including g++ and gfortran), and we shall assume that
-  is what will be used. A modernish gcc is required - see the <a href='oldbuild.html'>older build instructions<a> if
-   you want to build with gcc 4.1.2, for example. To build the parallel version, you need an MPI environment, which provides 
+  is what will be used. To build the parallel version, you need an MPI environment, which provides 
   the mpicc and mpicxx  (or equivalents). You will also need 
   <a href='https://wci.llnl.gov/codes/visit/home.html'>VisIt</a></li> to view the data BISICLES 
 produces (other programs can be put to use, but VisIt is by far the most convenient)</p>
 <p>
   There are some <a href='sites.html'>site specific notes</a>: look at these before proceeding
-  if you are installing on an Ubuntu or Debian workstations, on a Cray XC30 or XC40 (e.g ARCHER, edison, cori),
+  if you are installing on an Ubuntu or Debian workstation, on a Cray (e.g ARCHER, NERSC),
   or on any of the other machines that BISICLES has been used before.
 </p>
 <h2><a name="svnco"> Check out the source code.</a> </h2>
@@ -70,24 +69,38 @@ produces (other programs can be put to use, but VisIt is by far the most conveni
   > export BISICLES_HOME=/wherever/you/like #assumes bash...
   > mkdir -p $BISICLES_HOME
   > cd $BISICLES_HOME
-  > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.2 Chombo 
+  > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.2 Chombo
+</pre>
+<p>
+  Next, decide which BISICLES branch you want. 
+   users will
+  want the main BISICLES development branch (trunk),which is fairly stable
+  since experimental code is developed on other branches. In that case run
+</p>
+<pre>
   > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/trunk BISICLES 
 </pre>
-</p> 
 <p>
-  Here we have assumed that you want the the main BISICLES development branch (trunk)
-  which is fairly stable since experimental
-  code is developed on other branches. The advantage of trunk is that bug fixes
-  are published there first. You may prefer the current release, which
-  changes infrequently.
-  </p>
+The advantage of trunk is that bug fixes
+are published there first. There is also a development branch available on github
+</p>
 <pre>
-   > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/release/1.3 BISICLES
+  > git clone https://github.com/ggslc/bisicles-uob BISICLES
 </pre>
-<p>
+
+You may prefer the current release, which
+changes infrequently.
+</p>
+<pre>
+  > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/release/1.4 BISICLES
+</pre>
+<p>  
   You may want one of the other branches, especially if you are working with any of
   the BISICLES developers to introduce new features, but in that case you will
-  probably know which one you need. Note
+  probably know which one you need.
+
+<p>
+  Note
   that you do not need to layout your source directories as indicated above, or even
   follow the rest of these notes exactly. If you want some other layout, note
   the following
@@ -119,6 +132,27 @@ produces (other programs can be put to use, but VisIt is by far the most conveni
 </p>
 
 <h2><a name="deps"> Dependencies.</a> </h2>
+<ul>
+  <li><strong>fftw:</strong> Some optional components (e.g the BuelerGIA module contributed by Sam Kachuck)
+  require <a href='https://fftw.org'>fftw</a>. Most operating systems will allow you
+  to install this in a sensible fashion. You need to know where it is installed - often /usr
+  </li>
+  <li>
+    <strong>hdf5:</strong> Chombo requires the hdf5 libraries.
+  </li>
+  <li>
+    <strong>petsc:</strong> Chombo 3.2 also contains an optional interface to the <a href='http://www.mcs.anl.gov/petsc/'> PETSc</a>  solver library.
+    We have found that using the Chombo AMR interface to the petsc algebraic multigrid solvers (either GAMG or Hypre's BoomerAMG) can
+    substantially improve the performance of the nonlinear ice velocity solve for problems where the native Chombo geometric multigrid (GMG) solvers struggle. 
+  </li>
+  <li> <strong>netcdf:</strong> BISICLES includes some complementary tools which require netcdf, and can be linked with the Glimmer-CISM model,
+  which also requires netcdf. As with hdf5, there may be a suitable version installed on your system
+  but you may need to compile netCDF from source.
+</li>
+<li> <strong>python:</strong> BISICLES has an optional python interface</li>
+<li> <strong>gdal:</strong> used by the complentary <emph>flatten</emph> tool to add projcetion data to output files </li>
+</ul>
+
 <p>
   If you're working on a system which is maintained by somebody else (like, for example, the supercomputers at NERSC),
   it's likely that most, if not all, of these dependencies have been built and installed already, which can save you some effort.
@@ -126,25 +160,15 @@ produces (other programs can be put to use, but VisIt is by far the most conveni
   odd way which makes them unusable for us, in which case you you're back to where you were anyway). See the
   <a href='sites.html'>site specific notes</a>, because certain common environments, such as the Cray XC30/40,
   and recent versions of Debian and Ubuntu GNU/Linux, have well designed systems for satisfying some of these dependencies,
-  notably hdf5 and netcdf. <strong>Do not follow the instructions below for hdf5 and netcdf on those machines, instead follow the much simpler instructions in the  <a href='sites.html'>site specific notes</a></strong>
+  notably fftw, hdf5 and netcdf. <strong>Do not follow the instructions below for hdf5 and netcdf on those machines, instead follow the much simpler instructions in the  <a href='sites.html'>site specific notes</a></strong>
 </p>
 
-<p>
-  Chombo requires the hdf5 libraries. As of the Chombo 3.2 release, Chombo builds against the
-  current hdf5 1.10 interface directly. (Chombo 3.1 and earlier built against the older hdf5 1.6 interface, which required some effort when building)
-  Chombo 3.2 also contains an optional interface to the <a href='http://www.mcs.anl.gov/petsc/'> PETSc</a>  solver library.
-  We have found that using the Chombo AMR interface to the petsc algebraic multigrid solvers (either GAMG or Hypre's BoomerAMG) can
-  substantially improve the performance of the nonlinear ice velocity solve for problems where the native Chombo geometric multigrid (GMG) solvers struggle. 
-</p>
-<p> BISICLES includes some complementary tools which require netcdf, and can be linked with the Glimmer-CISM model,
-  which also requires netcdf. As with hdf5, there may be a suitable version installed on your system
-  but you may need to compile netCDF from source.
-</p>
 <p>
   There should be a script, download_dependencies.sh (in the same directory as this file, 
   $BISICLES_HOME/BISICLES/docs) that will get the (version 1.10.10) hdf5 sources and  
   unpack them, twice : once into hdf5/serial/src and once into hdf5/parallel/src. 
   It assumes $BISICLES_HOME is set. It should contain the following
+</p>
 <pre>
 cd $BISICLES_HOME
 echo `pwd`
@@ -309,19 +333,33 @@ Next we need to set up Combo's configuration (which BISICLES will inherit automa
 The main task here is create a file called $BISICLES_HOME/Chombo/lib/mk/Make.defs.local,
 and there is version stored in this directory that should be easy enough to edit.
 First, copy it into $BISICLES_HOME
+</p>
 <pre>
 > cp $BISICLES_HOME/BISICLES/docs/Make.defs.local $BISICLES_HOME
 </pre>
+<p>
 At the very least, you will need to  edit the line that reads
+</p>
 <pre> 
 BISICLES_HOME=..., 
 </pre>
+<p>
 to give the correct value. If you don't have MPI, there are a few lines to comment out. 
 You might also want to tinker with the optimization flags and so on. Then create a link
 so that Chombo sees Make.defs.local in the place it expects
+</p>
 <pre>
 >ln -s $BISICLES_HOME/Make.defs.local $BISICLES_HOME/Chombo/lib/mk/Make.defs.local
 </pre>
+<p>
+If you want the include compenents (e.g BuelerGIA) that require fftw set
+</p>
+<pre>
+USE_FFTW=TRUE
+#make sure FFTWDIR is correct (contains e.g include/fftw3.h if you set USE_FFTW=TRUE
+FFTWDIR=/path/to/fftw # often /usr
+</pre>
+
 
 <h2><a name="bikeconf">Configuring BISICLES</a></h2>
 
@@ -359,8 +397,8 @@ the variables PYTHON_INC and PYTHON_LIBS are correctly defined.
 Make.defs.template attempts to set these variables by running
 </p>
 <pre>
-python-config --includes
-python-config --libs
+python3-config --includes
+python3-config --libs
 </pre>
 which works on many workstations but may not be what you want.
 In that case, you need to find out where the header file "Python.h" lives,

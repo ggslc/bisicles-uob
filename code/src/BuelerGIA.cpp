@@ -13,7 +13,7 @@
  * Date: Jan 19, 2019
  *
  */
-#if USE_FFTW
+#if FFTW_3
 #include "BuelerGIA.H"
 #include <fftw3.h>
 #include "BisiclesF_F.H"
@@ -756,4 +756,4 @@ BuelerGIAFlux::fftinvcrop (LevelData<FArrayBox>& a_varinhat, LevelData<FArrayBox
 }
 
 #include "NamespaceFooter.H"
-#endif /*USE_FFTW*/
+#endif /*FFTW_3*/

@@ -160,7 +160,8 @@ void secantLineSearch
       }
     
     pout() <<  " ... secant iteration j = " << j << " f'(x[0]+qd).f'(x[0]) = " << -eta
-	   << " a = " << alpha << " q =  " << q << std::endl;
+	   << " q = " << q 
+	   << std::endl;
 	
     Real absAlphaPrev = std::abs(alpha);
     alpha = alpha * eta / (etaPrev-eta);
@@ -172,13 +173,12 @@ void secantLineSearch
       }
     
     q += alpha;
-    pout() << " ... testing a = " << alpha << "  q = " << q  << std::endl;
+    pout() << " ... secant step a = " << alpha << "  q = " << q  << std::endl;
     
     a_F.incr(x,d,alpha);
     etaPrev = eta;
     j++;
-  } while (j < a_maxIter 
-	   && sqr(alpha) * deltaD > sqr(a_tol));
+  } while (j < a_maxIter  && (sqr(alpha) * deltaD > sqr(a_tol)));
   
   
 }
@@ -191,8 +191,10 @@ void secantLineSearch
 template <class X>
 int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x, 
 		int  a_maxIter, 
+		int  a_minIter, 	//MJT - add minIter and hangLim
 		Real a_tol,
 		Real a_hang,
+		Real a_hangLim,		//MJT - add minIter and hangLim
 		Real a_secantParameter,
 	        Real a_secantStepMaxGrow,
 	        int  a_secantMaxIter,
@@ -234,7 +236,8 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
   while ( (iter < niter)
 	  && (deltaNew > sqr(a_tol) * deltaZero) 
 	  && (fm > 1.0e-16) 
-	  && ( (iter - a_iter < 1  ) || (fm/fmOld < a_hang) ) )
+//	  && ( (iter - a_iter < 1  ) || (fm/fmOld < a_hang) ) )															// MJT
+	  && ( (iter - a_iter < 1  ) || ( ( (fm/fmOld < a_hang) || (fm/fmOld > a_hangLim) ) || (iter < a_minIter) ) ) )	// MJT - add minIter and hangLim
     {
       
       pout() << "CGOptimize iteration " << iter 

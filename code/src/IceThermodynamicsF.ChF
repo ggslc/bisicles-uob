@@ -80,7 +80,6 @@ c-------------------------------------------
      &     CHF_CONST_REAL[a_water_fraction_drain],
      &     CHF_CONST_REAL[a_water_fraction_max],
      &     CHF_CONST_REAL[a_water_drain_factor],
-     &     CHF_CONST_REAL[a_till_water_drain_factor],
      &	   CHF_CONST_REAL[a_till_water_max],
      &     CHF_CONST_REAL[a_floating_base_max_heat_flux])
 
@@ -93,8 +92,8 @@ c-------------------------------------------
 
        call column_thermodynamics_set_water_constants(
      &     a_water_fraction_drain, a_water_fraction_max,
-     &     a_water_drain_factor, a_till_water_drain_factor,
-     &     a_till_water_max, a_floating_base_max_heat_flux)
+     &     a_water_drain_factor, a_till_water_max,
+     &     a_floating_base_max_heat_flux)
       
       return 
       end 

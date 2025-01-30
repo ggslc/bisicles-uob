@@ -16,7 +16,7 @@
    BISICLES VERSION NUMBER
  */
 #define BISICLES_VERSION_MAJOR 1
-#define BISICLES_VERSION_MINOR 1
+#define BISICLES_VERSION_MINOR 5
 #define BISICLES_PATCH_NUMBER 0
 /**
    The Chombo version that this BISICLES version is intended for
@@ -33,7 +33,7 @@
    \mainpage BISICLES: An ice flow model based on the Chombo 
    Block-Structured Adaptive Mesh Refinement Library
 
-   <a href="http://seesar.lbl.gov/anag/bisicles">BISICLES webpage</a>
+   <a href="http://bisicles.lbl.gov">BISICLES webpage</a>
 
 */
 

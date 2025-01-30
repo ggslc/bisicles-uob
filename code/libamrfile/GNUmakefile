@@ -10,7 +10,11 @@ ebase := testlibamrfile
 src_dirs := src
 include ../mk/Make.defs
 
+ifeq ($(FC), gfortran)
+FLDFLAGS := -lgfortran
+endif
+
 libamrfile.so: $(objects) testlibamrfile
-	$(CXX) -o libamrfile.so -shared  $(objects)  $(CHOMBO_HOME)/libamrtools$(config).a $(CHOMBO_HOME)/libboxtools$(config).a $(CHOMBO_HOME)/libbasetools$(config).a $(HDFLIBFLAGS)
+	$(CXX) -o libamrfile.so -shared  $(objects)  $(CHOMBO_HOME)/libamrtools$(config).a $(CHOMBO_HOME)/libboxtools$(config).a $(CHOMBO_HOME)/libbasetools$(config).a $(HDFLIBFLAGS) $(FLDFLAGS)
 
 

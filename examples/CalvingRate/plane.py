@@ -41,20 +41,20 @@ def velocity_y_free_slip(x,y,*etc):
 def velocity_y_no_slip(x,y,*etc):
     return (0.0,velocity_x_no_slip(y,x,*etc)[0])
 
-def thickness(x,y):
+def thickness(x,y,*etc):
     h = 0.0
     if (x < 500.0e+3):
         h = 256.0
     
     return h
 
-def topography_x(x,y):
+def topography_x(x,y,*etc):
     return b0 + dbdx * x
 
-def topography_y(x,y):
+def topography_y(x,y,*etc):
     return topography_x(y,x,*etc)
 
-def constfriction(x,y,t,thck,topg):
+def constfriction(x,y,t,thck,topg,*etc):
     return 1.0e+4
 
 def acab_x(x,y,*etc):

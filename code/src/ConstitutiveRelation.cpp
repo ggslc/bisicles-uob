@@ -765,9 +765,13 @@ RateFactor* ArrheniusRateFactor::getNewRateFactor() const
   
 }
 
-PatersonRateFactor::PatersonRateFactor(Real a_seconds_per_unit_time)
+PatersonRateFactor::PatersonRateFactor(Real a_seconds_per_unit_time, ParmParse& a_pp)
 {
   setDefaultParameters(a_seconds_per_unit_time);
+  a_pp.query("A0",m_A0);
+  Real A0_multiplier = 1.0;
+  a_pp.query("A0_multiplier",A0_multiplier);
+  m_A0 *= A0_multiplier;
 }
 
 void PatersonRateFactor::setDefaultParameters(Real a_seconds_per_unit_time)

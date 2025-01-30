@@ -80,7 +80,10 @@ int main(int argc, char* argv[]) {
   int ierr = 0;
 
 #ifdef CH_USE_PETSC
-  ierr = PetscInitialize(&argc, &argv,PETSC_NULL,PETSC_NULL); CHKERRQ(ierr);
+#ifndef PETSC_NULLPTR
+#define PETSC_NULLPTR PETSC_NULL
+#endif
+  ierr = PetscInitialize(&argc, &argv,PETSC_NULLPTR,PETSC_NULLPTR); CHKERRQ(ierr);
 #else
 #ifdef CH_MPI
   MPI_Init(&argc, &argv);
@@ -159,8 +162,8 @@ int main(int argc, char* argv[]) {
       }
     else if (rateFactorType == "patersonRate")
       {
-	PatersonRateFactor rateFactor(seconds_per_unit_time);
-	ParmParse arPP("PatersonRate");
+	ParmParse arPP("patersonRate");
+	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
 	amrObject.setRateFactor(&rateFactor);
       }
     else if (rateFactorType == "zwingerRate")
@@ -184,7 +187,8 @@ int main(int argc, char* argv[]) {
     
     if (basalRateFactorType == "patersonRate")
       {
-	PatersonRateFactor rateFactor(seconds_per_unit_time);
+	ParmParse arPP("basalPatersonRate");
+	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
 	rateFactor.setA0(1.0);
 	amrObject.setBasalRateFactor(&rateFactor);
       }

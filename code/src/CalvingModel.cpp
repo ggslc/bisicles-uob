@@ -473,10 +473,16 @@ CalvingModel* CalvingModel::parseCalvingModel(const char* a_prefix)
       ptr = new VariableRateCalvingModel(pp);
     }
 
+   else if (type == "RateAuBuhatCalvingModel")
+    {
+      ptr = new RateAuBuhatCalvingModel(pp);
+    }
    else if (type == "RateProportionalToSpeedCalvingModel")
     {
-      ptr = new RateProportionalToSpeedCalvingModel(pp);
+  
+      ptr = new RateAuBuhatCalvingModel(pp);
     }
+  
   
 
   return ptr;
@@ -1001,7 +1007,7 @@ CliffCollapseCalvingModel::applyCriterion(LevelData<FArrayBox>& a_thickness,
 }
 
 
-RateProportionalToSpeedCalvingModel::RateProportionalToSpeedCalvingModel(ParmParse& a_pp)
+RateAuBuhatCalvingModel::RateAuBuhatCalvingModel(ParmParse& a_pp)
 {
       Real startTime = -1.2345678e+300;
       a_pp.query("start_time",  startTime);
@@ -1030,7 +1036,7 @@ RateProportionalToSpeedCalvingModel::RateProportionalToSpeedCalvingModel(ParmPar
       
 }
 
-void RateProportionalToSpeedCalvingModel::applyCriterion
+void RateAuBuhatCalvingModel::applyCriterion
 (LevelData<FArrayBox>& a_thickness,
  LevelData<FArrayBox>& a_calvedIce,
  LevelData<FArrayBox>& a_addedIce,
@@ -1040,56 +1046,15 @@ void RateProportionalToSpeedCalvingModel::applyCriterion
  int a_level,
  Stage a_stage)
 {
-
+  // No explicit criterion in this case, but m_domainEdgeCalvingModel applies.
   (*m_domainEdgeCalvingModel).applyCriterion( a_thickness, a_calvedIce, a_addedIce, a_removedIce, a_iceFrac,a_amrIce, a_level, a_stage);
-
-  const LevelSigmaCS& levelCoords = *a_amrIce.geometry(a_level);
-  for (DataIterator dit(levelCoords.grids()); dit.ok(); ++dit)
-    {
-      FArrayBox& thck = a_thickness[dit];
-      FArrayBox& calved = a_calvedIce[dit];
-      FArrayBox& added = a_addedIce[dit];
-      FArrayBox& removed = a_removedIce[dit];
-      FArrayBox& frac = a_iceFrac[dit];
-      const BaseFab<int>& mask = levelCoords.getFloatingMask()[dit];
-      Real frac_eps = TINY_FRAC;
-      const Box& b = levelCoords.grids()[dit];
-      for (BoxIterator bit(b); bit.ok(); ++bit)
-	{
-	  const IntVect& iv = bit();
-	  Real prevThck = thck(iv);
-
-	  // if (frac(iv) < frac_eps * frac_eps)
-	  //   {
-	  //     frac(iv) = 0.0;
-	  //   }
-	  
-	  // if (frac(iv) < frac_eps)
-	  //   {
-	  //     thck(iv) = 0.0;
-	  //   }
-
-	  //  // if (frac(iv) < 0.5)
-	  //  //   {
-	  //  //     thck(iv) *= frac(iv);
-	  //  //   }
-
-		  
-	  // // Record gain/loss of ice
-	  if (calved.box().contains(iv))
-	    {
-	      updateCalvedIce(thck(iv),prevThck,mask(iv),added(iv),calved(iv),removed(iv));
-	    }
-
-	}
-    }
 }
 
 
 
-CalvingModel* RateProportionalToSpeedCalvingModel::new_CalvingModel()
+CalvingModel* RateAuBuhatCalvingModel::new_CalvingModel()
   {
-    RateProportionalToSpeedCalvingModel* ptr = new RateProportionalToSpeedCalvingModel(*this);
+    RateAuBuhatCalvingModel* ptr = new RateAuBuhatCalvingModel(*this);
     ptr->m_startTime = m_startTime;
     ptr->m_endTime = m_endTime;
     ptr->m_proportion = m_proportion->new_surfaceFlux();
@@ -1098,7 +1063,7 @@ CalvingModel* RateProportionalToSpeedCalvingModel::new_CalvingModel()
     return ptr; 
   }
 
-RateProportionalToSpeedCalvingModel::~RateProportionalToSpeedCalvingModel()
+RateAuBuhatCalvingModel::~RateAuBuhatCalvingModel()
 {
 
   if (m_domainEdgeCalvingModel != NULL)
@@ -1123,7 +1088,60 @@ RateProportionalToSpeedCalvingModel::~RateProportionalToSpeedCalvingModel()
 }
 
 bool 
-RateProportionalToSpeedCalvingModel::getCalvingVel
+RateAuBuhatCalvingModel::getCalvingVel
+(LevelData<FArrayBox>& a_centreCalvingVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  if (!m_vector) return false;
+  
+  // cell-centered proportion
+  LevelData<FArrayBox> prop(a_grids, 1, 2*IntVect::Unit);
+  m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
+  prop.exchange();
+  
+  // -velocity * proportion
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      prop[dit] *= -1;
+      a_centreCalvingVel[dit].copy(a_centreIceVel[dit]);
+      for (int dir = 0; dir < SpaceDim; ++dir)
+	{
+	  a_centreCalvingVel[dit].mult(prop[dit], 0, dir, 1);
+	}
+    }
+
+  if (m_independent)
+    {
+      // cell-centered independent part 
+      LevelData<FArrayBox> ccrate(a_grids, 1, 1*IntVect::Unit);
+      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
+      ccrate.exchange();
+     
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+      	{
+	  const FArrayBox& u = a_centreIceVel[dit];
+	  FArrayBox& u_c = a_centreCalvingVel[dit];
+	  Box gbox = a_grids[dit];
+	  gbox.grow(1);
+	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      Real umod = 1.0e-10 + std::sqrt(u(iv,0)*u(iv,0) + u(iv,1)*u(iv,1));
+	      u_c(iv,0) -=  ccrate[dit](iv)*u(iv,0) / umod;
+	      u_c(iv,1) -=  ccrate[dit](iv)*u(iv,1) / umod;
+	    } // bit
+	} // dit
+    } // m_independent
+  return true;
+  
+}
+
+
+
+bool 
+RateAuBuhatCalvingModel::getCalvingVel
 (LevelData<FluxBox>& a_faceCalvingVel,
  const LevelData<FluxBox>& a_faceIceVel,
  const LevelData<FArrayBox>& a_centreIceVel,
@@ -1137,7 +1155,43 @@ RateProportionalToSpeedCalvingModel::getCalvingVel
   m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
   prop.exchange();
   //interpolate to faces
-  CellToEdge(prop, a_faceCalvingVel);
+ 
+  //CellToEdge(prop, a_faceCalvingVel);
+  LevelData<FluxBox>& faceProp = a_faceCalvingVel;
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      for (int dir = 0; dir < SpaceDim; dir++)
+  	{
+  	  Box faceBox = frac.box();
+  	  faceBox.grow(-1);
+  	  faceBox.surroundingNodes(dir);
+  	  faceBox &= faceProp[dit][dir].box();
+
+  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+  	    {
+  	      const IntVect& iv = bit();
+  	      // cell-centre indices on the - and + sides of the face
+  	      IntVect ivm = iv - BASISV(dir); 
+  	      IntVect ivp = iv;
+	      // one-sided...
+  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
+  		{
+  		  faceProp[dit][dir](iv) = prop[dit](ivm);
+  		}
+  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
+  		{
+  		  faceProp[dit][dir](iv) = prop[dit](ivp);
+  		}
+  	      else
+  		{
+  		  // normal linear interpolation
+  		  faceProp[dit][dir](iv) = 0.5 * (prop[dit](ivm) + prop[dit](ivp));
+  		}
+  	    }
+  	}
+    }
+    
 
   // multiply by -velocity
   for (DataIterator dit(a_grids); dit.ok(); ++dit)
@@ -1156,31 +1210,69 @@ RateProportionalToSpeedCalvingModel::getCalvingVel
      
       m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
       ccrate.exchange();
+     
       LevelData<FArrayBox> ccvel(a_grids, SpaceDim, 2*IntVect::Unit);
      
       for (DataIterator dit(a_grids); dit.ok(); ++dit)
-	{
-	  const FArrayBox& vel = a_centreIceVel[dit];
-	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
-	  Box gbox = a_grids[dit];
-	  gbox.grow(1);
-	  for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
-	      //if (norm > 1.0e-10)
-		{
-		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
-		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
-		}
-	    }
-	}
-      // interpolate to centers and add to a_faceCalvingVel
+      	{
+      	  const FArrayBox& vel = a_centreIceVel[dit];
+      	  const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
+      	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
+      	  Box gbox = a_grids[dit];
+      	  gbox.grow(2);
+      	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
+      	    {
+      	      const IntVect& iv = bit();
+      	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
+      	      if (norm > 1.0)
+      		{
+      		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm);
+      		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm);
+      		}
+      	      
+      	    } // end bit	
+      	} // end dit
 
+      // interpolate independent part to centers
       ccvel.exchange();
       LevelData<FluxBox> flux(a_grids, 1, IntVect::Unit);
-      CellToEdge(ccvel, flux);
-      
+
+      //CellToEdge(ccvel, flux); 
+      // one-sided / upstream interpolation - avoids mixing in undefined values.
+      // Assumes that velocity is directed outward across faces.
+      // this is copy-paste code from above, so refactor
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+      	{
+      	  const FArrayBox& v = ccvel[dit]; // cell centred calving vector
+      	  for (int dir = 0; dir < SpaceDim; dir++)
+      	    {
+      	      Box faceBox = flux[dit][dir].box();
+	      const FArrayBox& u = a_faceIceVel[dit][dir]; // face centered ice velocity
+      	      for (BoxIterator bit(faceBox); bit.ok(); ++bit)
+      		{
+      		  const IntVect& iv = bit();
+
+		  //cell-centre indices on the - and + sides of the face
+      		  IntVect ivm = iv - BASISV(dir); 
+      		  IntVect ivp = iv;
+		  Real utol = 1.0;
+		  if ( u(iv) > utol ) // upstream -
+		    {
+		      flux[dit][dir](iv) = v(ivm,dir);
+		    }
+		  else if (u(iv) < - utol) // upstream +
+		    {
+		      flux[dit][dir](iv) = v(ivp,dir); 
+		    }
+		  else
+		    {
+		      flux[dit][dir](iv) = 0.0;
+		    }
+      		}
+      	    }
+      	}
+
+     
       for (DataIterator dit(a_grids); dit.ok(); ++dit)
 	{
 	  for (int dir = 0; dir < SpaceDim; dir++)
@@ -1195,7 +1287,7 @@ RateProportionalToSpeedCalvingModel::getCalvingVel
 }
 
 void
-RateProportionalToSpeedCalvingModel::getCalvingRate
+RateAuBuhatCalvingModel::getCalvingRate
 (LevelData<FArrayBox>& a_calvingRate, const AmrIce& a_amrIce,int a_level)
 {
   // CH_assert(false); // we don't want to use this

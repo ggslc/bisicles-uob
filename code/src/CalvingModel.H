@@ -56,7 +56,17 @@ public:
   {
     return false;
   }
-    
+
+  ///cell centred frontal ablation vector, if implelmented. Returns false  by default
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level)
+  {
+    return false;
+  }
+
+  
   /// frontal ablation rate.
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);
@@ -545,22 +555,22 @@ public:
 };
 
 
-/// A Calving model that provides a rate with a part proportional to speed and a part independent of speed
+/// A Calving model that provides a rate with a part proportional to velocity and a part independent of velocity
 /**
-   The rate is either a face-centred vector (opposed to ice velocity)
+   The rate is either a face-centred vector (opposed to ice velocity or grad f)
    or a cell-centered scalar
 
-   The rate is r = a u/|u| + b u
+   The rate is r = a u + b u/|u|
 
    The constants a,b are specified by SurfaceData.
  */
-class RateProportionalToSpeedCalvingModel : public CalvingModel
+class RateAuBuhatCalvingModel : public CalvingModel
 {
 
   Real m_startTime, m_endTime;
   DomainEdgeCalvingModel* m_domainEdgeCalvingModel;
-  SurfaceFlux* m_independent; // a 
-  SurfaceFlux* m_proportion; // b
+  SurfaceFlux* m_independent; // b 
+  SurfaceFlux* m_proportion; // a
   bool m_vector; // face-centred vector or cell-centred scalar?
 
 public:
@@ -574,9 +584,9 @@ public:
 			      int a_level,
 			      Stage a_stage);
   
-  RateProportionalToSpeedCalvingModel (ParmParse& a_pp);
+  RateAuBuhatCalvingModel (ParmParse& a_pp);
 
-  virtual ~RateProportionalToSpeedCalvingModel();
+  virtual ~RateAuBuhatCalvingModel();
   
   virtual CalvingModel* new_CalvingModel();
 
@@ -586,7 +596,16 @@ public:
 			      const LevelData<FArrayBox>& a_centreIceVel,
 			      const DisjointBoxLayout& a_grids,
 			      const AmrIce& a_amrIce,int a_level);
+
+  ///cell centred frontal ablation vector
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
   
+
+  
+  //frontal ablation scalar
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);
 

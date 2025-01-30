@@ -20,14 +20,6 @@ ifeq ($(CHOMBO_HOME),)
 CHOMBO_HOME := $(BISICLES_HOME)/Chombo/lib
 endif
 
-#GIA code depends on fftw
-USE_FFTW := TRUE
-#Guess FFTWDIR if it is not specified. 
-ifeq ($(FFTWDIR),)
-FFTWDIR=/usr
-endif
-
-
 include $(CHOMBO_HOME)/mk/Make.defs
 include $(CHOMBO_HOME)/mk/Make.defs.config
 
@@ -59,6 +51,9 @@ include $(NONE_DEFS)
 endif
 endif
 
+
+
+
 #if PYTHON_INC was not defined, warn
 ifeq ($(PYTHON_INC),)
 $(info python will not be enabled)
@@ -70,33 +65,55 @@ CPPFLAGS :=$(PYTHON_INC) -DHAVE_PYTHON	$(CPPFLAGS)
 LIBFLAGS+=$(PYTHON_LIBS) 
 endif
 
+#check FFTWDIR
+ifeq ($(USE_FFTW),TRUE)
+$(info FFTWDIR=$(FFTWDIR))
+ifeq ($(wildcard $(FFTWDIR)/include/fftw3.h),)
+$(error $(FFTWDIR)/include/fftw3.h does not exist)
+endif
+endif
+
+
+SVN_URL := unknown
+SVN_REP := unknown
+SVN_REV := unknown
+
+ifneq ($(shell which svn),)
+
 SVN_REV=$(shell cd $(BISICLES_BRANCH) ; svnversion -n)
 
-ifeq ($(SVN_REV),)
-SVN_REV := unknown
-endif
-
 ifeq ($(SVN_REV),Unversioned directory)
+
 SVN_REV := unknown
-endif
+SVN_URL := unknown
+SVN_REP := unknown
+
+else
 
 SVN_REP := $(shell cd $(BISICLES_BRANCH) ; svn info | awk '/Repository Root:/ {print $$3}')
-ifeq ($(SVN_REP),)
-SVN_REP := unknown
-endif
-
 SVN_URL := $(shell cd $(BISICLES_BRANCH) ; svn info | awk '/^URL:/ {print $$2}')
-ifeq ($(SVN_URL),)
-SVN_URL := unknown
+
 endif
-
-
+endif
 
 CPPFLAGS += -DSVN_REV='"$(SVN_REV)"'
 CPPFLAGS += -DSVN_REP='"$(SVN_REP)"'
 CPPFLAGS += -DSVN_URL='"$(SVN_URL)"'
 
-$(info $(CPPFLAGS))
+
+GIT_HASH := unknown
+GIT_REMOTE := unknown
+
+ifneq ($(shell which git),)
+GIT_HASH := $(shell cd $(BISICLES_BRANCH) ; git describe --always)
+GIT_REMOTE := $(shell git ls-remote --get-url)
+endif
+
+CPPFLAGS += -DGIT_HASH='"$(GIT_HASH)"'
+CPPFLAGS += -DGIT_REMOTE='"$(GIT_REMOTE)"'
+
+
+$(info CPPFLAGS = $(CPPFLAGS))
 
 nolink: $(shell $(CHOMBO_HOME)/mk/reverse $(LibNames)) $(objects)  
 	@echo BISICLES Objects built

@@ -1,0 +1,9 @@
+*.ChF linguist-language=fortran
+*.H linguist-language=c++
+
+*.pdf -linguist-detectable
+*.hdf5 -linguist-detectable
+*.H5 -linguist-detectable
+*.fig -linguist-detectable
+*.ps -linguist-detectable
+*.template -linguist-detectable

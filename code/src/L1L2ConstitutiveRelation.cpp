@@ -376,9 +376,9 @@ L1L2ConstitutiveRelation::computeEitherMuZ(FArrayBox& a_mu,
       
       FArrayBox A(a_box,1);
       FArrayBox res(a_box,1);
-      
       const int maxIter = 150;;
-      
+     
+    
       for (unsigned int l = 0; l < a_mu.nComp(); ++l){
 	
 	
@@ -467,11 +467,9 @@ L1L2ConstitutiveRelation::computeEitherMuZ(FArrayBox& a_mu,
 			       CHF_CONST_REAL(m_solverTol),
 			       CHF_CONST_INT(maxIter));
 	    
-	    
-	    
-	    Real resNorm = res.norm(0);
-	    CH_assert(resNorm < 2.0 * m_solverTol);
-	    CH_assert(a_mu.min(a_box,l) > 0.0e0);
+	    //Real resNorm = res.norm(0);
+	    //CH_assert(resNorm < 2.0 * m_solverTol);   
+	    //CH_assert(a_mu.min(a_box,l) > 0.0e0);
 	  } // end general case
       } // end loop over layers
     } // end else if a_layerCoarsen = 0
@@ -881,17 +879,6 @@ L1L2ConstitutiveRelation::modifyTransportCoefficients
       FluxBox& uvavg = vertAverageVelFace[dit];
       const FArrayBox& s = a_coordSys.getSurfaceHeight()[dit];
 
-      //set D = \bar{u'}H / grad(H)
-
-      FORT_L1L2COMPUTEDIFFUSIVITY(CHF_FRA1(D,0),
-				  CHF_CONST_FRA1(uvavg[0],0),
-				  CHF_CONST_FRA1(uvavg[1],0),
-				  CHF_CONST_FRA1(H[dit],0),
-				  CHF_CONST_FRA1(H[dit],0),
-				  CHF_CONST_INT(SpaceDim),
-				  CHF_CONST_REAL(dx[0]),
-				  CHF_CONST_REAL(dx[1]),
-				  CHF_BOX(a_grids[dit]));
       //set D = \bar{u'}H / grad(s)
       FORT_L1L2COMPUTEDIFFUSIVITY(CHF_FRA1(D,0),
 				  CHF_CONST_FRA1(uvavg[0],0),

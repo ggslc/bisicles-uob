@@ -27,7 +27,7 @@ def tag(x,y,dx,thck,topg):
     tag = -1.0 #don't tag unless...
     return tag
 
-def thickness24(x,y):
+def thickness24(x,y,*etc):
     thickness = 0.0
   
     if (x < 640.0e+3):
@@ -36,7 +36,7 @@ def thickness24(x,y):
     return thickness
 
 
-def thicknessinf(x,y):
+def thicknessinf(x,y,*etc):
     thickness = 0.0
   
     if (x < 640.0e+3):
@@ -47,98 +47,98 @@ def thicknessinf(x,y):
 
 
 #infinite with topography, ie 1D problem
-def topographyinf(x,y):
+def topographyinf(x,y,*etc):
     topography = Bx(x) 
     topography = max(topography, -720.0)
     return topography
 
 #24 km channel half-width 
-def topography24(x,y):
+def topography24(x,y,*etc):
     y = y - 40e+3
     topography = Bx(x) + By(y,4.0e+3,5.0e+2,24.0e+3)
     topography = max(topography, -720.0)
     return topography
 
 #16 km channel half-width 
-def topography16(x,y):
+def topography16(x,y,*etc):
     y = y - 40e+3
     topography = Bx(x) + By(y,4.0e+3,5.0e+2,16.0e+3)
     topography = max(topography, -720.0)                  
     return topography 
 
 #12 km channel half-width 
-def topography12(x,y):
+def topography12(x,y,*etc):
     y = y - 40e+3
     topography = Bx(x) + By(y,4.0e+3,5.0e+2,12.0e+3)
     topography = max(topography, -720.0) 
     return topography 
 
 
-def constfriction_24(x,y,t,thck,topg):
+def constfriction_24(x,y,t,thck,topg,*etc):
     friction = 1.0e4
     return friction
 
-def constfriction_16(x,y,t,thck,topg):
+def constfriction_16(x,y,t,thck,topg,*etc):
     friction = 1.0e4
     return friction
 
 
-def constfriction_12(x,y,t,thck,topg):
+def constfriction_12(x,y,t,thck,topg,*etc):
     friction = 1.0e4
     return friction
 
-def constfriction_inf(x,y,t,thck,topg):
+def constfriction_inf(x,y,t,thck,topg,*etc):
     friction = 1.0e4
     return friction
 
-def hardfriction_24(x,y,t,thck,topg):
+def hardfriction_24(x,y,t,thck,topg,*etc):
     friction = 1.0e5
     return friction
 
-def hardfriction_16(x,y,t,thck,topg):
-    friction = 1.0e5
-    return friction
-
-
-def hardfriction_12(x,y,t,thck,topg):
-    friction = 1.0e5
-    return friction
-
-def hardfriction_inf(x,y,t,thck,topg):
+def hardfriction_16(x,y,t,thck,topg,*etc):
     friction = 1.0e5
     return friction
 
 
+def hardfriction_12(x,y,t,thck,topg,*etc):
+    friction = 1.0e5
+    return friction
+
+def hardfriction_inf(x,y,t,thck,topg,*etc):
+    friction = 1.0e5
+    return friction
 
 
-def chanfriction_24(x,y,t,thck,topg):
+
+
+def chanfriction_24(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (2.0e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,24.0e+3) + 0.5e4
     return friction
 
-def chanfriction2_24(x,y,t,thck,topg):
+def chanfriction2_24(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (1.75e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,24.0e+3) + 0.75e4
     return friction
 
-def chanfriction_16(x,y,t,thck,topg):
+def chanfriction_16(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (2.0e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,16.0e+3) + 0.5e4
     return friction
 
-def chanfriction2_16(x,y,t,thck,topg):
+def chanfriction2_16(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (1.75e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,16.0e+3) + 0.75e4
     return friction
 
 
 
-def chanfriction_12(x,y,t,thck,topg):
+def chanfriction_12(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (2.0e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,12.0e+3) + 0.5e4
     return friction
 
-def chanfriction2_12(x,y,t,thck,topg):
+def chanfriction2_12(x,y,t,thck,topg,*etc):
     y = y - 40e+3
     friction = (1.75e4) *  By(y,4.0e+3,5.0e+2,12.0e+3)/By(40e+3,4.0e+3,5.0e+2,12.0e+3) + 0.75e4
     return friction
@@ -156,7 +156,7 @@ def spinbasalsource(x,y,*etc):
 
 
 
-def melt1basalsource(x,y,t,thck,topg):
+def melt1basalsource(x,y,t,thck,topg,*etc):
 #m = -5.0e-2 * z_bottom * (T-Tf) * tanh( (z_bottom - z_bathymetry)/ 75)                                                                      
     rhoi = 918.0
     rhoo = 1028.0
@@ -173,7 +173,7 @@ def melt1basalsource(x,y,t,thck,topg):
 
     return -mr + cfsource(x)
 
-def melt2basalsource(x,y,t,thck,topg):
+def melt2basalsource(x,y,t,thck,topg,*etc):
 #m = -5.0e-2 * (z_bottom+100) * (T-Tf) * tanh( (z_bottom - z_bathymetry)/ 75)                                                                      
 #not melting above -100 m
     rhoi = 918.0
@@ -191,7 +191,7 @@ def melt2basalsource(x,y,t,thck,topg):
 
     return -mr + cfsource(x)
 
-def melt3basalsource(x,y,t,thck,topg):
+def melt3basalsource(x,y,t,thck,topg,*etc):
 # simplified melt, no (weak) T-Tf dependency
 #m = Omega * (z_bottom - z_0) * tanh( (z_bottom - z_bathymetry)/ 75)            
 #not melting above z_0
@@ -207,7 +207,7 @@ def melt3basalsource(x,y,t,thck,topg):
 
     return mr + cfsource(x)
 
-def melt4basalsource(x,y,t,thck,topg):
+def melt4basalsource(x,y,t,thck,topg,*etc):
 # simplified melt, no (weak) T-Tf dependency
 #m = Omega * (z_bottom - z_0) * tanh( (z_bottom - z_bathymetry)/ 75)            
 #not melting above z_0
@@ -225,7 +225,7 @@ def melt4basalsource(x,y,t,thck,topg):
     return mr + cfsource(x)
 
 
-def melt5basalsource(x,y,t,thck,topg):
+def melt5basalsource(x,y,t,thck,topg,*etc):
 # melt-rate that emulates a calving event
 # at x = 480 km by imposing 100 m/a melt
     m = cfsource(x)
@@ -235,7 +235,7 @@ def melt5basalsource(x,y,t,thck,topg):
 
     return m 
 
-def melt42basalsource(x,y,t,thck,topg):
+def melt42basalsource(x,y,t,thck,topg,*etc):
 # simplified melt, no (weak) T-Tf dependency
 #m = Omega * (z_bottom - z_0) * tanh( (z_bottom - z_bathymetry)/ 75)            
 #not melting above z_0
@@ -253,7 +253,7 @@ def melt42basalsource(x,y,t,thck,topg):
     return mr + cfsource(x)
 
 
-def melt52basalsource(x,y,t,thck,topg):
+def melt52basalsource(x,y,t,thck,topg,*etc):
 # melt-rate that emulates a calving event
 # at x = 480 km by imposing 100 m/a melt
 # same as melt 5, but don't turn off
@@ -264,7 +264,7 @@ def melt52basalsource(x,y,t,thck,topg):
 
     return m 
     
-def melt0basalsource(x,y,t,thck,topg):
+def melt0basalsource(x,y,t,thck,topg,*etc):
 # just the spinu source, for control runs
     return spinbasalsource(x,y,t,thck,topg)
 

@@ -15,6 +15,7 @@
 
 <ol>
   <li><a href='#debian'>Debian based systems (e.g Ubuntu) </a></li>
+  <li><a href='#rocky8'>Rocky Linux 8</a></li>
   <li><a href='#uob'>University of Bristol</a></li>
   <li><a href='#nersc'>NERSC</a></li>
   <li><a href='#archer'>ARCHER (Cray XC30,</li>
@@ -33,7 +34,7 @@
   hdf5, and netcdf to be installed in a way that works well for BISICLES. On Ubuntu 22.04 run
 </p>
 <pre>
-  sudo apt install subversion build-essential g++ gfortran csh mpi-default-bin mpi-default-dev libhdf5-mpi-dev libhdf5-dev hdf5-tools libnetcdff-dev libnetcdf-dev python3 python3-dev libpython3-dev
+  sudo apt install subversion build-essential g++ gfortran csh mpi-default-bin mpi-default-dev libhdf5-mpi-dev libhdf5-dev hdf5-tools libnetcdff-dev libnetcdf-dev python3 python3-dev libpython3-dev fftw3-dev
 </pre>
 <p>
 If you want to use python for analysis you will need the usual libraries (numpy, matplotlib etc) 
@@ -52,7 +53,9 @@ HDFMPILIBFLAGS= -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi/ -lhdf5  -lz
 cxxdbgflags    = -g -fPIC 
 cxxoptflags    = -fPIC -O2
 fdbgflags     =  -g -fPIC 
-foptflags     = -fPIC -O3 -ffast-math -funroll-loops 
+foptflags     = -fPIC -O3 -ffast-math -funroll-loops
+USE_FFTW=TRUE  
+FFTWDIR=/usr
 </pre>
 <p>
   and the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.$mymachine (where $mymachine is
@@ -64,6 +67,25 @@ PYTHON_INC=$(shell python3-config --includes)
 PYTHON_LIBS=-lpython3.10 $(shell python3-config --ldflags)
 NETCDF_HOME=$(shell nc-config --prefix)
 NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
+</pre>
+
+
+<h2><a name='rocky8'>Rocky Linux 8 </a></h2>
+<p>
+    
+</p>
+<pre>
+  sudo dnf install git subversion csh wget make gcc-c++ gcc-gfortran openmpi-devel python3-devel fftw3-devel perl zlib-devel
+  module load mpi
+</pre>
+<p>
+  Then follow the <a href='readme.html'>generic instructions</a>.
+  For BISICLES configuration, used the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.rocky8. For
+  example,
+</p>
+<pre>
+  cd $BISICLES_HOME/BISICLES/code/mk
+  ln -s Make.defs.rocky8 Make.defs.none
 </pre>
 
 
