@@ -485,7 +485,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     {
       ptr = new ISMIP6OceanForcing(pp);
     }
-//# ifdef BUELERGIA
+# ifdef BUELERGIA
   else if (type == "buelerGIA") {
     // Read and set material constants.
     ParmParse ppCon("constants");
@@ -623,7 +623,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     ptr = static_cast<SurfaceFlux*>(buelerFlux->new_surfaceFlux());
 
   }
-//#endif // BUELERGIA
+#endif // BUELERGIA
 #ifdef HAVE_PYTHON
   else if (type == "pythonFlux") {
     
