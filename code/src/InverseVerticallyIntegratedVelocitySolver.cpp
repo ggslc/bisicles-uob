@@ -779,7 +779,7 @@ InverseVerticallyIntegratedVelocitySolver::mapX(const Vector<LevelData<FArrayBox
 	
 	  PiecewiseLinearFillPatch lin(levelGrids,  m_grids[lev-1],levelX.nComp(), 
 				       m_domain[lev-1],m_refRatio[lev-1], nGhost);
-	  lin.fillInterp(levelX, *a_x[lev-1],*a_x[lev-1],time_interp_coeff, 0, 0, 1);	
+	  lin.fillInterp(levelX, *a_x[lev-1],*a_x[lev-1],time_interp_coeff, 0, 0, 2);	
 	}
 
       levelX.exchange();
