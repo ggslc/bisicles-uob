@@ -470,7 +470,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     {
       ptr = new ISMIP6OceanForcing(pp);
     }
-# ifdef BUELERGIA
+//# ifdef BUELERGIA
   else if (type == "buelerGIA") {
     // Read and set material constants.
     ParmParse ppCon("constants");
@@ -508,8 +508,20 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     Ly = domsize[1];
     int pad;
     pp.get("pad", pad);
-
-    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad);
+    bool m_inside_box = true;
+    pp.query("inside_box", m_inside_box);
+    int m_gia_box_lox = -9999999;
+    pp.query("box_lox", m_gia_box_lox);
+    int m_gia_box_hix = 9999999;
+    pp.query("box_hix", m_gia_box_hix);
+    int m_gia_box_loy = -9999999;
+    pp.query("box_loy", m_gia_box_loy);
+    int m_gia_box_hiy = 9999999;
+    pp.query("box_hiy", m_gia_box_hiy);
+    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad,
+                          m_inside_box,
+                          m_gia_box_lox, m_gia_box_hix,
+                          m_gia_box_loy, m_gia_box_hiy); 
 
     Real t = 0.;
     ppAmr.query("offsetTime", t);
@@ -596,7 +608,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     ptr = static_cast<SurfaceFlux*>(buelerFlux->new_surfaceFlux());
 
   }
-#endif // BUELERGIA
+//#endif // BUELERGIA
 #ifdef HAVE_PYTHON
   else if (type == "pythonFlux") {
     
@@ -636,6 +648,24 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
   
 }
 
+
+// default implementation -- in most cases this will return a Vector 
+// of length 1, with a_root as the name
+void SurfaceFlux::plot_names(const string& a_root, 
+                             Vector<string>& a_plot_names) const
+{
+  int num_comps = num_plot_components();
+  a_plot_names.resize(num_comps, a_root);
+}
+
+// default implementation simply calls evaluate function
+void
+SurfaceFlux::plot_data(LevelData<FArrayBox>& a_data,
+                       const AmrIceBase& a_amrIce, 
+                       int a_level, Real a_dt)
+{
+  evaluate(a_data, a_amrIce, a_level,a_dt);
+}
 
 
 
