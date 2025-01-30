@@ -350,10 +350,10 @@ private:
  */
 class CompositeFlux : public SurfaceFlux
 {
-  
+ public: 
   Vector<SurfaceFlux*> m_fluxes;
 
-public:
+
   CompositeFlux(const Vector<SurfaceFlux*>& a_fluxes);
 
   virtual ~CompositeFlux();
@@ -364,6 +364,22 @@ public:
 				    const AmrIceBase& a_amrIce, 
 				    int a_level, Real a_dt);
   
+  
+  virtual void init ( const AmrIceBase& a_amrIce );
+
+  /// number of plotfile components when included in plotfiles -- default is 1
+  virtual int num_plot_components() const;
+
+  /// names of plot components. Default is to simply return the root
+  virtual void plot_names(const string& a_root, 
+                          Vector<string>& a_plot_names) const;
+
+
+  // fill plot data
+  virtual void plot_data(LevelData<FArrayBox>& a_data,
+                         const AmrIceBase& a_amrIce, 
+                         int a_level, Real a_dt);
+
 private:
   // Disallowed for all the usual reasons
   void operator=(const CompositeFlux& a_input)
