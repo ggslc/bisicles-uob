@@ -1398,7 +1398,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
   // First check to see if the pointer is NULL
   if (m_topographyFluxPtr != NULL)
   {
-//#ifdef BUELERGIA
+#ifdef BUELERGIA
   // now use dynamic casting to see if we're looking at a BuelerGIAFlux
     BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
     if (giaFluxPtr != NULL)
@@ -1457,7 +1457,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
       } // end loop over CompositeFlux fluxes
     } // end if we have a CompositeFlux
 
-//#endif // BUELERGIA
+#endif // BUELERGIA
     // do any generic TopographyFlux sorts of things
   } // end if there is a topographyFlux
 
@@ -1538,7 +1538,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
     // First check to see if the pointer is NULL
     if (m_topographyFluxPtr != NULL && lev == 0)
     {
-//#ifdef BUELERGIA      
+#ifdef BUELERGIA      
     // now use dynamic casting to see if we're looking at a BuelerGIAFlux
       BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
       if (giaFluxPtr != NULL)
@@ -1596,7 +1596,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
 
 
 
-//#endif //BUELERGIA
+#endif //BUELERGIA
       // do any generic TopographyFlux sorts of things
     } // end if there is a topographyFlux 
 
@@ -2257,7 +2257,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
       // First check to see if the pointer is NULL
       if (m_topographyFluxPtr != NULL && lev == 0)
       {
-//#ifdef BUELERGIA	
+#ifdef BUELERGIA	
       // now use dynamic casting to see if we're looking at a BuelerGIAFlux
         BuelerGIAFlux* giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(m_topographyFluxPtr);
         if (giaFluxPtr != NULL)
@@ -2449,7 +2449,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
         } // end if we have a CompositeFlux
 
 
-//#endif // BUELERGIA	
+#endif // BUELERGIA	
         // do any generic TopographyFlux sorts of things
       } // end if there is a topographyFlux
 
