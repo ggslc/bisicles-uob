@@ -321,6 +321,14 @@ public:
     SurfaceData* m_velObs_y;
 #endif
 
+    /** 
+	use the red-black rank redution scheme?
+	where x0 (basal traction coef) and x1 (viscosity coef)
+	have 2 dx resolution on each grid level, 
+	and sit on alternate cells
+     */
+    bool m_rankRedBlack;
+    
     /// write inner (secant) steps to plot files
     bool m_writeInnerSteps;
 	
@@ -412,6 +420,17 @@ private:
   void regularizeGradient(Vector<LevelData<FArrayBox>* >& a_g, 
 			  const  Vector<LevelData<FArrayBox>* >& a_x);
 
+  ///
+  void updateInvalid(const Vector<LevelData<FArrayBox>* >& a_x);
+
+  /// modify the solution vector according to the red-black scheme
+  void rankRedBlackSolution
+  (const Vector<LevelData<FArrayBox>* >& a_x);
+  
+  /// modify the gradient vector according to the red-black scheme
+  void rankRedBlackGradient
+  (const Vector<LevelData<FArrayBox>* >& a_g);
+  
   /// modify a_g at constraint boundaries
   void applyProjection(Vector<LevelData<FArrayBox>* >& a_g, 
 		       const  Vector<LevelData<FArrayBox>* >& a_x);
