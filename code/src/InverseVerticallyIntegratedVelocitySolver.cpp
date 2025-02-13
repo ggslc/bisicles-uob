@@ -148,7 +148,7 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
  
   {
     std::string s = "speed";
-    pp.query("vel_misfit_type",s);
+    pp.query("velMisfitType",s);
     if (s == "speed")
       {
 	m_velMisfitType = speed;
@@ -278,6 +278,10 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
       }
   }
 
+  m_rankRedBlack = false;
+  pp.query("rankRedBlack",m_rankRedBlack);
+  
+
   m_writeInnerSteps = false;
   pp.query("writeInnerSteps",m_writeInnerSteps);
 
@@ -401,7 +405,7 @@ int InverseVerticallyIntegratedVelocitySolver::solve
 
   // assign input C to C_0 and limit
   assign(m_COrigin, a_C);
-  for (int  lev = 0; lev < m_muCoefOrigin.size(); lev++)
+  for (int  lev = 0; lev < m_COrigin.size(); lev++)
     {
       for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
 	{
@@ -709,13 +713,13 @@ int InverseVerticallyIntegratedVelocitySolver::nDoF(const Vector<LevelData<FArra
 void 
 InverseVerticallyIntegratedVelocitySolver::mapX(const Vector<LevelData<FArrayBox>* >& a_x)
 {
-  // probably excessive, but ...
-  for (int lev=m_finest_level; lev > 0 ;lev--)
-    {
-      CoarseAverage avg(m_grids[lev],a_x[lev]->nComp(),m_refRatio[lev-1]);
-      avg.averageToCoarse(*a_x[lev-1],*a_x[lev]);
-    }
+  updateInvalid(a_x);
 
+  if (m_config.m_rankRedBlack)
+    {
+      rankRedBlackSolution(a_x);
+    }
+  
   // convert a_x -> C, muCoef
   for (int lev=0; lev <= m_finest_level;lev++)
     {
@@ -746,64 +750,28 @@ InverseVerticallyIntegratedVelocitySolver::mapX(const Vector<LevelData<FArrayBox
 			    CHF_CONST_REAL(m_config.m_upperX1),
 	  		    CHF_BOX(levelGrids[dit]));
 	}
-
-      // reflection at the boundaries
-      for (int dir = 0; dir < SpaceDim; dir++)
-	{
-	  if (! m_domain[lev].isPeriodic(dir))
-	    {
-	      ReflectGhostCells(levelX, m_domain[lev], dir, Side::Lo);
-	      ReflectGhostCells(levelX, m_domain[lev], dir, Side::Hi);
-	      ReflectGhostCells(levelC, m_domain[lev], dir, Side::Lo);
-	      ReflectGhostCells(levelC, m_domain[lev], dir, Side::Hi);
-	      ReflectGhostCells(levelMuCoef, m_domain[lev], dir, Side::Lo);
-	      ReflectGhostCells(levelMuCoef, m_domain[lev], dir, Side::Hi);
-	    }
-	}
-      
-      if (lev > 0)
-	{
-	  //coarse-finery
-	  CoarseAverage avg(m_grids[lev],1,m_refRatio[lev-1]);
-	  avg.averageToCoarse(*m_C[lev-1],*m_C[lev]);
-	  avg.averageToCoarse(*m_muCoef[lev-1],*m_muCoef[lev]);
-	
-	
-	  Real time_interp_coeff = 0.0;
-	  int nGhost = 1;
-	  PiecewiseLinearFillPatch li(levelGrids,  m_grids[lev-1], 1, 
-				      m_domain[lev-1],m_refRatio[lev-1],nGhost);
-	
-	  li.fillInterp(levelMuCoef,*m_muCoef[lev-1],*m_muCoef[lev-1],time_interp_coeff,	0, 0, 1);
-	  li.fillInterp(levelC,*m_C[lev-1],*m_C[lev-1],	time_interp_coeff,0, 0, 1);
-	
-	  PiecewiseLinearFillPatch lin(levelGrids,  m_grids[lev-1],levelX.nComp(), 
-				       m_domain[lev-1],m_refRatio[lev-1], nGhost);
-	  lin.fillInterp(levelX, *a_x[lev-1],*a_x[lev-1],time_interp_coeff, 0, 0, 2);	
-	}
-
-      levelX.exchange();
-      levelC.exchange();
-      levelMuCoef.exchange();
-
-      //if (m_config.m_gradCsqRegularization > 0.0)
-	{
-	  IceUtility::applyHelmOp(*m_lapC[lev], levelC, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
-	  IceUtility::applyGradSq(*m_gradCSq[lev], levelC,m_grids[lev], m_dx[lev]);
-	}
-
-	//if (m_config.m_gradMuCoefsqRegularization > 0.0)
-	{
-	  IceUtility::applyHelmOp(*m_lapMuCoef[lev], levelMuCoef, 0.0, 1.0, m_grids[lev], m_dx[lev]);
-	  IceUtility::applyGradSq(*m_gradMuCoefSq[lev], levelMuCoef,  m_grids[lev], m_dx[lev]);
-	}
-
-	//if (m_config.m_gradX0sqRegularization > 0.0 || m_config.m_gradX1sqRegularization > 0.0)
-	{
-	  IceUtility::applyHelmOp(*m_lapX[lev], levelX, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
-	  IceUtility::applyGradSq(*m_gradXSq[lev], levelX,m_grids[lev], m_dx[lev]);
-	}
     }
+
+  updateInvalid(m_C);
+  updateInvalid(m_muCoef);
+
+  for (int lev=0; lev <= m_finest_level;lev++)
+    {
+
+      LevelData<FArrayBox>& levelX =  *a_x[lev];
+      LevelData<FArrayBox>& levelC =  *m_C[lev];
+      LevelData<FArrayBox>& levelMuCoef =  *m_muCoef[lev];
+
+      IceUtility::applyHelmOp(*m_lapC[lev], levelC, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
+      IceUtility::applyGradSq(*m_gradCSq[lev], levelC,m_grids[lev], m_dx[lev]);
+      
+      IceUtility::applyHelmOp(*m_lapMuCoef[lev], levelMuCoef, 0.0, 1.0, m_grids[lev], m_dx[lev]);
+      IceUtility::applyGradSq(*m_gradMuCoefSq[lev], levelMuCoef,  m_grids[lev], m_dx[lev]);
+      
+      IceUtility::applyHelmOp(*m_lapX[lev], levelX, 0.0, 1.0,  m_grids[lev], m_dx[lev]);
+      IceUtility::applyGradSq(*m_gradXSq[lev], levelX,m_grids[lev], m_dx[lev]);
+    }
+    
 
   {
     Real maxC = computeMax(m_C,m_refRatio);
@@ -910,7 +878,7 @@ InverseVerticallyIntegratedVelocitySolver::solveStressEqn
 void 
 InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 (Real& a_fm, Real& a_fp, Vector<LevelData        <FArrayBox>* >& a_g, 
- const  Vector<LevelData<FArrayBox>* >& a_x, bool a_inner)
+ const Vector<LevelData<FArrayBox>* >& a_x, bool a_inner)
 {
 
   a_fm = 0.0;
@@ -947,12 +915,13 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     + X0Regularization() * normX0*normX0
     + X1Regularization() * normX1*normX1;
   
-  pout() << " ||velocity misfit||^2 = " << vobj 
+  pout() << (a_inner?"inner: ":"outer: ")
+	 << " ||velocity misfit||^2 = " << vobj 
 	 << " ||divuh misfit||^2 = " << hobj
 	 << " || grad C ||^2 = " << sumGradCSq
-         << " || grad muCoef ||^2 = " << sumGradMuSq
-    	 << " || grad X0 ||^2 = " << sumGradX0Sq
-         << " || grad X1 ||^2 = " << sumGradX1Sq
+	 << " || grad muCoef ||^2 = " << sumGradMuSq
+	 << " || grad X0 ||^2 = " << sumGradX0Sq
+	 << " || grad X1 ||^2 = " << sumGradX1Sq
 	 << " || X0 ||^2 = " << normX0*normX0
 	 << " || X1 ||^2 = " << normX1*normX1
 	 << std::endl;
@@ -992,6 +961,11 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   
   //add Tikhonov regularization
   regularizeGradient(a_g, a_x);
+
+  //red-black scheme modifies gradient
+  if (m_config.m_rankRedBlack)
+    rankRedBlackGradient(a_g);
+  
   
   if (m_config.m_boundMethod == Configuration::projection)
     applyProjection(a_g, a_x);
@@ -1448,8 +1422,139 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
       free(faceA);
     } // end if m_config.m_optimizeX1
 }
- 
 
+/// update invalid cells (ghost + covered coarse cells)
+void InverseVerticallyIntegratedVelocitySolver::updateInvalid(const Vector<LevelData<FArrayBox>* >& a_x)
+{
+  for (int lev=m_finest_level; lev > 0 ;lev--)
+    {
+      CoarseAverage avg(m_grids[lev],a_x[lev]->nComp(),m_refRatio[lev-1]);
+      avg.averageToCoarse(*a_x[lev-1],*a_x[lev]);
+    }
+  
+  for (int lev=1; lev <= m_finest_level;lev++)
+    {
+      // coarse-finery
+      Real time_interp_coeff = 0.0;
+      int nGhost = 1;
+      int ncomp = (*a_x[lev]).nComp();
+      PiecewiseLinearFillPatch lin(m_grids[lev],  m_grids[lev-1],ncomp,          
+				   m_domain[lev-1],m_refRatio[lev-1], nGhost);
+      lin.fillInterp(*a_x[lev], *a_x[lev-1],*a_x[lev-1],time_interp_coeff, 0, 0, ncomp);   
+    }
+
+  for (int lev=0; lev <= m_finest_level;lev++)
+    {
+      a_x[lev]->exchange();
+      // reflection at the boundaries
+      for (int dir = 0; dir < SpaceDim; dir++)
+	{
+	  if (! m_domain[lev].isPeriodic(dir))
+	    {
+	      ReflectGhostCells(*a_x[lev], m_domain[lev], dir, Side::Lo);
+	      ReflectGhostCells(*a_x[lev], m_domain[lev], dir, Side::Hi);
+	    }
+	}
+    }
+}
+
+
+/** modify the solution vector x e red-black scheme 
+    x(i,j) <- 1/4 ( x(i+1,j) + x(i-1,j) + ... )/4 and g(i,j) = 0
+**/
+void InverseVerticallyIntegratedVelocitySolver::rankRedBlackSolution
+(const Vector<LevelData<FArrayBox>* >& a_x)
+{
+  
+  // rank reduction scheme: interpolate x0 from 'red' to 'black' and x1 from 'black' to 'red'
+  for (int lev=0; lev <= m_finest_level;lev++)
+    {
+      const DisjointBoxLayout levelGrids =  m_grids[lev];
+      for (DataIterator dit(levelGrids);dit.ok();++dit)
+	{
+	  const Box& box = levelGrids[dit];
+	  FArrayBox& x = (*a_x[lev])[dit];
+	  int comp;
+	  // \todo support 1D, make efficient.
+	  for (BoxIterator bit(box); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      IntVect e = iv + BASISV(0);
+	      IntVect w = iv - BASISV(0);
+	      IntVect s = iv - BASISV(1);
+	      IntVect n = iv + BASISV(1);
+	      int comp = (iv[0]%2 == iv[1]%2)?CCOMP:MUCOMP; // \todo fix 2D only
+	      x(iv,comp) = 0.25 * (x(e,comp) + x(w,comp) + x(n,comp) + x(s,comp));
+	    }
+	}
+    }
+}
+
+/** modify the gradient vector according to the red-black scheme 
+    
+    g(i,j) <- g(i,j) + ( g(i+1,j) + g(i-1,j) + ... )/4
+
+    \todo support 1D, make efficient.
+*/
+void InverseVerticallyIntegratedVelocitySolver::rankRedBlackGradient
+(const Vector<LevelData<FArrayBox>* >& a_g)
+{
+  for (int lev = 0; lev <= m_finest_level; lev++)
+    {
+
+      if (lev > 0)
+	{
+	  //coarse fine ghosts
+	  Real time_interp_coeff = 0.0;
+	  int nGhost = 1;
+	  int nComp = a_g[lev]->nComp();
+	  PiecewiseLinearFillPatch lin(m_grids[lev],  m_grids[lev-1],nComp,          
+				       m_domain[lev-1],m_refRatio[lev-1], nGhost);
+	  lin.fillInterp(*a_g[lev], *a_g[lev-1],*a_g[lev-1],time_interp_coeff, 0, 0, nComp);   
+	}
+      //fine-fine ghosts
+      a_g[lev]->exchange();
+      //boundary ghosts
+      for (int dir = 0; dir < SpaceDim; dir++)
+	{
+	  if (! m_domain[lev].isPeriodic(dir))
+	    {
+	      ReflectGhostCells(*a_g[lev], m_domain[lev], dir, Side::Lo);
+	      ReflectGhostCells(*a_g[lev], m_domain[lev], dir, Side::Hi);
+	    }
+	}
+      
+      const DisjointBoxLayout& grids = a_g[lev]->disjointBoxLayout(); 
+      for (DataIterator dit(grids);dit.ok();++dit)
+	{
+	  FArrayBox& g = (*a_g[lev])[dit];
+	  for (BoxIterator bit(grids[dit]); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      IntVect e = iv + BASISV(0);
+	      IntVect w = iv - BASISV(0);
+	      IntVect s = iv - BASISV(1);
+	      IntVect n = iv + BASISV(1);
+	      int comp = (iv[0]%2 == iv[1]%2)?MUCOMP:CCOMP;
+	      g(iv,comp) += 0.25 * (g(e,comp) + g(w,comp) + g(n,comp) + g(s,comp));
+	    }
+
+	  for (BoxIterator bit(grids[dit]); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      IntVect e = iv + BASISV(0);
+	      IntVect w = iv - BASISV(0);
+	      IntVect s = iv - BASISV(1);
+	      IntVect n = iv + BASISV(1);
+	      int comp = (iv[0]%2 == iv[1]%2)?CCOMP:MUCOMP;
+	      g(iv,comp) = 0.0; //needed? 
+	    }
+	  
+	}
+
+      int dbg=0;dbg++;
+    }
+}
 
 /// add regularization terms R = (- a C lap(C)) etc to the gradient
 void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
