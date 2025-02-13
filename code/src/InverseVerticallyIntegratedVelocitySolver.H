@@ -203,6 +203,12 @@ public:
     enum VelocityMisfitType {speed, velocity, log_speed, MAX_VELOCITY_MISFIT_TYPE};
     /// Type of velocity misfit : speed, velocity, or log_speed. Set with <prefix>.vel_misfit_type, default speed
     VelocityMisfitType m_velMisfitType;
+	
+	bool m_WeightVelocityMisfitCoefficient;
+	Real m_VelocityMisfitCoefficientLo;
+	Real m_VelocityMisfitCoefficientHi;
+	Real m_VelocityObservedLo;
+	Real m_VelocityObservedHi;
 
     /// attempt to optimize w.r.t X0?
     bool m_optimizeX0;
@@ -317,6 +323,7 @@ public:
 
     /// write inner (secant) steps to plot files
     bool m_writeInnerSteps;
+	
 
     /// base of filename for 'inner' plots
     std::string m_innerStepFileNameBase;
@@ -334,8 +341,11 @@ public:
     SurfaceData* m_gradientFactor;
 
     int m_outerCounter;
-
-    
+	
+    //arrangment of layers within the bedrock
+	bool m_writeSelectOuterSteps;
+	int m_outerStepsNum;
+    std::vector<int> m_outerSteps; 
 
   };
 
@@ -524,6 +534,12 @@ private:
   
   /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_velocityMisfit;
+  
+  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
+  Vector<LevelData<FArrayBox>*> m_velocityRelativeMisfit;
+  
+  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
+  Vector<LevelData<FArrayBox>*> m_realVelocityMisfit;
   
   /// misfit term \f$|| g(\nabla \cdot ( u h)  , \nabla \cdot ( u_o h_o) ) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_divuhMisfit;
