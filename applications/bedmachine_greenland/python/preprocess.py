@@ -1,10 +1,9 @@
 
 
-EXTERNAL_DATA_PATH='../external_data'
-#BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineGreenland_2019-11-05_v01.nc')
-BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineGreenland-2021-04-20.nc')
+EXTERNAL_DATA_PATH='../external_data/'
+INTERMEDIATE_DATA_PATH='../intermediate_data/'
+BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineGreenland-v5.nc')
 MEASURES_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'Greenland_ice_speed_v2017.nc')
-INTERMEDIATE_DATA_PATH='.'
 
 def name(s):
     return '{}/greenland_bedmachine_{}.nc'.format(INTERMEDIATE_DATA_PATH,s)
@@ -13,6 +12,10 @@ OUTPUT_NC = name('150m')
 N_LAYER=24
 
 import os, time
+
+from greenland_projection import add_projection_attr_greenland
+from coarsen import coarsen_2D, coarsen_1D
+from netCDF4 import Dataset
 
 def create_new_only(file_name, fun):
     if os.path.isfile(file_name):
@@ -34,6 +37,35 @@ def preprocess_therm(output_nc):
     preprocess(output_nc)
     return None
     
+def coarsenc(name, fine_name, v_names = ['thk','topg','umod','btrc','umodc']):
+    """
+    read uniform cell-centred mesh nc data
+    """
+    fine_nc = Dataset(fine_name,'r')
+    coarse_nc = Dataset(name, 'w')
+    
+    x_fine = fine_nc.variables['x'][:]
+    y_fine = fine_nc.variables['y'][:]
+    x_coarse, y_coarse = coarsen_1D(x_fine), coarsen_1D(y_fine)
+
+    xdim = coarse_nc.createDimension('x',size=len(x_coarse))
+    ydim = coarse_nc.createDimension('y',size=len(y_coarse))
+    
+    xv = coarse_nc.createVariable('x','f8',('x'))
+    xv[:] = x_coarse
+
+    yv = coarse_nc.createVariable('y','f8',('y'))
+    yv[:] = y_coarse
+   
+    
+    for v in v_names:
+        vv = coarse_nc.createVariable(v  ,'f8',('y','x'))
+        vv[:,:] = coarsen_2D(fine_nc.variables[v][:,:])
+    
+
+    add_projection_attr_greenland(coarse_nc, xv, yv)
+
+
     
                         
 create_new_only(OUTPUT_NC, preprocess_150m)
@@ -50,4 +82,4 @@ for i in range(1,len(suffix)):
         return(None)
     create_new_only(coarse, f)
 
-create_new_only('greenland_bedmachine_therm_bc_4800m.nc', preprocess_therm)
+#create_new_only('greenland_bedmachine_therm_bc_4800m.nc', preprocess_therm)
