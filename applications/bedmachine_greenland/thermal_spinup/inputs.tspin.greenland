@@ -25,7 +25,7 @@ patersonRate.epsSqr0 = 1.0e-12
 #geometry & basal friction input data
 geometry.problem_type = LevelData
 
-inputLevelData.geometryFile =  ../greenland_bedmachine_4800m.2d.hdf5
+inputLevelData.geometryFile =  greenland_bedmachine_4800m.2d.hdf5
 inputLevelData.thicknessName = thk
 inputLevelData.topographyName = topg
 
@@ -39,7 +39,7 @@ inputLevelData.topographyName = topg
 #inputLevelData.internalEnergyName = internalEnergy000000
 
 geometry.beta_type = LevelData
-inputLevelData.frictionFile = ../greenland_bedmachine_4800m.2d.hdf5
+inputLevelData.frictionFile = greenland_bedmachine_4800m.2d.hdf5
 inputLevelData.frictionName = btrc
 
 #basal friction relation parameters
@@ -49,7 +49,7 @@ BasalFrictionPowerLaw.m = 1.0
 
 #physical constants
 constants.ice_density=917.0
-constants.sea_water_density=1027.0
+constants.sea_water_density=1023.0
 
 #surface fluxes
 #surfaceFlux.type = constantFlux
@@ -59,7 +59,7 @@ surfaceFlux.type = LevelData
 surfaceFlux.n = 1
 surfaceFlux.timeStep = 1.0e+10
 surfaceFlux.startTime = 0.0
-surfaceFlux.fileFormat = ../greenland_bedmachine_therm_bc_4800m.2d.hdf5
+surfaceFlux.fileFormat = greenland_bedmachine_therm_bc_4800m.2d.hdf5
 surfaceFlux.name = acab
 
 amr.grounding_line_proximity_scale = 1.0e+4
@@ -199,7 +199,7 @@ surfaceHeatBoundaryData.Dirichlett = true
 surfaceHeatBoundaryData.Temperature = true 
 surfaceHeatBoundaryData.type = LevelData
 #surfaceHeatBoundaryData.flux_value = 248 # K
-surfaceHeatBoundaryData.fileFormat = ../greenland_bedmachine_therm_bc_4800m.2d.hdf5
+surfaceHeatBoundaryData.fileFormat = greenland_bedmachine_therm_bc_4800m.2d.hdf5
 surfaceHeatBoundaryData.name = stemp
 surfaceHeatBoundaryData.n = 1
 surfaceHeatBoundaryData.timeStep = 1.0e+10
@@ -209,7 +209,7 @@ surfaceHeatBoundaryData.startTime = 0.0
 #geothermal heat flux
 basalHeatBoundaryData.type = LevelData
 #basalHeatBoundaryData.flux_value = 32000 # J/a/m^2
-basalHeatBoundaryData.fileFormat = ../greenland_bedmachine_therm_bc_4800m.2d.hdf5
+basalHeatBoundaryData.fileFormat = greenland_bedmachine_therm_bc_4800m.2d.hdf5
 basalHeatBoundaryData.name = ghf
 basalHeatBoundaryData.n = 1
 basalHeatBoundaryData.timeStep = 1.0e+10
@@ -226,7 +226,7 @@ control.velMisfitType = speed # match observed speed (not velocity)
 control.outerStepFileNameBase = ctrl.thermodynamic.mar.ghf.
 #field of data expressing confidence in speed observations. 0 for no confidence
 control.velCoef.type = LevelData
-control.velCoef.fileFormat = ../greenland_bedmachine_4800m.2d.hdf5
+control.velCoef.fileFormat = greenland_bedmachine_4800m.2d.hdf5
 control.velCoef.name = umodc
 control.velCoef.n = 1
 control.velCoef.startTime = 0.0
@@ -235,7 +235,7 @@ control.velCoef.offset = 0
 control.velCoef.linearInterp = false
 #x-component of the observed velocity (could be the speed)
 control.xVel.type = LevelData
-control.xVel.fileFormat = ../greenland_bedmachine_4800m.2d.hdf5 
+control.xVel.fileFormat = greenland_bedmachine_4800m.2d.hdf5 
 control.xVel.name = umod
 control.xVel.n = 1
 control.xVel.startTime = 0.0
@@ -269,4 +269,4 @@ amr.write_internal_energy = true
 
 ColumnThermodynamics.floating_base_max_heat_flux =  0.0
 
-amr.restart_file = chk.tspin.greenland.000000.2d.hdf5
+#amr.restart_file = chk.tspin.greenland.000000.2d.hdf5
