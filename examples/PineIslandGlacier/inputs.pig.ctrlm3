@@ -155,19 +155,22 @@ amr.verbosity = 5
     control.yVel.n = 1
 
     #Tikhonov regularization coefficients
-    control.gradCsqRegularization = 1.0e3
-    control.gradMuCoefsqRegularization = 1.0e-5
+    control.gradCsqRegularization = 1.0e-30
+    control.gradMuCoefsqRegularization = 1.0e-30
+    control.gradX0sqRegularization = 1.0e-30
+    control.gradX1sqRegularization = 1.0e-30
 
     #some box constraints. 
     control.boundMethod = Projection
-    control.lowerX0 = -5
+    control.lowerX0 = -5.0
     control.upperX0 = 5.0
-    control.lowerX1 = -2.0
-    control.upperX1 = 0.5
+    control.lowerX1 = -3.0
+    control.upperX1 = 0.05
     
     control.writeInnerSteps = false
-    control.CGmaxIter = 128
-    control.CGhang = 0.9999
+    control.CGmaxIter = 1280
+    control.CGhang = 100.9999
+    control.CGtol = 1.0e-10
     #control.CGsecantParameter = 1.0e-9
     control.outerStepFileNameBase = ctrl.m3.
 

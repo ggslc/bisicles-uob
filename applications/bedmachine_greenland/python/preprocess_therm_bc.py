@@ -13,7 +13,7 @@ from scipy import ndimage
 from osgeo import ogr, osr
 from coarsen import add_projection_attr_greenland
 
-def preprocess(output_nc):
+def preprocess(geo_file, output_nc):
     """
     
     interpolate the atrm, acab and ghf fields
@@ -30,7 +30,7 @@ def preprocess(output_nc):
 
     """
     
-    geo_file = 'greenland_bedmachine_4800m.nc'
+    
     ncbm = Dataset(geo_file, 'r')
     x = ncbm.variables['x'][:]
     y = ncbm.variables['y'][:]
@@ -49,12 +49,12 @@ def preprocess(output_nc):
         spl = RectBivariateSpline(ync,xnc,znc,kx=1,ky=1) 
         
             
-        import matplotlib.pyplot as plt
-        plt.figure()
-        plt.subplot(1,2,1,aspect='equal')
-        plt.pcolormesh(xnc,ync,znc)
-        plt.subplot(1,2,2,aspect='equal')
-        plt.pcolormesh(x,y,spl(y,x))
+        #import matplotlib.pyplot as plt
+        #plt.figure()
+        #plt.subplot(1,2,1,aspect='equal')
+        #plt.pcolormesh(xnc,ync,znc)
+        #plt.subplot(1,2,2,aspect='equal')
+        #plt.pcolormesh(x,y,spl(y,x))
         
         
         

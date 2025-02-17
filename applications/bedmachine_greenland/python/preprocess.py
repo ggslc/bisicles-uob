@@ -5,13 +5,14 @@ INTERMEDIATE_DATA_PATH='../intermediate_data/'
 BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineGreenland-v5.nc')
 MEASURES_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'Greenland_ice_speed_v2017.nc')
 
-def name(s):
-    return '{}/greenland_bedmachine_{}.nc'.format(INTERMEDIATE_DATA_PATH,s)
+def name(s,file_type='nc'):
+    return '{}/greenland_bedmachine_{}.{}'.format(INTERMEDIATE_DATA_PATH,s,file_type)
 
 OUTPUT_NC = name('150m')
 N_LAYER=24
 
 import os, time
+import numpy as np
 
 from greenland_projection import add_projection_attr_greenland
 from coarsen import coarsen_2D, coarsen_1D
@@ -34,7 +35,7 @@ def preprocess_150m(output_nc):
 
 def preprocess_therm(output_nc):
     from preprocess_therm_bc import preprocess    
-    preprocess(output_nc)
+    preprocess(name('4800m'),output_nc)
     return None
     
 def coarsenc(name, fine_name, v_names = ['thk','topg','umod','btrc','umodc']):
@@ -43,6 +44,8 @@ def coarsenc(name, fine_name, v_names = ['thk','topg','umod','btrc','umodc']):
     """
     fine_nc = Dataset(fine_name,'r')
     coarse_nc = Dataset(name, 'w')
+    
+    print(fine_name, name)
     
     x_fine = fine_nc.variables['x'][:]
     y_fine = fine_nc.variables['y'][:]
@@ -59,8 +62,10 @@ def coarsenc(name, fine_name, v_names = ['thk','topg','umod','btrc','umodc']):
    
     
     for v in v_names:
+        print(v)
         vv = coarse_nc.createVariable(v  ,'f8',('y','x'))
         vv[:,:] = coarsen_2D(fine_nc.variables[v][:,:])
+        print (np.mean(vv[:,:]))
     
 
     add_projection_attr_greenland(coarse_nc, xv, yv)
@@ -77,9 +82,25 @@ for i in range(1,len(suffix)):
     fine = name(suffix[i-1])
     coarse = name(suffix[i])
     def f(file_name):
-        from coarsen import coarsenc
         coarsenc(file_name , fine)
         return(None)
     create_new_only(coarse, f)
 
-#create_new_only('greenland_bedmachine_therm_bc_4800m.nc', preprocess_therm)
+
+def nctoamr(nc_file, hdf5_file, var_string):
+    _system('nctoamr {} {} {}'.format(nc_file, hdf5_file, var_string))
+
+def _system(cmd):
+    print(cmd)
+    os.system(cmd)
+#convert netcdf to hdf5
+for s in suffix[2:]:
+    nctoamr(name(s), name(s,'2d.hdf5'), 'thk topg umod umodc btrc')
+
+#coarsest only for now 
+s = suffix[-1]
+def therm_bc_name(s,file_type='nc'):
+    return '{}/greenland_bedmachine_therm_bc_{}.{}'.format(INTERMEDIATE_DATA_PATH,s,file_type)
+
+create_new_only(therm_bc_name(s), preprocess_therm)
+nctoamr(therm_bc_name(s), therm_bc_name(s,'2d.hdf5'), 'stemp acab ghf')
