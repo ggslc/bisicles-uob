@@ -1154,7 +1154,10 @@ AmrIce::writeCheckpointFile(const string& a_file)
 	   header.m_int["is_periodic_2"] = 0; 
          );
          
+  // CF domain wide diagnostic data includes data that are not easily re-computed on a restart
+  m_cf_domain_diagnostic_data.write(handle);
 
+  
   // set up component names
   char compStr[30];
   //string thicknessName("thickness");
@@ -2185,6 +2188,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
     } // end loop over levels                                    
   //
 
+ 
 
           
   // do we need to close the handle?
@@ -2329,12 +2333,17 @@ AmrIce::restart(const string& a_restart_file)
 {
   if (s_verbosity > 3) 
     { 
-      pout() << "AmrIce::restart" << endl;
+      pout() << "AmrIce::restart(" << a_restart_file << ")" << endl;
     }
-
+  
   HDF5Handle handle(a_restart_file, HDF5Handle::OPEN_RDONLY);
-  // first read in data from checkpoint file
+  
+  // CF domain wide diagnostic data includes data that are not easily re-computed on a restart
+  m_cf_domain_diagnostic_data.read(handle);
+
+  //  read in data from checkpoint file
   readCheckpointFile(handle);
+
   handle.close();
   // don't think I need to do anything else, do I?
   

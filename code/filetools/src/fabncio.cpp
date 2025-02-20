@@ -305,6 +305,10 @@ void NCIO::writeFAB(const std::string& a_file,
 
   //write time
   size_t zero(0), one(1);
+  if ( (rc = nc_inq_varid(ncID, "time", &timeID)) != NC_NOERR)
+    {
+      MayDay::Error("failed to find time variable id");
+    }
   if ( (rc = nc_put_vara_double(ncID, timeID, &zero, &one , &a_time)) != NC_NOERR)
     {
       MayDay::Error("failed to write time");
