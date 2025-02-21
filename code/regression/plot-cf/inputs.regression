@@ -1,4 +1,4 @@
-
+#time-dependent regression test, tests checkpoint
 amr.verbosity = 10
 
 geometry.problem_type = LevelData

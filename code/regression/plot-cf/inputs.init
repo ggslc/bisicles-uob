@@ -1,3 +1,5 @@
+#time-dependent regression test, can be used to regenerate
+#the reference chk and plot hdf5 but by default will test.
 
 amr.verbosity = 10
 
