@@ -80,7 +80,7 @@ main.maxTime = 1000  # maximum time to run to
 main.maxStep = 9   # maximum number of steps to runx
 amr.temporal_accuracy = 1
 amr.cfl = 0.25  
-amr.initial_cfl = 0.25
+amr.initial_cfl = 0.25  
 amr.time_step_ticks = true
 
 #mesh refinement criteria
@@ -104,7 +104,7 @@ amr.plot_prefix = plot.cf_regression.
 amr.check_prefix = chk.cf_regression.
 amr.check_interval = 4
 amr.check_overwrite = false
-amr.restart_file = chk.cf_regression.000004.2d.H5
+#amr.restart_file = chk.cf_regression.000004.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
