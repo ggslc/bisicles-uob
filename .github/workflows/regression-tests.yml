@@ -2,8 +2,8 @@ name: system regression test
 
 on:
 
-workflow_dispatch:
-    branches: [ "master" ]
+    workflow_dispatch:
+        branches: [ "master" ]
 #  push:
 #    branches: [ "master" ]
 #  pull_request:
