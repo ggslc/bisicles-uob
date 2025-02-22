@@ -33,7 +33,7 @@ jobs:
             ls $GITHUB_WORKSPACE/Chombo
             cd $GITHUB_WORKSPACE/Chombo/lib/mk
             ln -s $GITHUB_WORKSPACE/bisicles-uob/.github/workflows/Make.defs.local.ubuntu-22.04 Make.defs.local
-            ls -l Make.defs.local
+            cat Make.defs.local
             cd $GITHUB_WORKSPACE/Chombo/lib
             make all OPT=TRUE -j4
           
