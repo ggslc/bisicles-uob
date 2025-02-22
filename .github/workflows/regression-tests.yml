@@ -12,13 +12,30 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     steps:
     - uses: actions/checkout@v4
     
-    - name: clone Chombo
-      run: |
-          git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git ../Chombo
-          ls ../Chombo
+    - name: cache chombo
+        id: cache-chombo
+        uses: actions/cache@v4
+        env:
+            cache-name: cache-chombo
+        with:
+            path: $GITHUB_WORKSPACE/Chombo
+            key: ${{ runner.os }}-build-${{ env.cache-name }}
+    
+    - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
+        - name: clone chombo
+            run: |
+                git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git $GITHUB_WORKSPACE/Chombo
+                ls $GITHUB_WORKSPACE/Chombo
+        -name: build chombo
+            run: | 
+                cd $GITHUB_WORKSPACE/Chombo/lib/mk
+                ln -s $GITHUB_WORKSPACE/bisicles-uob/.github/workflows/Make.defs.local.ubuntu-22.04 Make.defs.local
+                ls -l Make.defs.local
+                cd $GITHUB_WORKSPACE/Chombo/lib
+                make all OPT=TRUE -j4
           
