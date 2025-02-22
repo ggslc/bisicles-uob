@@ -29,11 +29,10 @@ jobs:
     - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
       name: clone and build chombo
       run: |
-            git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git $GITHUB_WORKSPACE/Chombo
-            ls $GITHUB_WORKSPACE/Chombo
-            cd $GITHUB_WORKSPACE/Chombo/lib/mk
-            ln -s $GITHUB_WORKSPACE/bisicles-uob/.github/workflows/Make.defs.local.ubuntu-22.04 Make.defs.local
-            ls -l Make.defs.local
-            cd $GITHUB_WORKSPACE/Chombo/lib
+            git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git ../Chombo
+            ls ../Chombo
+            cp .github/workflows/Make.defs.local.ubuntu-22.04 ../Chombo/lib/mk/Make.defs.local
+            cd ../Chombo/lib
+            cat mk/Make.defs.local
             make all OPT=TRUE -j4
           
