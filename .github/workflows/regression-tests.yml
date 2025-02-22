@@ -16,8 +16,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: ls
+    - name: clone Chombo
       run: |
-          pwd
-          ls
-          echo "a" > ../a
+          git clone git@github.com:applied-numerical-algorithms-group-lbnl/Chombo_3.2.git ../Chombo
+          ls ../
+          
