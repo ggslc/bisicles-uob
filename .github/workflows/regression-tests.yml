@@ -50,7 +50,8 @@ jobs:
       run: |
           cd $GITHUB_WORKSPACE/code/mk
           ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
+          echo "CHOMBO_HOME=$GITHUB_WORKSPACE/Chombo" >> Make.defs.`uname -u`
           cat Make.defs.`uname -n`
           cd $GITHUB_WORKSPACE/code/exec2D
-          CHOMBO_HOME=$GITHUB_WORKSPACE/Chombo make all OPT=TRUE MPI=TRUE =j4
+          make all OPT=TRUE MPI=TRUE =j4
 
