@@ -44,5 +44,5 @@ jobs:
             cp .github/workflows/Make.defs.local.ubuntu-22.04 ../Chombo/lib/mk/Make.defs.local
             cd ../Chombo/lib
             cat mk/Make.defs.local
-            make all OPT=TRUE MPI=TRUE -j4
+            make lib OPT=TRUE MPI=TRUE -j4
           
