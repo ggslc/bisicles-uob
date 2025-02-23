@@ -45,4 +45,12 @@ jobs:
             cd Chombo/lib
             cat mk/Make.defs.local
             make lib OPT=TRUE MPI=TRUE -j4
-          
+         
+    - name: build bisicles
+      run: |
+          cd $GITHUB_WORKSPACE/bisicles_uob/code/mk
+          ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
+          cat Make.defs.`uname -n`
+          cd $GITHUB_WORKSPACE/bisicles_uob/code/exec2D
+          make all OPT=TRUE MPI=TRUE =j4
+
