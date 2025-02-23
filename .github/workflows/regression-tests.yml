@@ -16,7 +16,17 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    
+   
+    #Install hdf5 etc
+    - name: install dependencies
+      run: | 
+          sudo apt install gfortran csh mpi-default-bin mpi-default-dev 
+          sudo apt install libhdf5-mpi-dev libhdf5-dev hdf5-tools 
+          sudo apt install libnetcdff-dev libnetcdf-dev netcdf-bin nco
+          sudo apt install python3 python3-dev libpython3-dev
+          sudo apt install libfftw3-dev  
+
+    #Retrieve cached chombo, or build
     - name: cache chombo
       id: cache-chombo
       uses: actions/cache@v4
@@ -34,5 +44,5 @@ jobs:
             cp .github/workflows/Make.defs.local.ubuntu-22.04 ../Chombo/lib/mk/Make.defs.local
             cd ../Chombo/lib
             cat mk/Make.defs.local
-            make all OPT=TRUE -j4
+            make all OPT=TRUE MPI=TRUE -j4
           
