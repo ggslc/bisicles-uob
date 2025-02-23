@@ -33,7 +33,7 @@ jobs:
       env:
           cache-name: cache-chombo
       with:
-          path: $GITHUB_WORKSPACE/Chombo
+          path: ../Chombo
           key: ${{ runner.os }}-build-${{ env.cache-name }}
     
     - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
