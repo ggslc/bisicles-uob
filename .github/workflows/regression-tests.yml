@@ -33,16 +33,19 @@ jobs:
       env:
           cache-name: cache-chombo
       with:
-          path: ../Chombo
+          path: $GITHUB_WORKSPACE/Chombo
           key: ${{ runner.os }}-build-${{ env.cache-name }}
     
     - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
       name: clone and build chombo
       run: |
-            git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git ../Chombo
-            ls ../Chombo
-            cp .github/workflows/Make.defs.local.ubuntu-22.04 ../Chombo/lib/mk/Make.defs.local
-            cd ../Chombo/lib
+            echo "GITHUB_WORKSPACE = "$GITHUB_WORKSPACE
+            echo "PWD = "$PWD
+            git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git $GITHUB_WORKSPACE/Chombo
+            ls $GITHUB_WORKSPACE
+            ls $GITHUB_WORKSPACE/Chombo
+            cp .github/workflows/Make.defs.local.ubuntu-22.04 $GITHUB_WORKSPACE/Chombo/lib/mk/Make.defs.local
+            cd $GITHUB_WORKSPACE/Chombo/lib
             cat mk/Make.defs.local
             make lib OPT=TRUE MPI=TRUE -j4
           
