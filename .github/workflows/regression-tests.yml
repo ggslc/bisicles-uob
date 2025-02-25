@@ -3,7 +3,7 @@ name: system regression test
 on:
 
     workflow_dispatch:
-        branches: [ "master" ]
+#        branches: [ "master" ]
 #  push:
 #    branches: [ "master" ]
 #  pull_request:
@@ -46,12 +46,17 @@ jobs:
             cat mk/Make.defs.local
             make lib OPT=TRUE MPI=TRUE -j4
          
-    - name: build bisicles
-      run: |
-          cd $GITHUB_WORKSPACE/code/mk
-          ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
-          echo "CHOMBO_HOME=$GITHUB_WORKSPACE/Chombo" >> Make.defs.`uname -n`
-          cat Make.defs.`uname -n`
-          cd $GITHUB_WORKSPACE/code/exec2D
-          make all OPT=TRUE MPI=TRUE -j4
+    - name: list 
+      run: | 
+        echo $PWD
+        ls -lh
+
+            #    - name: build bisicles
+            # run: |
+            #cd $GITHUB_WORKSPACE/code/mk
+            #ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
+            #echo "CHOMBO_HOME=$GITHUB_WORKSPACE/Chombo" >> Make.defs.`uname -n`
+            #cat Make.defs.`uname -n`
+            #cd $GITHUB_WORKSPACE/code/exec2D
+            #make all OPT=TRUE MPI=TRUE -j4
 
