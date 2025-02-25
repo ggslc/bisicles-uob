@@ -58,7 +58,7 @@ jobs:
     - name: plot-cf test
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/plot-cf/
-          ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
           grep HDF5 pout.0
             
 
