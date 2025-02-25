@@ -3,14 +3,15 @@ name: system regression test
 on:
 
     workflow_dispatch:
-        branches: [ "master" ]
-#  push:
-#    branches: [ "master" ]
-#  pull_request:
-#    branches: [ "master" ]
+
+    push:
+        branches: [ "master", "ukesm-master" ]
+        
+    pull_request:
+        branches: [ "master", "ukesm-master" ]
 
 jobs:
-  build:
+  build-then-test:
 
     runs-on: ubuntu-22.04
 
@@ -34,7 +35,7 @@ jobs:
           cache-name: cache-chombo
       with:
           path: Chombo
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ubuntu-22.04-chombo-${{ env.cache-name }}
     
     - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
       name: clone and build chombo
@@ -48,10 +49,16 @@ jobs:
          
     - name: build bisicles
       run: |
-          cd $GITHUB_WORKSPACE/code/mk
-          ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
-          echo "CHOMBO_HOME=$GITHUB_WORKSPACE/Chombo" >> Make.defs.`uname -n`
-          cat Make.defs.`uname -n`
-          cd $GITHUB_WORKSPACE/code/exec2D
-          make all OPT=TRUE MPI=TRUE -j4
+            cd $GITHUB_WORKSPACE/code/mk
+            ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
+            cat Make.defs.`uname -n`
+            cd $GITHUB_WORKSPACE/code/exec2D
+            CHOMBO_HOME=$PWD/../../Chombo/lib make all OPT=TRUE MPI=TRUE -j4
+
+    - name: plot-cf test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/plot-cf/
+          ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          grep HDF5 pout.0
+            
 
