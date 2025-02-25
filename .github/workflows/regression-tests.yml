@@ -4,10 +4,11 @@ on:
 
     workflow_dispatch:
 
-  push:
-    branches: [ "master", "ukesm-master" ]
-  pull_request:
-    branches: [ "master", "ukesm-master" ]
+    push:
+        branches: [ "master", "ukesm-master" ]
+        
+    pull_request:
+        branches: [ "master", "ukesm-master" ]
 
 jobs:
   build-then-test:
