@@ -34,7 +34,7 @@ jobs:
           cache-name: cache-chombo
       with:
           path: Chombo
-          key: ${{ runner.os }}-build-${{ env.cache-name }}
+          key: ubuntu-22.04-chombo-${{ env.cache-name }}
     
     - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
       name: clone and build chombo
@@ -46,10 +46,14 @@ jobs:
             cat mk/Make.defs.local
             make lib OPT=TRUE MPI=TRUE -j4
          
-    - name: list 
-      run: | 
-        echo $PWD
-        ls -lh
+    - name: cache bisicles lib 
+      id: cache-bike-lib
+      uses: actions/cache@v4
+      env:
+          cache-name: cache-bike-lib
+      with:
+          path: code/lib
+          key: ubuntu-22.04-bike-$${{ env.cache-name }}
 
     - name: build bisicles
       run: |
