@@ -10,7 +10,7 @@ on:
 #    branches: [ "master" ]
 
 jobs:
-    build-then-test:
+  build-then-test:
 
     runs-on: ubuntu-22.04
 
