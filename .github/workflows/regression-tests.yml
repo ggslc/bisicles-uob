@@ -59,7 +59,7 @@ jobs:
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/twistyStream/
           mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
-          grep -e 'HDF5|rank' pout.0
+          egrep 'HDF5|rank' pout.0
 
 
     - name: plot-cf test
