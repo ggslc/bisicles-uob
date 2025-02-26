@@ -468,7 +468,7 @@ void writeV(HDF5Handle& a_handle, Vector<Real>& a_data,
 {
   hid_t set,space,type;
   createDataset(set, space, a_handle, a_name, &a_data[0], a_data.size());
-  if (procID() == 0)
+  if (procID() == uniqueProc(SerialTask::compute))
     {
       writeDataset(set, space, &a_data[0], 0,  a_data.size());
     }
@@ -536,29 +536,28 @@ void writeAttr(hid_t loc_id, const std::string& a_name, const std::string& a_val
 
 void writeStruct(HDF5Handle& a_handle, const cfDiagnostic& a_cf_info)
 {
-  if (procID() == uniqueProc(SerialTask::compute))
+  
+  Vector<Real>& data = *a_cf_info.data;
+  if (data.size() > 0)
     {
-      Vector<Real>& data = *a_cf_info.data;
-      if (data.size() > 0)
+      hid_t set,space,type;
+      std:: string data_name = a_cf_info.short_name;
+      createDataset(set, space, a_handle, data_name, &data[0], data.size());
+      if (procID() == uniqueProc(SerialTask::compute))
 	{
-	  hid_t set,space,type;
-	  std:: string data_name = a_cf_info.short_name;
-	  createDataset(set, space, a_handle, data_name, &data[0], data.size());
 	  writeDataset(set, space, &data[0], 0,  data.size());
-	  writeAttr(set, "Short name", a_cf_info.short_name);
-	  writeAttr(set, "Long name", a_cf_info.long_name);
-	  writeAttr(set, "Units", a_cf_info.units);
-	  writeAttr(set, "Standard name", a_cf_info.cf_name);
-	  H5Sclose(space);
-	  H5Dclose(set);
 	}
+      writeAttr(set, "Short name", a_cf_info.short_name);
+      writeAttr(set, "Long name", a_cf_info.long_name);
+      writeAttr(set, "Units", a_cf_info.units);
+      writeAttr(set, "Standard name", a_cf_info.cf_name);
+      H5Sclose(space);
+      H5Dclose(set);	
     }
 }
 
 void DomainDiagnosticData::write(HDF5Handle& a_handle)
 {
-  if (procID() == uniqueProc(SerialTask::compute))
-    {
       if (a_handle.pushGroup(HDF5_SUBGROUP_NAME) == 0)
 	{     
 	  for (int i = 0; i < m_cf_stuff.size(); ++i)
@@ -568,7 +567,7 @@ void DomainDiagnosticData::write(HDF5Handle& a_handle)
 	    }
 	  a_handle.popGroup();
 	}
-    }
+    
 }
 
 void DomainDiagnosticData::read(HDF5Handle& a_handle)
