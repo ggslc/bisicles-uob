@@ -55,9 +55,23 @@ jobs:
             cd $GITHUB_WORKSPACE/code/exec2D
             CHOMBO_HOME=$PWD/../../Chombo/lib make all OPT=TRUE MPI=TRUE -j4
 
+    - name: twisty stream test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/twistyStream/
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          grep HDF5 pout.0
+
+
     - name: plot-cf test
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/plot-cf/
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          grep HDF5 pout.0
+
+
+    - name: ASE-Control test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/ASE-control/
           mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
           grep HDF5 pout.0
             
