@@ -1529,7 +1529,8 @@ AmrIce::initialize()
           initGrids(finest_level);
         }
       
-     
+      m_cf_domain_diagnostic_data.initDiagnostics
+	(*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
     }
   else
     {
@@ -1595,8 +1596,7 @@ AmrIce::initialize()
         }
     } // end loop over levels to determine covered levels
 
-  m_cf_domain_diagnostic_data.initDiagnostics
-    (*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
+
 
 }  
   
@@ -2328,9 +2328,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
 	  
 	  timeStep(dt);
 
-	  //m_dt = trueDt; 
-	  // restores the correct timestep in cases where it was chosen just to reach a plot file
-	  //update CF data mean
+	  //update CF data time-means and diagnostics
 	  if (m_plot_style_cf) accumulateCFData(dt);	  
 	  
 	} // end of plot_time_interval
@@ -2478,16 +2476,16 @@ AmrIce::timeStep(Real a_dt)
 
   // compute thickness fluxes
   computeThicknessFluxes(vectFluxes, H_half, m_faceVelAdvection);
-  
-  if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.computeDischarge
-	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
-	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
-    }
+
+  // not supportred for now, but could be
+  // if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
+  //   {
+  //     m_cf_domain_diagnostic_data.computeDischarge
+  // 	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
+  // 	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
+  //   }
 
 
-  
   // make a copy of m_vect_coordSys before it is overwritten \todo clean up
   Vector<RefCountedPtr<LevelSigmaCS> > vectCoords_old (m_finest_level+1);
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -2583,26 +2581,14 @@ AmrIce::timeStep(Real a_dt)
       solveVelocityField();
     }
   
-  if ((m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.endTimestepDiagnostics
-	(m_vect_coordSys, m_old_thickness, m_divThicknessFlux, m_basalThicknessSource, m_surfaceThicknessSource, m_calvedIceArea,
-	 m_calvedIceThickness, m_addedIceThickness, m_removedIceThickness,
-	 m_amrGrids, m_refinement_ratios, m_amrDx[0], time(), m_time, m_dt,
-	 m_cur_step, m_finest_level, s_verbosity);
-    }
-
   if (s_verbosity > 0) 
     {
       pout () << "AmrIce::timestep " << m_cur_step
               << " --     end time = " 
 	      << setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << m_time  << " ( " << time() << " )"
-        //<< " (" << m_time/secondsperyear << " yr)"
               << ", dt = " 
-        //<< setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << a_dt
-        //<< " ( " << a_dt/secondsperyear << " yr )"
 	      << resetiosflags(ios::fixed)
               << endl;
     }
@@ -4129,7 +4115,6 @@ AmrIce::updateIceFrac(LevelData<FArrayBox>& a_thickness, int a_level)
   // set ice fraction to 0 if no ice in cell...
 
   // "zero" thickness value
-  // Check that this rountine doesn't interfer with diagnostics (endTimestepDiagnostics).
   Real ice_eps = 1.0;
   DataIterator dit = m_iceFrac[a_level]->dataIterator();
   for (dit.begin(); dit.ok(); ++dit)
