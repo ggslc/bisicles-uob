@@ -641,6 +641,69 @@ void PiecewiseLinearFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 }
 
 
+// DepthPowerFlux
+
+DepthPowerFlux::DepthPowerFlux(const Real a_power, 
+					 const Real a_coef, 
+					 Real a_minWaterDepth, 
+					 Real a_thermoclineDepth)
+  :m_power(a_power),m_coef(a_coef),
+   m_minWaterDepth(a_minWaterDepth),
+   m_thermoclineDepth(a_thermoclineDepth)
+{
+}
+
+SurfaceFlux* DepthPowerFlux::new_surfaceFlux()
+{
+  return static_cast<SurfaceFlux*>(new DepthPowerFlux(m_power,m_coef,m_minWaterDepth,m_thermoclineDepth));
+}
+
+void DepthPowerFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
+					       const AmrIceBase& a_amrIce, 
+					       int a_level, Real a_dt)
+{
+  const LevelData<FArrayBox>& levelH = a_amrIce.geometry(a_level)->getH();
+  const LevelData<FArrayBox>& levelS = a_amrIce.geometry(a_level)->getSurfaceHeight();
+  const LevelData<FArrayBox>& levelR = a_amrIce.geometry(a_level)->getTopography();
+  
+  for (DataIterator dit(a_flux.dataIterator()); dit.ok(); ++dit)
+    {
+	  
+	  FArrayBox Depth(a_flux[dit].box(),1);
+	  FORT_SHELFDEPTH(CHF_FRA1(Depth,0),
+			  CHF_CONST_FRA1(levelH[dit],0),
+			  CHF_CONST_FRA1(levelS[dit],0),
+			  CHF_BOX(a_flux[dit].box()));
+
+      FORT_POWERLAW(CHF_FRA1(a_flux[dit],0),
+		   CHF_CONST_FRA1(Depth,0),
+		   CHF_CONST_REAL(m_power),
+		   CHF_CONST_REAL(m_coef),
+		   CHF_CONST_REAL(m_thermoclineDepth),
+		   CHF_BOX(a_flux[dit].box()));
+       
+      if (m_minWaterDepth > 0.0)
+	{
+	  
+	  FArrayBox D(a_flux[dit].box(),1);
+	  FORT_WATERDEPTH(CHF_FRA1(D,0),
+			  CHF_CONST_FRA1(levelH[dit],0),
+			  CHF_CONST_FRA1(levelS[dit],0),
+			  CHF_CONST_FRA1(levelR[dit],0),
+			  CHF_BOX(a_flux[dit].box()));
+  
+	  
+	  FORT_ZEROIFLESS(CHF_FRA1(a_flux[dit],0),
+			  CHF_CONST_FRA1(D,0),
+			  CHF_CONST_REAL(m_minWaterDepth),
+			  CHF_BOX(a_flux[dit].box()));
+
+	}
+
+    }
+}
+
+
 
 
 

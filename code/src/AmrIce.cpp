@@ -340,6 +340,8 @@ AmrIce::setDefaults()
   m_stable_sources_mask_file = "";
   m_stable_sources_mask_name = "stable_sources_mask";
   m_grounding_line_stable = false;
+  
+  m_CriticalHeightAboveFlotation = 0.0;
 
 }
 
@@ -805,6 +807,9 @@ AmrIce::initialize()
   // set time to be 0 -- do this now in case it needs to be changed later
   m_time = 0.0;
   m_cur_step = 0;
+  
+  ParmParse ppBFL("InitialThickness");
+  ppBFL.query("criticalHeightAboveFlotation",m_CriticalHeightAboveFlotation);
 
   // first, read in info from parmParse file
   ParmParse ppCon("constants");
@@ -1524,7 +1529,8 @@ AmrIce::initialize()
           initGrids(finest_level);
         }
       
-     
+      m_cf_domain_diagnostic_data.initDiagnostics
+	(*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
     }
   else
     {
@@ -1590,8 +1596,7 @@ AmrIce::initialize()
         }
     } // end loop over levels to determine covered levels
 
-  m_cf_domain_diagnostic_data.initDiagnostics
-    (*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
+
 
 }  
   
@@ -2323,9 +2328,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
 	  
 	  timeStep(dt);
 
-	  //m_dt = trueDt; 
-	  // restores the correct timestep in cases where it was chosen just to reach a plot file
-	  //update CF data mean
+	  //update CF data time-means and diagnostics
 	  if (m_plot_style_cf) accumulateCFData(dt);	  
 	  
 	} // end of plot_time_interval
@@ -2473,16 +2476,16 @@ AmrIce::timeStep(Real a_dt)
 
   // compute thickness fluxes
   computeThicknessFluxes(vectFluxes, H_half, m_faceVelAdvection);
-  
-  if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.computeDischarge
-	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
-	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
-    }
+
+  // not supportred for now, but could be
+  // if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
+  //   {
+  //     m_cf_domain_diagnostic_data.computeDischarge
+  // 	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
+  // 	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
+  //   }
 
 
-  
   // make a copy of m_vect_coordSys before it is overwritten \todo clean up
   Vector<RefCountedPtr<LevelSigmaCS> > vectCoords_old (m_finest_level+1);
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -2578,26 +2581,14 @@ AmrIce::timeStep(Real a_dt)
       solveVelocityField();
     }
   
-  if ((m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.endTimestepDiagnostics
-	(m_vect_coordSys, m_old_thickness, m_divThicknessFlux, m_basalThicknessSource, m_surfaceThicknessSource, m_calvedIceArea,
-	 m_calvedIceThickness, m_addedIceThickness, m_removedIceThickness,
-	 m_amrGrids, m_refinement_ratios, m_amrDx[0], time(), m_time, m_dt,
-	 m_cur_step, m_finest_level, s_verbosity);
-    }
-
   if (s_verbosity > 0) 
     {
       pout () << "AmrIce::timestep " << m_cur_step
               << " --     end time = " 
 	      << setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << m_time  << " ( " << time() << " )"
-        //<< " (" << m_time/secondsperyear << " yr)"
               << ", dt = " 
-        //<< setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << a_dt
-        //<< " ( " << a_dt/secondsperyear << " yr )"
 	      << resetiosflags(ios::fixed)
               << endl;
     }
@@ -3916,14 +3907,46 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
 
   // first, compute C and C0 as though there was no floating ice
   CH_assert(m_basalFrictionPtr != NULL);
+  SurfaceFlux* initialThicknessPtr = SurfaceFlux::parse("InitialThickness");
+  if (m_CriticalHeightAboveFlotation > 0.0)
+  {
+	  CH_assert(initialThicknessPtr != NULL);
+  }
   for (int lev=0; lev<=m_finest_level; lev++)
     {
       m_basalFrictionPtr->setBasalFriction(*a_vectC[lev], *m_vect_coordSys[lev],
                                            this->time(),m_dt); 
+	  
+	  LevelData<FArrayBox>& C = *a_vectC[lev];
+	  if (initialThicknessPtr != NULL)
+	  {
+		  LevelData<FArrayBox> h0(m_amrGrids[lev], 1, IntVect::Zero);
+		  initialThicknessPtr->evaluate(h0, *this, lev, m_dt); 
+		  const LevelData<FArrayBox>& hab = (*m_vect_coordSys[lev]).getThicknessOverFlotation();
+		  LevelData<FArrayBox>& h = (*m_vect_coordSys[lev]).getH();
+		  
+		  for (DataIterator dit(m_amrGrids[lev]); dit.ok(); ++dit)
+			{
+			  for (BoxIterator bit(m_amrGrids[lev][dit]); bit.ok(); ++bit)
+				{
+				  const IntVect& iv = bit();
+				  Real lambda = 1.0;
+				  if (hab[dit](iv) < m_CriticalHeightAboveFlotation) 
+				  {
+					Real hf = h[dit](iv) - hab[dit](iv);
+					lambda = hab[dit](iv) / std::min(m_CriticalHeightAboveFlotation,std::max(h0[dit](iv)-hf,1.0e-10));
+					lambda = std::min(1.0,lambda);
+				  }
+				  C[dit](iv) *= lambda;
+				}
+			}
+	  }
+	  
+	  
       if (m_basalRateFactor != NULL)
 	{
 	  //basal temperature dependence
-	  LevelData<FArrayBox>& C = *a_vectC[lev];
+	  //LevelData<FArrayBox>& C = *a_vectC[lev];
 	  Vector<Real> bSigma(1,1.0);
 	  LevelData<FArrayBox> A(C.disjointBoxLayout(),1,C.ghostVect());
 	  IceUtility::computeA(A, bSigma,*m_vect_coordSys[lev],  
@@ -3942,6 +3965,12 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
      
       a_vectC[lev]->exchange();
     }
+	
+	if (initialThicknessPtr != NULL)
+	{
+		delete initialThicknessPtr;
+		initialThicknessPtr = NULL;
+	}
 
   // compute C0
   // C0 include a term (wall drag) that depends on C,
@@ -4086,7 +4115,6 @@ AmrIce::updateIceFrac(LevelData<FArrayBox>& a_thickness, int a_level)
   // set ice fraction to 0 if no ice in cell...
 
   // "zero" thickness value
-  // Check that this rountine doesn't interfer with diagnostics (endTimestepDiagnostics).
   Real ice_eps = 1.0;
   DataIterator dit = m_iceFrac[a_level]->dataIterator();
   for (dit.begin(); dit.ok(); ++dit)
@@ -5912,7 +5940,7 @@ void AmrIce::incrementIceThickness
     }
       
 }
-
+// mjt 
 
 
 #include "NamespaceFooter.H"

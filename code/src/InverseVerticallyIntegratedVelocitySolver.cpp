@@ -29,6 +29,7 @@
 #include "AmrIceBase.H"
 #include "NamespaceHeader.H"
 
+#include <vector>
 
 #define CCOMP 0
 #define MUCOMP 1
@@ -98,6 +99,8 @@ InverseVerticallyIntegratedVelocitySolver::~InverseVerticallyIntegratedVelocityS
   //free(m_vels);
   free(m_divuh);
   free(m_velocityMisfit);
+  free(m_velocityRelativeMisfit);
+  free(m_realVelocityMisfit);
   free(m_divuhMisfit);
 }
 
@@ -118,6 +121,9 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_CGmaxIter = 16;
   pp.query("CGmaxIter",m_CGmaxIter);
+    
+  m_CGminIter = 3;							//MJT
+  pp.query("CGminIter",m_CGminIter);		//MJT
   
   m_CGtol = 1.0e-3;
   pp.query("CGtol",m_CGtol);
@@ -136,6 +142,9 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_CGhang = 0.999;
   pp.query("CGhang",m_CGhang);
+  
+  m_CGhangLimit = 10.0;						//MJT
+  pp.query("CGhangLimit",m_CGhangLimit);	//MJT
   
   m_CGrestartInterval = 9999;
   pp.query("restartInterval",m_CGrestartInterval);
@@ -166,6 +175,18 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
 	MayDay::Error("unknown control.velMisfitType");
       }
   }
+  
+  m_WeightVelocityMisfitCoefficient = false;
+  pp.query("WeightVelocityMisfitCoefficient", m_WeightVelocityMisfitCoefficient );
+  m_VelocityMisfitCoefficientLo = 1.0;
+  pp.query("VelocityMisfitCoefficientLo", m_VelocityMisfitCoefficientLo );
+  m_VelocityMisfitCoefficientHi = 10.0;
+  pp.query("VelocityMisfitCoefficientHi", m_VelocityMisfitCoefficientHi );
+  m_VelocityObservedLo = 10.0;
+  pp.query("VelocityObservedLo", m_VelocityObservedLo );
+  m_VelocityObservedHi = 1000.0;
+  pp.query("VelocityObservedHi", m_VelocityObservedHi );
+  
 
   // specify observed data
   m_velObs_c = SurfaceData::parse("control.velCoef");
@@ -290,9 +311,15 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_outerStepFileNameBase = "ControlOuter";
   pp.query("outerStepFileNameBase",m_outerStepFileNameBase);
-
-  //m_outerCounter = -1;
-  //pp.query("restart",m_outerCounter);
+  
+  m_outerStepsNum = 0;
+  pp.query("outerStepsNum",m_outerStepsNum);
+  if (m_outerStepsNum > 0)
+    {
+	  m_writeSelectOuterSteps = true;
+      pp.getarr("outerSteps", m_outerSteps, 0, m_outerStepsNum);
+	}
+  
 
 
 
@@ -358,6 +385,8 @@ InverseVerticallyIntegratedVelocitySolver::define
   create(m_velObs,SpaceDim,IntVect::Unit);
   create(m_velCoef,1,IntVect::Unit);
   create(m_velocityMisfit,1,IntVect::Unit);
+  create(m_velocityRelativeMisfit,1,IntVect::Unit);
+  create(m_realVelocityMisfit,1,IntVect::Unit);
 
   create(m_velb,SpaceDim,IntVect::Unit);
   create(m_adjVel,SpaceDim,IntVect::Unit);
@@ -522,19 +551,22 @@ int InverseVerticallyIntegratedVelocitySolver::solve
     {
       
       m_outerCounter = 0;
-      m_innerCounter = 0; 
+      m_innerCounter = 0; 		// MJT
 
       int CGmaxIter = m_config.m_CGmaxIter;
+	  int CGminIter = m_config.m_CGminIter;
       if ( (m_time - m_prev_time) < m_config.m_minTimeBetweenOptimizations)
 	{
 	  // just initialize the optimization, which means computing the first objective etc.
 	  CGmaxIter = 0;
+	  CGminIter = -1;			// MJT
 	}
   
       pout() << " Optimization: CGmaxIter = " << CGmaxIter << "  m_time = " << m_time << "  m_prev_time = " << m_prev_time  << std::endl;
       
       // attempt the optimization
-      CGOptimize(*this ,  X , CGmaxIter , m_config.m_CGtol , m_config.m_CGhang,
+      //CGOptimize(*this ,  X , CGmaxIter , m_config.m_CGtol , m_config.m_CGhang,										//MJT
+      CGOptimize(*this ,  X , CGmaxIter , CGminIter , m_config.m_CGtol , m_config.m_CGhang , m_config.m_CGhangLimit,	//MJT
 		 m_config.m_CGsecantParameter, m_config.m_CGsecantStepMaxGrow, 
 		 m_config.m_CGsecantMaxIter , m_config.m_CGsecantTol, m_outerCounter);
       m_optimization_done = true;
@@ -899,6 +931,8 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 
   //compute objective function 
   Real vobj = computeSum(m_velocityMisfit, m_refRatio, m_dx[0][0]);
+  Real vobjrel = computeSum(m_velocityRelativeMisfit, m_refRatio, m_dx[0][0]);
+  Real vobjreal = computeSum(m_realVelocityMisfit, m_refRatio, m_dx[0][0]);
   Real hobj = computeSum(m_divuhMisfit, m_refRatio, m_dx[0][0]); 
   Real sumGradCSq = computeSum(m_gradCSq,m_refRatio, m_dx[0][0]);
   Real sumGradMuSq = computeSum(m_gradMuCoefSq,m_refRatio, m_dx[0][0]);
@@ -906,6 +940,9 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   Real sumGradX1Sq =computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(1,1));
   Real normX0 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(0,0));
   Real normX1 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(1,1));
+  
+  
+  //const FArrayBox& uo = (*m_velObs[lev])[dit];			// MJT
 
   a_fm = vobj + hobj;
   a_fp =  m_config.m_gradCsqRegularization * sumGradCSq
@@ -915,8 +952,9 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     + X0Regularization() * normX0*normX0
     + X1Regularization() * normX1*normX1;
   
-  pout() << (a_inner?"inner: ":"outer: ")
-	 << " ||velocity misfit||^2 = " << vobj 
+  pout() << ((a_inner)?"inner: ":"outer: ") << " ||velocity misfit||^2 = " << vobj 
+	 << " ||relative misfit||^2 = " << vobjrel
+	 << " ||actual misfit||^2 = " << vobjreal
 	 << " ||divuh misfit||^2 = " << hobj
 	 << " || grad C ||^2 = " << sumGradCSq
 	 << " || grad muCoef ||^2 = " << sumGradMuSq
@@ -1009,13 +1047,15 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   if (m_config.m_writeInnerSteps)
     {
       writeState(innerStateFile(), m_innerCounter, a_x, a_g);
-       m_innerCounter++;
+      m_innerCounter++;
     }
-  
   if (!a_inner)
     {
-      writeState(outerStateFile(), m_innerCounter, a_x, a_g);
-      m_outerCounter++;
+	  if (!m_config.m_writeSelectOuterSteps || (std::find(m_config.m_outerSteps.begin(), m_config.m_outerSteps.end(), m_outerCounter) != m_config.m_outerSteps.end()))
+		{
+		  writeState(outerStateFile(), m_innerCounter, a_x, a_g);
+		}
+	  m_outerCounter++;
     }
 }
 
@@ -1160,6 +1200,8 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	{
 	  FArrayBox& adjRhs = (*m_adjRhs[lev])[dit];
 	  FArrayBox& misfit = (*m_velocityMisfit[lev])[dit];
+	  FArrayBox& misfitreal = (*m_realVelocityMisfit[lev])[dit];
+	  FArrayBox& relmisfit = (*m_velocityRelativeMisfit[lev])[dit];
 	  const FArrayBox& um = (*m_vels[lev])[dit];
 	  const FArrayBox& uo = (*m_velObs[lev])[dit];
 	  const FArrayBox& h = m_coordSys[lev]->getH()[dit];
@@ -1170,6 +1212,8 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	    {
 	      FORT_ADJRHSSPEEDCTRL(CHF_FRA1(adjRhs,0), CHF_FRA1(adjRhs,1),
 				   CHF_FRA1(misfit,0),
+				   CHF_FRA1(relmisfit,0),
+				   CHF_FRA1(misfitreal,0),
 				   CHF_CONST_FRA1(um,0), CHF_CONST_FRA1(um,1),
 				   CHF_CONST_FRA1(uo,0), CHF_CONST_FRA1(uo,1),
 				   CHF_BOX(box));
@@ -1195,6 +1239,30 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	      CH_assert(m_config.m_velMisfitType < Configuration::MAX_VELOCITY_MISFIT_TYPE);
 	    }
 
+		// delete later, just for testing
+		// And get rid of m_realVelocityMisfit
+	   for (BoxIterator bit(box);bit.ok();++bit)
+	     {
+	       const IntVect& iv = bit();
+	       if (uc(iv) < 0.975) uc(iv) = 0.0; 
+	       if (uc(iv) > 1.0) uc(iv) = 1.0; 			
+	       if (h(iv) < m_config.m_thicknessThreshold) uc(iv) = 0.0;
+	     }
+		 
+	   misfitreal *= uc;
+		
+		// Modify the velcoef weighting according to observed velocity
+	  if (m_config.m_WeightVelocityMisfitCoefficient)
+	  {
+	      FORT_WEIGHTVELC(CHF_FRA1(uc,0),
+				    CHF_CONST_FRA1(uo,0), CHF_CONST_FRA1(uo,1),
+			        CHF_CONST_REAL(m_config.m_VelocityMisfitCoefficientLo),
+			        CHF_CONST_REAL(m_config.m_VelocityMisfitCoefficientHi),
+			        CHF_CONST_REAL(m_config.m_VelocityObservedLo),
+			        CHF_CONST_REAL(m_config.m_VelocityObservedHi),
+				    CHF_BOX(box));
+	  }
+
 	   for (BoxIterator bit(box);bit.ok();++bit)
 	     {
 	       const IntVect& iv = bit();
@@ -1207,6 +1275,7 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	       adjRhs.mult(uc,0,dir);
 	     }
 	   misfit *= uc;
+	   relmisfit *= uc;
 	   
 	   adjRhs *= m_config.m_velMisfitCoefficient;
 	   misfit *= m_config.m_velMisfitCoefficient;

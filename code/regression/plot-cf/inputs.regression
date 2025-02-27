@@ -1,12 +1,14 @@
+#time-dependent regression test, tests checkpoint
+amr.verbosity = 10
 
 geometry.problem_type = LevelData
 geometry.beta_type = LevelData
 
-inputLevelData.geometryFile = asebm2-geometry-4km.2d.H5
+inputLevelData.geometryFile = ../ASE-control/asebm2-geometry-4km.2d.H5
 inputLevelData.thicknessName = thk
 inputLevelData.topographyName = topg
 
-inputLevelData.frictionFile = asebm2-ctrldata-4km.2d.H5
+inputLevelData.frictionFile = ../ASE-control/asebm2-ctrldata-4km.2d.H5
 inputLevelData.frictionName = btrc
 inputLevelData.xvelName = umod
 inputLevelData.velcoefName = umodc
@@ -38,14 +40,14 @@ constants.ice_density=918
 #JFNK parameters
 JFNKSolver.vtopSafety = 0.95
 JFNKSolver.minPicardIterations = 3
-JFNKSolver.maxIter = 20
+JFNKSolver.maxIter = 4
 JFNKSolver.absTol = 1.0e-4
 JFNKSolver.relTol = 1.0e-8
 JFNKSolver.solverType = 0 #Relax solver
 JFNKSolver.RelaxRelTol = 1.0e-3
 JFNKSolver.RelaxHang = 0.25
 JFNKSolver.maxRelaxIter = 20
-JFNKSolver.normType = 2
+JFNKSolver.normType = 0
 JFNKSolver.verbosity = 5
 JFNKSolver.vtopRelaxTol = 0.005
 JFNKSolver.vtopRelaxMinIter = 4
@@ -56,7 +58,6 @@ JFNKSolver.switchRate = 5.0
 #JFNKSolver.writeResiduals = true
 JFNKSolver.lazyGSRB = false
 
-
 #domain details
 main.domain_size = 768.0e+3 896.0e+3 1.0e+3
 
@@ -65,7 +66,7 @@ amr.is_periodic = 0 0 0
 amr.num_cells = 48 56 10
 L1L2.layerCoarsening=99
 amr.max_box_size = 64
-amr.maxLevel = 1
+amr.maxLevel = 2
 amr.ref_ratio = 2 2 2 2 2 2 
 amr.blockFactor = 8          # block factor used in grid generation
 amr.fill_ratio = 0.8          # how efficient are the grids
@@ -74,57 +75,44 @@ amr.tags_grow = 1            # amount to buffer tags
 amr.max_vel_dx = 1.0e+6
 amr.regrid_interval = 1
 
-
 #time stepping
-main.maxTime = 0  # maximum time to run to
-main.maxStep = 0   # maximum number of steps to runx
+main.maxTime = 1000  # maximum time to run to
+main.maxStep = 9   # maximum number of steps to runx
 amr.temporal_accuracy = 1
 amr.cfl = 0.25  
-amr.initial_cfl = 0.25  
-amr.max_dt_grow_factor = 1.1 
-amr.time_step_ticks = 1
+amr.initial_cfl = 0.25
+amr.time_step_ticks = true
 
 #mesh refinement criteria
 amr.tag_on_grounded_laplacian_velocity = 0 
 amr.lap_vel_tagging_val = 30
+
 amr.tag_grounding_line = 1
 amr.grounding_line_tagging_min_vel = 20
 
-amr.velocity_solver_type = 6 # Inverse problem !
-control.velMisfitType = speed # match observed speed (not velocity)
-    
-#field of data expressing confidence in speed observations. 0 for no confidence
-control.velCoef.type = LevelData
-control.velCoef.fileFormat = asebm2-ctrldata-4km.2d.H5
-control.velCoef.name = umodc
-control.velCoef.n = 1
+amr.velocity_solver_type = 1 
 
-#x-component of the observed velocity (in this case the speed)
-control.xVel.type = LevelData
-control.xVel.fileFormat =  asebm2-ctrldata-4km.2d.H5
-control.xVel.name = umod
-control.xVel.n = 1
+regression.result_hdf5 = plot.cf_regression.000008.CF.2d.hdf5
+regression.reference_hdf5 = plot.cf_regression.000008.CF.2d.H5
+regression.tol = 1.0e-5
 
-#Tikhonov regularization coefficients
-control.gradCsqRegularization = 1.0e+4
-control.gradMuCoefsqRegularization = 1.0e+2
+amr.plot_time_interval = 1
+amr.plot_style_amr = false
+amr.plot_style_cf = true
+amr.plot_prefix = plot.cf_regression.
 
-#some box constraints. 
-control.boundMethod = Projection
-control.lowerX0 = -5
-control.upperX0 = 5.0
-control.lowerX1 = -2.0
-control.upperX1 = 2.0
-    
-control.writeInnerSteps = false
-control.CGmaxIter = 1
+amr.check_prefix = chk.cf_regression.
+amr.check_interval = 4
+amr.check_overwrite = false
+amr.restart_file = chk.cf_regression.000004.2d.H5
 
-control.minLevelForOptimization = 1
-
-regression.result_hdf5 = ControlOuter01lev.000000000001.2d.hdf5
-regression.reference_hdf5 = ase-ctrl-reference.H5
-regression.tol = 1.0e-6
-
-
-#basal_friction.grounding_line_subdivision = 4
-#velocity_rhs.gl_correction = false
+CFIO.level = 1
+CFIO.lithk = true
+CFIO.orog = true
+CFIO.acabf = true
+CFIO.libmassbf = true
+CFIO.licalvf = true
+CFIO.dlithkdt = true
+CFIO.sftgif = true
+CFIO.sftgrf = true
+CFIO.sftflf = true
