@@ -69,7 +69,7 @@ def coarsenc(name, fine_name, v_names = ['thk','topg','umod','btrc','umodc']):
     
 
     add_projection_attr_greenland(coarse_nc, xv, yv)
-
+    coarse_nc.close()
 
     
                         

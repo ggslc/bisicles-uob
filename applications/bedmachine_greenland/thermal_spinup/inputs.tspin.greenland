@@ -127,27 +127,22 @@ amr.eliminate_remote_ice_tol = 2.0
 amr.eliminate_remote_ice_after_regrid = true
 
 #time stepping
-main.maxTime = 1000000  # maximum time to run to
-main.maxStep = 2000000  # maximum number of steps to runx
+main.maxTime = 100000  # maximum time to run to
+main.maxStep = 400000  # maximum number of steps to runx
 amr.temporal_accuracy = 1
 amr.cfl = 0.25  
 amr.initial_cfl = 0.25  
 amr.max_dt_grow_factor = 2.0 
 amr.time_step_ticks = 0
-#amr.fixed_dt = 1.0
 amr.evolve_thickness = false
-#amr.offsetTime = 2007.0
 
 #plotting options
-amr.plot_interval = 32
-#amr.plot_time_interval = 0.5
 amr.plot_prefix = plot.tspin.greenland.
-#amr.write_preSolve_plotfiles = true
 amr.write_solver_rhs = 1
 amr.write_viscous_tensor = true
 amr.write_thickness_sources = true
 #check points
-amr.check_interval = 1
+amr.check_interval = 8192
 amr.check_prefix = chk.tspin.greenland.
 amr.check_overwrite = 0
 #
@@ -263,8 +258,8 @@ control.initialUpperMuCoef = 1.01
 control.minLevelForOptimization = 0
 
 #output
-amr.plot_interval = 512
-amr.check_interval = 1024
+amr.plot_interval = 4096
+amr.check_interval = 8192
 amr.write_internal_energy = true
 
 ColumnThermodynamics.floating_base_max_heat_flux =  0.0

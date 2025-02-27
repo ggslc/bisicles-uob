@@ -108,7 +108,7 @@ def remove_islands(thk,mask):
 def preprocess(output_nc, bedmachine_nc, measures_nc):
 
 
-    C_MAX = 1.0e+4 # maximum value for C
+    C_MAX = 1.0e+5# maximum value for C
     C_MIN = 1.0e+1 # minimum value for C
 
     #desired dimensions
@@ -156,7 +156,7 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     #dependents
     eps = 1.0e-6
     rhoi = 917.0
-    rhoo = 1027.0
+    rhoo = 1023.0
     sg = topg + thk
     sf = (1.0 - rhoi/rhoo)*thk
     
@@ -179,8 +179,8 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
  
     #initial guess for C
     print ('btrc...')
-    btrc = rhoi * 9.81 * grads * thk / (umod + 1.0)
-    btrc = np.where(umod > 1, btrc, C_MAX)
+    u_sia, u_tol = 2.0, 1.0e-5 # typical SIA speed?
+    btrc = np.where(umod > u_sia + tol, rhoi * 9.81 * grads * thk / (umod - u_sia), C_MAX)
     btrc = np.where(btrc < C_MAX, btrc, C_MAX)
     btrc = np.where(btrc > C_MIN, btrc, C_MIN)
     #smooth with slippy bias
