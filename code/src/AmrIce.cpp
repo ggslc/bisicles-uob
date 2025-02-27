@@ -340,6 +340,8 @@ AmrIce::setDefaults()
   m_stable_sources_mask_file = "";
   m_stable_sources_mask_name = "stable_sources_mask";
   m_grounding_line_stable = false;
+  
+  m_CriticalHeightAboveFlotation = 0.0;
 
 }
 
@@ -805,6 +807,9 @@ AmrIce::initialize()
   // set time to be 0 -- do this now in case it needs to be changed later
   m_time = 0.0;
   m_cur_step = 0;
+  
+  ParmParse ppBFL("InitialThickness");
+  ppBFL.query("criticalHeightAboveFlotation",m_CriticalHeightAboveFlotation);
 
   // first, read in info from parmParse file
   ParmParse ppCon("constants");
@@ -3916,14 +3921,46 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
 
   // first, compute C and C0 as though there was no floating ice
   CH_assert(m_basalFrictionPtr != NULL);
+  SurfaceFlux* initialThicknessPtr = SurfaceFlux::parse("InitialThickness");
+  if (m_CriticalHeightAboveFlotation > 0.0)
+  {
+	  CH_assert(initialThicknessPtr != NULL);
+  }
   for (int lev=0; lev<=m_finest_level; lev++)
     {
       m_basalFrictionPtr->setBasalFriction(*a_vectC[lev], *m_vect_coordSys[lev],
                                            this->time(),m_dt); 
+	  
+	  LevelData<FArrayBox>& C = *a_vectC[lev];
+	  if (initialThicknessPtr != NULL)
+	  {
+		  LevelData<FArrayBox> h0(m_amrGrids[lev], 1, IntVect::Zero);
+		  initialThicknessPtr->evaluate(h0, *this, lev, m_dt); 
+		  const LevelData<FArrayBox>& hab = (*m_vect_coordSys[lev]).getThicknessOverFlotation();
+		  LevelData<FArrayBox>& h = (*m_vect_coordSys[lev]).getH();
+		  
+		  for (DataIterator dit(m_amrGrids[lev]); dit.ok(); ++dit)
+			{
+			  for (BoxIterator bit(m_amrGrids[lev][dit]); bit.ok(); ++bit)
+				{
+				  const IntVect& iv = bit();
+				  Real lambda = 1.0;
+				  if (hab[dit](iv) < m_CriticalHeightAboveFlotation) 
+				  {
+					Real hf = h[dit](iv) - hab[dit](iv);
+					lambda = hab[dit](iv) / std::min(m_CriticalHeightAboveFlotation,std::max(h0[dit](iv)-hf,1.0e-10));
+					lambda = std::min(1.0,lambda);
+				  }
+				  C[dit](iv) *= lambda;
+				}
+			}
+	  }
+	  
+	  
       if (m_basalRateFactor != NULL)
 	{
 	  //basal temperature dependence
-	  LevelData<FArrayBox>& C = *a_vectC[lev];
+	  //LevelData<FArrayBox>& C = *a_vectC[lev];
 	  Vector<Real> bSigma(1,1.0);
 	  LevelData<FArrayBox> A(C.disjointBoxLayout(),1,C.ghostVect());
 	  IceUtility::computeA(A, bSigma,*m_vect_coordSys[lev],  
@@ -3942,6 +3979,12 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
      
       a_vectC[lev]->exchange();
     }
+	
+	if (initialThicknessPtr != NULL)
+	{
+		delete initialThicknessPtr;
+		initialThicknessPtr = NULL;
+	}
 
   // compute C0
   // C0 include a term (wall drag) that depends on C,
@@ -5912,7 +5955,7 @@ void AmrIce::incrementIceThickness
     }
       
 }
-
+// mjt 
 
 
 #include "NamespaceFooter.H"

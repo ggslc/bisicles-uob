@@ -203,6 +203,12 @@ public:
     enum VelocityMisfitType {speed, velocity, log_speed, MAX_VELOCITY_MISFIT_TYPE};
     /// Type of velocity misfit : speed, velocity, or log_speed. Set with <prefix>.vel_misfit_type, default speed
     VelocityMisfitType m_velMisfitType;
+	
+	bool m_WeightVelocityMisfitCoefficient;
+	Real m_VelocityMisfitCoefficientLo;
+	Real m_VelocityMisfitCoefficientHi;
+	Real m_VelocityObservedLo;
+	Real m_VelocityObservedHi;
 
     /// attempt to optimize w.r.t X0?
     bool m_optimizeX0;
@@ -276,6 +282,9 @@ public:
 
     /// Maximum number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGmaxIter, default 16
     Real m_CGmaxIter;
+	
+    /// Minimm number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGminIter, default 1. Added by MJT
+    Real m_CGminIter;
 
     /// Tolerance for the 'outer' nonlinear conjugate gradient method. Set with <prefix>.CGtol, default 1.0e-3
     Real m_CGtol;
@@ -294,6 +303,9 @@ public:
 
     /// Give up when succesive CG steps don't progress quickly enough . Set with <prefix>.CGhang, default 0.999
     Real m_CGhang;
+	
+    /// Limit for CGhang, above which the run will continue. Default 10. Added by MJT.
+    Real m_CGhangLimit;
 
     /// Restart CG at a fixed interval. Set with <prefix>.CGrestartInterval, default 9999
     Real m_CGrestartInterval;
@@ -319,6 +331,7 @@ public:
     
     /// write inner (secant) steps to plot files
     bool m_writeInnerSteps;
+	
 
     /// base of filename for 'inner' plots
     std::string m_innerStepFileNameBase;
@@ -336,8 +349,11 @@ public:
     SurfaceData* m_gradientFactor;
 
     int m_outerCounter;
-
-    
+	
+    //arrangment of layers within the bedrock
+	bool m_writeSelectOuterSteps;
+	int m_outerStepsNum;
+    std::vector<int> m_outerSteps; 
 
   };
 
@@ -537,6 +553,12 @@ private:
   
   /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_velocityMisfit;
+  
+  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
+  Vector<LevelData<FArrayBox>*> m_velocityRelativeMisfit;
+  
+  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
+  Vector<LevelData<FArrayBox>*> m_realVelocityMisfit;
   
   /// misfit term \f$|| g(\nabla \cdot ( u h)  , \nabla \cdot ( u_o h_o) ) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_divuhMisfit;

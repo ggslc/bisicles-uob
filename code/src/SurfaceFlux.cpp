@@ -240,6 +240,20 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       PiecewiseLinearFlux* pptr = new PiecewiseLinearFlux(vabs,vord,dmin);
       ptr = static_cast<SurfaceFlux*>(pptr);
     }
+  else if (type == "depthPowerFlux")
+    {
+      Real power = 1;  
+      pp.query("power",power);      
+      Real coef = 0.0;
+      pp.query("coefficient",coef);
+      Real dmin = -1.0;
+      pp.query("minWaterDepth",dmin);
+      Real dtc = 0.0;
+      pp.query("thermoclineDepth",dtc);
+      
+      DepthPowerFlux* pptr = new DepthPowerFlux(power,coef,dmin,dtc);
+      ptr = static_cast<SurfaceFlux*>(pptr);
+    }
   else if (type == "productFlux")
     {
       std::string flux1Prefix(a_prefix);
@@ -247,6 +261,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       SurfaceFlux* flux1Ptr = parse(flux1Prefix.c_str());
       if (flux1Ptr == NULL)
 	{
+      pout() << flux1Prefix << "has undefined flux1" << std::endl;
 	  MayDay::Error("undefined flux1 in productFlux");
 	}
 
