@@ -349,10 +349,9 @@ public:
     SurfaceData* m_gradientFactor;
 
     int m_outerCounter;
-	
-    //arrangment of layers within the bedrock
-	bool m_writeSelectOuterSteps;
-	int m_outerStepsNum;
+        
+    bool m_writeSelectOuterSteps;
+    int m_outerStepsNum;
     std::vector<int> m_outerSteps; 
 
   };
