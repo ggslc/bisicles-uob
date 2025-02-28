@@ -3957,6 +3957,23 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
 	}
     }
 
+  // Reduce to friction to when the cell ice covered fraction f < 1.
+  // \todo once tested make this default, it seems correct
+  ParmParse pp("bodges");
+  bool frac_friction_bodge(false);
+  pp.query("frac_friction_bodge", frac_friction_bodge);
+  if (frac_friction_bodge)
+    {
+      for (int lev=0; lev<=m_finest_level; lev++)
+	{
+	  LevelData<FArrayBox>& C = *a_vectC[lev];
+	  LevelData<FArrayBox>& f = *m_iceFrac[lev];
+	  for (DataIterator dit = C.dataIterator(); dit.ok(); ++dit)
+	    {
+	      C[dit] *= f[dit];
+	    }
+	}
+    }
 }
 
 
