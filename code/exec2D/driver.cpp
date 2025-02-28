@@ -1026,9 +1026,12 @@ int main(int argc, char* argv[]) {
 	  std::string reference_hdf5;
 	  ppr.get("reference_hdf5", reference_hdf5);
 
+	  std::string diff_hdf5;
+	  ppr.get("diff_hdf5", diff_hdf5);
+	  
 	  Real tol = 1.0e-10;
 	  ppr.query("tol",tol);
-          Real norm = HDF5NormTest(result_hdf5, reference_hdf5);
+          Real norm = HDF5NormTest(result_hdf5, reference_hdf5, diff_hdf5);
       	  if (tol < norm)
 	    {
 	      ierr = 1;

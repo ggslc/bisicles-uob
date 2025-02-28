@@ -20,11 +20,11 @@
 
 /// Compute the maximum difference between (a subset of) the AMR data stored in two HDF5 fiels
 /**
-   @param a_result result hdf5 file
-   @param a_ref  reference hdf5 file
-   @param a_name component names to compare: if empty compare all components
+   @param a_result result hdf5 file (read)
+   @param a_ref  reference hdf5 file (read)
+   @param a_diff difference hdf5 file (write, leave blank for no output)
  */
-Real HDF5NormTest(std::string a_result, std::string a_ref)
+Real HDF5NormTest(std::string a_result, std::string a_ref, std::string a_diff="")
 {
 
   Vector<LevelData<FArrayBox>* > resultSoln;
@@ -100,6 +100,22 @@ Real HDF5NormTest(std::string a_result, std::string a_ref)
 	  pout() << "HDF5NormTest: maxnorm difference(" << resultVars[j] << ") = " <<  maxnormj << endl;
 	  maxnorm = std::max(maxnorm, maxnormj);
 	}
+    }
+
+  if (a_diff != "")
+    {
+      // resultSoln now contains the diff
+      WriteAMRHierarchyHDF5(a_diff,
+			    resultGrids,
+			    resultSoln,
+			    resultVars,
+			    resultDomain,
+			    resultDx,
+			    resultDt,
+			    resultTime,
+			    resultRefRatio,
+			    resultNumLevels);
+      
     }
 
   return maxnorm;
