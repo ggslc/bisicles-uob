@@ -36,7 +36,7 @@ c---------------------------------------------------
       misfitreal(CHF_AUTOIX[i]) = (uo-um)**two
       relmisfit(CHF_AUTOIX[i]) = (misfit(CHF_AUTOIX[i])/(TINY_NORM + uo)**two)
 c      misfit(CHF_AUTOIX[i]) = (uo-um)
-      t = (uo/(TINY_NORM + um)-1.0)
+      t = (uo/(TINY_NORM + um)-one)
       rhsx(CHF_AUTOIX[i]) = t * umx(CHF_AUTOIX[i])
       rhsy(CHF_AUTOIX[i]) = t * umy(CHF_AUTOIX[i])
  
@@ -110,8 +110,8 @@ c---------------------------------------------------
       uo = (uox(CHF_AUTOIX[i])**two+uoy(CHF_AUTOIX[i])**two)**half
       um = (umx(CHF_AUTOIX[i])**two+umy(CHF_AUTOIX[i])**two)**half
 
-      uo = uo + 10.0
-      um = um + 10.0
+      uo = uo + 10.0d0
+      um = um + 10.0d0
       r = um/uo
       t = log(r)
       s = t *  uo / um**2
