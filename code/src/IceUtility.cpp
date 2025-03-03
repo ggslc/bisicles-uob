@@ -655,7 +655,13 @@ void IceUtility::computeFaceVelocity
     }
 
   grownVel.exchange();
-      
+  if (a_iceThicknessIBC != NULL)
+    {
+      // making up for missing constness elsewhere. \todo fix that
+      IceThicknessIBC* tmp = const_cast<IceThicknessIBC*>(a_iceThicknessIBC);
+      tmp->velocityGhostBC(grownVel, a_coordSys,grids.physDomain(), 0.0);
+    }
+  
   //default calculation : average to faces 
   CellToEdge(grownVel, a_faceVelAdvection);
 
