@@ -3002,11 +3002,11 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 		    }
 
 		  /// BODGE - just trying 
-		  Real tol = 1.0e-3;
-		  if ((newH(iv) < tol) && (newH(iv) < oldH(iv)))
-		    {
-		      frac(iv) = 0.0;
-		    }
+		  //Real tol = 1.0e-3;
+		  //if ((newH(iv) < tol) && (newH(iv) < oldH(iv)))
+		  //  {
+		  //    frac(iv) = 0.0;
+		  //  }
 		  
 	      	}
 	    }
@@ -3773,13 +3773,20 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
 		  if (m_basalFrictionPtr) delete m_basalFrictionPtr; 
 		  m_basalFrictionPtr = bfptr;
 		}
+	      setBasalFriction(vectC, vectC0); // re-evaluate since C changes over the velocity solve
 
 	      MuCoefficient* mcptr = invPtr->muCoefficient();
 	      if (mcptr)
 		{
 		  if (m_muCoefficientPtr) delete m_muCoefficientPtr;
 		  m_muCoefficientPtr = mcptr;
-		} 
+		}
+	        //
+	      setMuCoefficient(m_cellMuCoef); // re-evaluate since muCoef changes over the velocity solve
+
+  
+
+	      
 	    } // end special case for inverse problems
 
 	    
@@ -3920,26 +3927,26 @@ AmrIce::setBasalFriction(Vector<LevelData<FArrayBox>* >& a_vectC,Vector<LevelDat
 	  LevelData<FArrayBox>& C = *a_vectC[lev];
 	  if (initialThicknessPtr != NULL)
 	  {
-		  LevelData<FArrayBox> h0(m_amrGrids[lev], 1, IntVect::Zero);
-		  initialThicknessPtr->evaluate(h0, *this, lev, m_dt); 
-		  const LevelData<FArrayBox>& hab = (*m_vect_coordSys[lev]).getThicknessOverFlotation();
-		  LevelData<FArrayBox>& h = (*m_vect_coordSys[lev]).getH();
+	  	  LevelData<FArrayBox> h0(m_amrGrids[lev], 1, IntVect::Zero);
+	  	  initialThicknessPtr->evaluate(h0, *this, lev, m_dt); 
+	  	  const LevelData<FArrayBox>& hab = (*m_vect_coordSys[lev]).getThicknessOverFlotation();
+	  	  LevelData<FArrayBox>& h = (*m_vect_coordSys[lev]).getH();
 		  
-		  for (DataIterator dit(m_amrGrids[lev]); dit.ok(); ++dit)
-			{
-			  for (BoxIterator bit(m_amrGrids[lev][dit]); bit.ok(); ++bit)
-				{
-				  const IntVect& iv = bit();
-				  Real lambda = 1.0;
-				  if (hab[dit](iv) < m_CriticalHeightAboveFlotation) 
-				  {
-					Real hf = h[dit](iv) - hab[dit](iv);
-					lambda = hab[dit](iv) / std::min(m_CriticalHeightAboveFlotation,std::max(h0[dit](iv)-hf,1.0e-10));
-					lambda = std::min(1.0,lambda);
-				  }
-				  C[dit](iv) *= lambda;
-				}
-			}
+	  	  for (DataIterator dit(m_amrGrids[lev]); dit.ok(); ++dit)
+	  		{
+	  		  for (BoxIterator bit(m_amrGrids[lev][dit]); bit.ok(); ++bit)
+	  			{
+	  			  const IntVect& iv = bit();
+	  			  Real lambda = 1.0;
+	  			  if (hab[dit](iv) < m_CriticalHeightAboveFlotation) 
+	  			  {
+	  				Real hf = h[dit](iv) - hab[dit](iv);
+	  				lambda = hab[dit](iv) / std::min(m_CriticalHeightAboveFlotation,std::max(h0[dit](iv)-hf,1.0e-10));
+	  				lambda = std::min(1.0,lambda);
+	  			  }
+	  			  C[dit](iv) *= lambda;
+	  			}
+	  		}
 	  }
 	  
 	  
