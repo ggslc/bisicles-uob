@@ -77,7 +77,13 @@ jobs:
           cd $GITHUB_WORKSPACE/code/regression/ASE-control/
           ${{ env.bike }} inputs.regression
           egrep 'CG|secant|HDF5' pout.0
-          ${{ env.bike }} inputs.regression_sequence 
-	  egrep 'CG|secant|HDF5' pout.0
-   	  ${{ env.bike }} inputs.regression_sequence_resume 
-	  egrep 'CG|secant|HDF5' pout.0
+
+    - name: ASE-Control test (checkpoints)
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/ASE-control/
+          ${{ env.bike }} inputs.seqeunce_regression
+          egrep 'CG|secant|HDF5' pout.0
+          ${{ env.bike }} inputs.seqeunce_regression_resume
+          egrep 'CG|secant|HDF5' pout.0
+	  
+
