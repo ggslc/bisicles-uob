@@ -73,11 +73,11 @@ jobs:
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/ASE-control/
           mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
-          grep 'CG|secant|HDF5' pout.0
-	  echo "checkpoint test - writing checkpoint file"
+          egrep 'CG|secant|HDF5' pout.0
+	  echo 'checkpoint test - writing checkpoint file'
 	  mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.sequence_regression
           egrep 'CG|HDF5' pout.0
-	  echo "checkpoint test - restarting from checkpoint file"
+	  echo 'checkpoint test - restarting from checkpoint file'
 	  mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.sequence_regression_resume
           egrep 'CG|HDF5' pout.0
             
