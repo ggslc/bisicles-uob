@@ -1294,84 +1294,46 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
     }
   //computeDivUH();
   // rhs contribution due to velocity mismatch
-  //if (m_divuhMisfitCoefficient > TINY_NORM)
-  {
-    //need div(uh)
-    computeDivUH();
-    for (int lev=0; lev <= m_finest_level ;lev++)
-      {
-	for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	  {  
-	    FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
-	    misfit.copy ( (*m_divuh[lev])[dit] );
-	    misfit.minus( (*m_divuhObs[lev])[dit] );
-	    misfit.mult ( (*m_divuhCoef[lev])[dit] );
-	  }
-      }
-    
-    if (m_config.m_divuhMisfitSmooth >  m_dx[0][0])
-      {
-	// filter the misfit
-	const Real& scale = m_config.m_divuhMisfitSmooth;
-	int nouter = std::ceil(scale / m_dx[0][0]);
-	
-	for (int i = 0; i < nouter; i++)
-	  {
-	    int ninner = 1;
-	    for (int lev=0; lev <= m_finest_level ;lev++)
-	      {
-		
-		if (lev > 0)
-		  {
-		    PiecewiseLinearFillPatch li(m_grids[lev],  m_grids[lev-1], 1, m_domain[lev-1],m_refRatio[lev-1], 1);
-		    li.fillInterp(*m_divuhMisfit[lev],*m_divuhMisfit[lev-1],*m_divuhMisfit[lev-1],0.0,0, 0, 1);
-		  }
-		m_divuhMisfit[lev]->exchange();
-		
-		for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-		  {
-		    Box box = m_grids[lev][dit];
-		    FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
-		    FArrayBox r(misfit.box(), 1); r.copy(misfit);
-		    FORT_CONVOLVECTRL( CHF_FRA(misfit),  CHF_FRA(r),CHF_BOX(box));
-		  }
-		
-		if (lev > 0)
-		  {
-		    CoarseAverage avg(m_grids[lev],1,m_refRatio[lev-1]);
-		    avg.averageToCoarse(*m_divuhMisfit[lev-1],*m_divuhMisfit[lev]);
-		  }
-		
-		m_divuhMisfit[lev]->exchange();
-		ninner *= m_refRatio[lev];
-	      }
-	  }
-      }// end filter
-    
-    // compute rhs
-    for (int lev=0; lev <= m_finest_level ;lev++)
-      {
-	for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	  {
-	    FArrayBox& adjRhs = (*m_adjRhs[lev])[dit];
-	    FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
-	    FArrayBox trhs(adjRhs.box(), SpaceDim);
-	    const FArrayBox& h = m_coordSys[lev]->getH()[dit];
-	    Box box = m_grids[lev][dit];
-	    //box.grow(-1); // can't work out second derivatives at box edges for now.
-	    trhs.setVal(0.0);
-	    FORT_ADJRHSMASSCTRL(CHF_FRA(trhs),
-				CHF_FRA1(misfit,0),
-				CHF_CONST_FRA1(h,0),
-				CHF_CONST_REAL(m_dx[lev][0]),
-				CHF_BOX(box));
-	    
-	    adjRhs.plus(trhs, m_config.m_divuhMisfitCoefficient);
-	    misfit *= misfit;
-	    misfit *=  m_config.m_divuhMisfitCoefficient;
-	  }
-      }
-  }
+  setToZero(m_divuhMisfit); // needs to be initialized in all cases
+  if (m_config.m_divuhMisfitCoefficient > TINY_NORM) // avoid longish calculation of not needed
+    {
+      //need div(uh)
+      computeDivUH();
+      for (int lev=0; lev <= m_finest_level ;lev++)
+	{
+	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+	    {  
+	      FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
+	      misfit.copy ( (*m_divuh[lev])[dit] );
+	      misfit.minus( (*m_divuhObs[lev])[dit] );
+	      misfit.mult ( (*m_divuhCoef[lev])[dit] );
+	    }
+	}
+      
+      // compute rhs & misfit
+      for (int lev=0; lev <= m_finest_level ;lev++)
+	{
+	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+	    {
+	      FArrayBox& adjRhs = (*m_adjRhs[lev])[dit];
+	      FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
+	      FArrayBox trhs(adjRhs.box(), SpaceDim);
+	      const FArrayBox& h = m_coordSys[lev]->getH()[dit];
+	      Box box = m_grids[lev][dit];
+	      //box.grow(-1); // can't work out second derivatives at box edges for now.
+	      trhs.setVal(0.0);
+	      FORT_ADJRHSMASSCTRL(CHF_FRA(trhs),
+				  CHF_FRA1(misfit,0),
+				  CHF_CONST_FRA1(h,0),
+				  CHF_CONST_REAL(m_dx[lev][0]),
+				  CHF_BOX(box));
+	      
+	      adjRhs.plus(trhs, m_config.m_divuhMisfitCoefficient);
+	      misfit *= misfit;
+	      misfit *=  m_config.m_divuhMisfitCoefficient;
+	    }
+	}
+    }
 }
  
 
