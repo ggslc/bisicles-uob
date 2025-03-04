@@ -85,7 +85,7 @@ jobs:
       continue-on-error: true
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/ASE-control/
-          ${{ env.bike }} inputs.seqeunce_regression
+          ${{ env.bike }} inputs.sequence_regression
           egrep 'CG|secant|HDF5' pout.0
-          ${{ env.bike }} inputs.seqeunce_regression_resume
+          ${{ env.bike }} inputs.sequence_regression_resume
           egrep 'CG|secant|HDF5' pout.0
