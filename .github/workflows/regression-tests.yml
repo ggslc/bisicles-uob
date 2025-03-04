@@ -85,5 +85,3 @@ jobs:
           egrep 'CG|secant|HDF5' pout.0
           ${{ env.bike }} inputs.seqeunce_regression_resume
           egrep 'CG|secant|HDF5' pout.0
-	  
-
