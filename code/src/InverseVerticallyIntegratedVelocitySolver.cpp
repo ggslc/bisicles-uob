@@ -121,31 +121,32 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   
   m_CGmaxIter = 16;
   pp.query("CGmaxIter",m_CGmaxIter);
-    
-  m_CGminIter = 3;							//MJT
-  pp.query("CGminIter",m_CGminIter);		//MJT
   
   m_CGtol = 1.0e-3;
   pp.query("CGtol",m_CGtol);
-  
-  m_CGsecantParameter = 1.0e-7;
-  pp.query("CGsecantParameter",m_CGsecantParameter);
-  
-  m_CGsecantStepMaxGrow = 2.0;
-  pp.query("CGsecantStepMaxGrow",m_CGsecantStepMaxGrow);
-  
-  m_CGsecantMaxIter = 20;
-  pp.query("CGsecantMaxIter",m_CGsecantMaxIter);
-  
-  m_CGsecantTol = 1.0e-1;
-  pp.query("CGsecantTol",m_CGsecantTol);
-  
+
   m_CGhang = 0.999;
   pp.query("CGhang",m_CGhang);
   
-  m_CGhangLimit = 10.0;						//MJT
-  pp.query("CGhangLimit",m_CGhangLimit);	//MJT
+  m_CGlineSearchMethod = CGOPT_LINE_SEARCH_SECANT;
+  m_CGlineSearchInitialStep = 1.0e-7;
+  m_CGlineSearchStepMaxGrow = 2.0;
+  m_CGlineSearchMaxIter = 20;
+  m_CGlineSearchTol = 1.0e-1;
   
+  // backward compat.
+  pp.query("CGsecantParameter",m_CGlineSearchInitialStep);
+  pp.query("CGsecantStepMaxGrow",m_CGlineSearchStepMaxGrow);
+  pp.query("CGsecantMaxIter",m_CGlineSearchMaxIter);
+  pp.query("CGsecantTol",m_CGlineSearchTol);
+  // new names
+  pp.query("CGlineSearchMethod",m_CGlineSearchMethod);
+  pp.query("CGlineSearchInitialStep",m_CGlineSearchInitialStep);
+  pp.query("CGlineSearchStepMaxGrow",m_CGlineSearchStepMaxGrow);
+  pp.query("CGlineSearchMaxIter",m_CGlineSearchMaxIter);
+  pp.query("CGlineSearchTol",m_CGlineSearchTol);
+  
+
   m_CGrestartInterval = 9999;
   pp.query("restartInterval",m_CGrestartInterval);
 
@@ -568,21 +569,27 @@ int InverseVerticallyIntegratedVelocitySolver::solve
       m_innerCounter = 0;
       
       int CGmaxIter = m_config.m_CGmaxIter;
-      int CGminIter = m_config.m_CGminIter;
+      //int CGminIter = m_config.m_CGminIter;
       if (skipOptimization)
 	{
 	  // just initialize the optimization, which means computing the first objective etc.
 	  CGmaxIter = 0;
-	  CGminIter = -1;			// MJT
+	  //CGminIter = -1;		
 	}
   
       pout() << " Optimization: CGmaxIter = " << CGmaxIter << "  m_time = " << m_time << "  m_prev_time = " << m_prev_time  << std::endl;
       
       // attempt the optimization
-      //CGOptimize(*this ,  X , CGmaxIter , m_config.m_CGtol , m_config.m_CGhang,										//MJT
-      CGOptimize(*this ,  X , CGmaxIter , CGminIter , m_config.m_CGtol , m_config.m_CGhang , m_config.m_CGhangLimit,	//MJT
-		 m_config.m_CGsecantParameter, m_config.m_CGsecantStepMaxGrow, 
-		 m_config.m_CGsecantMaxIter , m_config.m_CGsecantTol, m_outerCounter);
+      CGOptimize(*this,  X, CGmaxIter,
+		 m_config.m_CGtol,
+		 m_config.m_CGhang,
+		 m_config.m_CGlineSearchMethod,
+		 m_config.m_CGlineSearchInitialStep,
+		 m_config.m_CGlineSearchStepMaxGrow, 
+		 m_config.m_CGlineSearchMaxIter ,
+		 m_config.m_CGlineSearchTol,
+		 m_outerCounter);
+      
       m_optimization_done = true;
 
       if (CGmaxIter > 0)
@@ -1295,7 +1302,7 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
   //computeDivUH();
   // rhs contribution due to velocity mismatch
   setToZero(m_divuhMisfit); // needs to be initialized in all cases
-  if (m_config.m_divuhMisfitCoefficient > TINY_NORM) // avoid longish calculation of not needed
+  //if (m_config.m_divuhMisfitCoefficient > TINY_NORM) // avoid longish calculation of not needed
     {
       //need div(uh)
       computeDivUH();

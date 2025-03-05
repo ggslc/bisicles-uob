@@ -13,6 +13,8 @@
 #ifndef _CGOPTIMIZE_H_
 #define _CGOPTIMIZE_H_
 
+#define CGOPT_LINE_SEARCH_SECANT 0
+#define CGOPT_LINE_SEARCH_BISECTION 1
 
 #include "parstream.H"
 #include "REAL.H"
@@ -81,9 +83,78 @@ public:
 
 };
 
+/// bisection method: find y = x + s*d such that |f'(y).f'(x)| << f'(x).f'(x)
+/**
+   x - initial point
+   r - input - -f'(x) (steepest descent) 
+   d - input - (preconditioned) search direction / steepest descent ( d = M^-1 r)
+   y - output
+   p - workspace
+   a_fx - f(x) (where f' is the gradient of scalar f > 0)
+
+ */
+template < class X>
+void bisectionLineSearch
+(ObjectiveWithGradient<X>& a_F, X& x, X& r, X& d, X& y, X& p, Real a_fx, 
+ int a_maxIter, Real a_initialStep, Real a_stepMaxGrow, Real a_tol)
+{
+
+  Real a, fa, b, fb, c, fc, fm, fp, f0, s0;
+  int iter(0);
+  a = 0.0;
+  fa = a_F.dotProduct(r,r);
+  f0 = fa;
+  s0 = a_initialStep;
+  b = a;
+  //walk the line until fb < 0 (since fa > 0) 
+  do {
+    b += s0;
+    a_F.assign(y, x);
+    a_F.incr(y, d, b);
+    a_F.computeObjectiveAndGradient(fm,fp,p,y,true);
+    fb = -a_F.dotProduct(p,r);
+
+    pout() << " ... initial bisection iter " << iter
+	   << " f'(x + sd).f'(x) = " << fb
+	   << " f'(x).f'(x) = " << f0
+	   << " s = " << b << " f(x + sd) = " << fm + fp << std::endl;
+
+    iter++;
+  } while ( (iter < a_maxIter) && (fb > 0.0) );
+
+  do {
+    c = 0.5*(a + b); //midpoint
+    a_F.assign(y, x);
+    a_F.incr(y, d, c);
+    a_F.computeObjectiveAndGradient(fm,fp,p,y,true);
+
+    fc = -a_F.dotProduct(p,r);
+    
+    pout() << " ... bisection iter " << iter 
+	   << "  f'(x + sd).f'(x) = " << fc
+	   << " f'(x).f'(x) = " << f0
+	   << " s = " << c << " f(x + sd) = " << fm + fp << std::endl;
+    
+      if (std::signbit(fc) == std::signbit(fa))
+      {
+	a = c;
+	fa = fc;
+      }
+    else
+      {
+	b = c;
+	fb = fc;
+      }
+    iter++;
+    
+  } while ( (iter < a_maxIter) && (Abs(fc) > sqr(a_tol) * Abs(f0)) && (Abs(c) > a_tol * s0));
+  a_F.assign(x, y);
+
+}
 
 
-/// find y = x + s*d such that f'(y).f'(x) << f'(x).f'(x)
+
+/// Secant method: find y = x + s*d such that |f'(y).f'(x)| << f'(x).f'(x)
 /**
    x - initial point
    r - input - ||f'(x)||^2
@@ -190,21 +261,20 @@ void secantLineSearch
 */
 template <class X>
 int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x, 
-		int  a_maxIter, 
-		int  a_minIter, 	//MJT - add minIter and hangLim
-		Real a_tol,
-		Real a_hang,
-		Real a_hangLim,		//MJT - add minIter and hangLim
-		Real a_secantParameter,
-	        Real a_secantStepMaxGrow,
-	        int  a_secantMaxIter,
-		Real a_secantTol,
-                int a_iter = 0)
+	       int  a_maxIter,
+	       Real a_tol,
+	       Real a_hang,
+	       int a_lineSearchMethod,
+	       Real a_lineSearchInitialStep,
+	       Real a_lineSearchStepMaxGrow,
+	       int  a_lineSearchMaxIter,
+	       Real a_lineSearchTol,
+	       int a_iter = 0)
 {
 
   //pout() << "CGOptimize -- a_iter = " << a_iter << endl;
   //Preconditioned Nonlinear Conjugate Gradients 
-  //with Secant line search and Polak-Ribiere updates
+  //with Secant line OR bisection search and Polak-Ribiere updates
   //from J. R. Shewchuk, 1994 
   //"An Introduction to the Conjugate Gradient Method
   // Without the Agonizing Pain"
@@ -217,18 +287,16 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
   a_F.create(y,x);
   a_F.create(p,x);
 
-  Real fm,fp, fmOld;// fpOld; // these are just for retreiving the the misfit norm and penalty norm, 
-              // and play no part in the method
+  Real fm,fp, fmOld; // just for retreiving the the misfit norm and penalty norm
   a_F.computeObjectiveAndGradient(fm,fp,r,x,false);
   fmOld = fm;
-  //fpOld = fp;
   a_F.scale(r,-1.0);
   a_F.preCond(s,r);
   a_F.assign(d,s);
   Real deltaNew = a_F.dotProduct(r,s);
   Real deltaZero = deltaNew;
   int iter = a_iter; int k = 0;
-
+  bool hang(false);
   // if we have a_iter > a_maxIter, we have presumably restarted
   int niter = a_maxIter;
   if ( (iter > a_maxIter) && (a_maxIter > 0))  niter += (iter/a_maxIter) * a_maxIter;
@@ -236,8 +304,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
   while ( (iter < niter)
 	  && (deltaNew > sqr(a_tol) * deltaZero) 
 	  && (fm > 1.0e-16) 
-//	  && ( (iter - a_iter < 1  ) || (fm/fmOld < a_hang) ) )															// MJT
-	  && ( (iter - a_iter < 1  ) || ( ( (fm/fmOld < a_hang) || (fm/fmOld > a_hangLim) ) || (iter < a_minIter) ) ) )	// MJT - add minIter and hangLim
+	  && (!hang))
     {
       
       pout() << "CGOptimize iteration " << iter 
@@ -245,9 +312,11 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
 	     << " ||fm(x)||^2 = " << fm 
 	     << " ||fp(x)||^2 = " << fp 
 	     << " ||fm(x)||^2 + ||fp(x)||^ = " << fm + fp;
+
       if (iter - a_iter > 0)
 	{
 	  pout() << " ||fm(x)||^2/||fm_old(x)||^2 = " << fm/fmOld;
+	  hang = (fm > a_hang * fmOld);
 	}
       pout() << std::endl;
 
@@ -255,9 +324,18 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
       //fpOld = fp;
 
       //find the (approximate) root of f'(y).f'(x)
-      secantLineSearch(a_F, x, r, d, y, p, fm+fp,  a_secantMaxIter, 
-		       a_secantParameter, a_secantStepMaxGrow, a_secantTol);
-     
+      if (a_lineSearchMethod == CGOPT_LINE_SEARCH_BISECTION)
+	{
+	  bisectionLineSearch(a_F, x, r, d, y, p, fm+fp, a_lineSearchMaxIter, 
+			      a_lineSearchInitialStep, a_lineSearchStepMaxGrow, a_lineSearchTol);
+	}
+      else
+	{
+	  // we had secant as the only option since 2011, so make it default
+	  secantLineSearch(a_F, x, r, d, y, p, fm+fp,  a_lineSearchMaxIter, 
+			   a_lineSearchInitialStep, a_lineSearchStepMaxGrow, a_lineSearchTol);
+	}
+	
       a_F.computeObjectiveAndGradient(fm,fp,r,x,false);
       a_F.scale(r,-1.0);
       Real deltaOld = deltaNew;

@@ -282,31 +282,28 @@ public:
 
     /// Maximum number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGmaxIter, default 16
     Real m_CGmaxIter;
-	
-    /// Minimm number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGminIter, default 1. Added by MJT
-    Real m_CGminIter;
-
+  
     /// Tolerance for the 'outer' nonlinear conjugate gradient method. Set with <prefix>.CGtol, default 1.0e-3
     Real m_CGtol;
 
-    /// Size of the initial 'inner' secant step. Set with <prefix>.CGsecantParameter, default 1.0e-7
-    Real m_CGsecantParameter;
+    /// choice of line search method. Currently 0 (secant, the default), 1 (bisection)
+     Real m_CGlineSearchMethod;
+    
+    /// Size of the initial 'inner' secant step. Set with <prefix>.CGlineSearch, default 1.0e-7
+    Real m_CGlineSearchInitialStep;
 
-    /// \f$a\f$ such that secant step \f$n+1\f$ has a maximum length \f$l_{n+1} \leq a l_{n}\f$. Set with <prefix>.CGsecantStepMaxGrow, default 2.0
-    Real m_CGsecantStepMaxGrow;
+    /// \f$a\f$ such that secant step \f$n+1\f$ has a maximum length \f$l_{n+1} \leq a l_{n}\f$. Set with <prefix>.CGlineSearchStepMaxGrow, default 2.0
+    Real m_CGlineSearchStepMaxGrow;
 
-    /// Maximum number of 'outer' secant iterations. Set with <prefix>.CGsecantMaxIter, default 20
-    int m_CGsecantMaxIter;
+    /// Maximum number of 'outer' secant iterations. Set with <prefix>.CGlineSearchMaxIter, default 20
+    int m_CGlineSearchMaxIter;
 
-    /// Tolerance for the 'inner' secant method. Set with <prefix>.CGsecantTol, default 1.0e-1
-    Real m_CGsecantTol;
+    /// Tolerance for the 'inner' line search method. Set with <prefix>.CGlineSearchTol, default 1.0e-1
+    Real m_CGlineSearchTol;
 
     /// Give up when succesive CG steps don't progress quickly enough . Set with <prefix>.CGhang, default 0.999
     Real m_CGhang;
 	
-    /// Limit for CGhang, above which the run will continue. Default 10. Added by MJT.
-    Real m_CGhangLimit;
-
     /// Restart CG at a fixed interval. Set with <prefix>.CGrestartInterval, default 9999
     Real m_CGrestartInterval;
 
