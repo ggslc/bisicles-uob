@@ -1155,7 +1155,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
          );
          
   // CF domain wide diagnostic data includes data that are not easily re-computed on a restart
-  //m_cf_domain_diagnostic_data.write(handle);
+  m_cf_domain_diagnostic_data.write(handle);
 
   
   // set up component names
@@ -2339,7 +2339,7 @@ AmrIce::restart(const string& a_restart_file)
   HDF5Handle handle(a_restart_file, HDF5Handle::OPEN_RDONLY);
   
   // CF domain wide diagnostic data includes data that are not easily re-computed on a restart
-  //m_cf_domain_diagnostic_data.read(handle);
+  m_cf_domain_diagnostic_data.read(handle);
 
   //  read in data from checkpoint file
   readCheckpointFile(handle);
@@ -3011,12 +3011,12 @@ void AmrIce::accumulateCFData(Real a_dt, bool a_reset)
 
   if (a_reset)
     {
-      //m_cf_domain_diagnostic_data.reset();
+      m_cf_domain_diagnostic_data.reset();
     }
   else
     {
       //record diagnostic data
-      //m_cf_domain_diagnostic_data.record(*this);
+      m_cf_domain_diagnostic_data.record(*this);
     }
  
   // put all the fields we want to average into a LevelData;
@@ -3156,7 +3156,7 @@ void AmrIce::flushCFData()
     }
 
   // //   HDF5Handle handle(filename, HDF5Handle::mode::OPEN_RDWR);
-  //m_cf_domain_diagnostic_data.write(handle);
+  m_cf_domain_diagnostic_data.write(handle);
 
   if (s_verbosity > 3) 
     { 

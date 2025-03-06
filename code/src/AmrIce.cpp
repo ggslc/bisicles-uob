@@ -1459,8 +1459,8 @@ AmrIce::initialize()
           initGrids(finest_level);
         }
       
-      //m_cf_domain_diagnostic_data.initDiagnostics
-      //	(*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
+      m_cf_domain_diagnostic_data.initDiagnostics
+      	(*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
     }
   else
     {
