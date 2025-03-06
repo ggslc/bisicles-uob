@@ -46,28 +46,30 @@ class AmrIce;
 namespace MaskedIntegration
 {
   void integrateScalarInside
-  (Real& integral, 
-   function<bool(Real h, Real f, int mask)> inside,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-   const Vector<LevelData<FArrayBox>* >& integrand, 
-   const Vector<LevelData<FArrayBox>* >& topography,
-   const Vector<LevelData<FArrayBox>* >& thickness,
-   const Vector<LevelData<FArrayBox>* >& iceFrac,
-   const Vector<LevelData<FArrayBox>* >& sectorMaskFraction,
-   const Vector<Real>& dx, const Vector<int>& ratio, 
-   int maskNo, int maskComp);
+  (Real& a_integral, 
+   function<bool(Real h, Real f, int mask)> a_inside,
+   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coords,
+   const Vector<LevelData<FArrayBox>* >& a_integrand, 
+   const Vector<LevelData<FArrayBox>* >& a_topography,
+   const Vector<LevelData<FArrayBox>* >& a_thickness,
+   const Vector<LevelData<FArrayBox>* >& a_iceFrac,
+   const Vector<LevelData<FArrayBox>* >& a_sectorMaskFraction,
+   const Vector<Real>& a_dx, const Vector<int>& a_ratio,
+   int a_finestLevel, 
+   int a_maskNo, int a_maskComp);
 
   void integrateDischargeInside
-  (Real& sumDischarge, Real& sumDivUH,
-   function<bool(Real h, Real f, int mask)> inside,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-   const Vector<LevelData<FluxBox>* >& fluxOfIce,
-   const Vector<LevelData<FArrayBox>* >& topography,
-   const Vector<LevelData<FArrayBox>* >& thickness,
-   const Vector<LevelData<FArrayBox>* >& iceFrac,
-   const Vector<Real>& dx, const Vector<int>& ratio, 
-   const Vector<LevelData<FArrayBox>* >& sectorMaskFraction,  
-   int maskNo, int maskComp);
+  (Real& a_sumDischarge, Real& a_sumDivUH,
+   function<bool(Real h, Real f, int mask)> a_inside,
+   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coords,
+   const Vector<LevelData<FluxBox>* >& a_fluxOfIce,
+   const Vector<LevelData<FArrayBox>* >& a_topography,
+   const Vector<LevelData<FArrayBox>* >& a_thickness,
+   const Vector<LevelData<FArrayBox>* >& a_iceFrac,
+   const Vector<Real>& a_dx, const Vector<int>& a_ratio, 
+   const Vector<LevelData<FArrayBox>* >& a_sectorMaskFraction,
+   int a_finestLevel,  
+   int a_maskNo, int a_maskComp);
   
 }
 

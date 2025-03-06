@@ -124,18 +124,19 @@ void reportConservationInside(Vector<NameUnitValue>& report,
 			      const Vector<LevelData<FArrayBox>* >& iceFrac, 
 			      const Vector<LevelData<FArrayBox>* >& sectorMaskFraction,
 			      const Vector<Real>& dx, const Vector<int>& ratio, 
-			      int maskNo, int maskComp)
+			      int finestLevel, int maskNo, int maskComp)
 {
 
   CH_TIME("reportConservationInside");
   // just to make the args less reptitive...
-  auto sumScalar = [inside,coords,topography, thickness, iceFrac, sectorMaskFraction, dx, ratio, maskNo, maskComp ]
+
+  auto sumScalar = [inside,coords,topography, thickness, iceFrac, sectorMaskFraction, dx, ratio, finestLevel, maskNo, maskComp ]
     (const Vector<LevelData<FArrayBox>* >& scalar)
 		   {
 		     Real sumScalar;
 		     MaskedIntegration::integrateScalarInside
 		       (sumScalar, inside ,coords, scalar, topography, thickness,
-			iceFrac,sectorMaskFraction, dx, ratio, maskNo, maskComp);
+			iceFrac,sectorMaskFraction, dx, ratio, finestLevel,  maskNo, maskComp);
 		     return sumScalar;
 		   };
 
@@ -159,7 +160,8 @@ void reportConservationInside(Vector<NameUnitValue>& report,
   Real sumDischarge, flxDivReconstr;
   MaskedIntegration::integrateDischargeInside(sumDischarge, flxDivReconstr,
 			   inside, coords, fluxOfIce,topography,
-			   thickness, iceFrac, dx, ratio, sectorMaskFraction, maskNo, maskComp);
+			   thickness, iceFrac, dx, ratio, sectorMaskFraction, 
+			   finestLevel, maskNo, maskComp);
   report.push_back(NameUnitValue("flxDivReconstr",dhunit,flxDivReconstr));
   report.push_back(NameUnitValue("discharge",dhunit,sumDischarge));
 
@@ -676,7 +678,7 @@ void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
 	  reportConservationInside(report, mit->second,coords, fluxOfIce, surfaceThicknessSource,
 				   basalThicknessSource, deltaThickness, divergenceThicknessFlux,
 				   calvingFlux,topography, thickness, iceFrac,
-				   sectorMaskFraction, dx, ratio, maskNo, maskComp);
+				   sectorMaskFraction, dx, ratio, numLevels-1, maskNo, maskComp);
 	  
 	  for (int i = 0; i < report.size(); i++)
 	    {
