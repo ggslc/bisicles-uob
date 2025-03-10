@@ -89,51 +89,73 @@ public:
    r - input - -f'(x) (steepest descent) 
    d - input - (preconditioned) search direction / steepest descent ( d = M^-1 r)
    y - output
-   p - workspace
+   w - workspace
    a_fx - f(x) (where f' is the gradient of scalar f > 0)
 
  */
 template < class X>
 void bisectionLineSearch
-(ObjectiveWithGradient<X>& a_F, X& x, X& r, X& d, X& y, X& p, Real a_fx, 
+(ObjectiveWithGradient<X>& a_F, X& x, X& r, X& d, X& y, X& w, Real a_fx, 
  int a_maxIter, Real a_initialStep, Real a_stepMaxGrow, Real a_tol)
 {
 
-  Real a, fa, b, fb, c, fc, fm, fp, f0, s0;
+  Real a, b, c, s; // brackets, mid-point, increment along d
+  Real fa, fb, fc; // f'(x + s d).d @ s = a,b,c
+  Real Fm, Fp; // misfit and penalty norms (F = Fm + Fp)
+  Real f0, s0; // initial values
+
   int iter(0);
   a = 0.0;
-  fa = a_F.dotProduct(r,r);
+  fa = a_F.dotProduct(r,d);
   f0 = fa;
   s0 = a_initialStep;
+  s = s0;
   b = a;
   //walk the line until fb < 0 (since fa > 0) 
   do {
-    b += s0;
+    b += s;
     a_F.assign(y, x);
     a_F.incr(y, d, b);
-    a_F.computeObjectiveAndGradient(fm,fp,p,y,true);
-    fb = -a_F.dotProduct(p,r);
+    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,true);
+    fb = -a_F.dotProduct(w,d);
 
-    pout() << " ... initial bisection iter " << iter
-	   << " f'(x + sd).f'(x) = " << fb
-	   << " f'(x).f'(x) = " << f0
-	   << " s = " << b << " f(x + sd) = " << fm + fp << std::endl;
-
+    pout() << " ... bisection: searching for a bracket: iter " << iter
+	   << " f'(x + bd).d = " << fb
+	   << " f'(x).d = " << f0
+	   << " b = " << b << " f(x + bd) = " << Fm + Fp << std::endl;
+    
+    if (fb < fa)
+      {
+	if (fb > 0.0)
+	  {
+	    // might as well move the lower limit 
+	    fa = fb; a = b;	
+	  }
+      }
+    else
+      {
+	// if d really is a descent direction, a reduction should help
+        // need to start again?
+	b = 0.0;
+	a = 0.0;;
+	s *= 0.5;
+      }  
+    
     iter++;
-  } while ( (iter < a_maxIter) && (fb > 0.0) );
-
+  } while ( (2*iter < a_maxIter) && (fb > 0.0) && (s > a_tol * s0 ) );
+  
   do {
     c = 0.5*(a + b); //midpoint
     a_F.assign(y, x);
     a_F.incr(y, d, c);
-    a_F.computeObjectiveAndGradient(fm,fp,p,y,true);
+    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,true);
 
-    fc = -a_F.dotProduct(p,r);
+    fc = -a_F.dotProduct(w,d);
     
     pout() << " ... bisection iter " << iter 
-	   << "  f'(x + sd).f'(x) = " << fc
-	   << " f'(x).f'(x) = " << f0
-	   << " s = " << c << " f(x + sd) = " << fm + fp << std::endl;
+	   << "  f'(x + sd).d = " << fc
+	   << " f'(x).d = " << f0
+	   << " s = " << c << " f(x + sd) = " << Fm + Fp << std::endl;
     
       if (std::signbit(fc) == std::signbit(fa))
       {
@@ -147,7 +169,7 @@ void bisectionLineSearch
       }
     iter++;
     
-  } while ( (iter < a_maxIter) && (Abs(fc) > sqr(a_tol) * Abs(f0)) && (Abs(c) > a_tol * s0));
+  } while ( (iter < a_maxIter) && (Abs(fc) > sqr(a_tol) * Abs(f0)) && (Abs(b-a) > a_tol * s0));
   a_F.assign(x, y);
 
 }

@@ -320,11 +320,13 @@ c-------------------------------------
       end
 
 c--------------------------------------
-c modify a gradient (fab) to point downhill into
-c the interior of [lb,ub]
+c     modify a gradient (fab) so that the steepest
+c     descent direction has no compenent direction
+c     to the exterior of [lb,ub]
+c      
 c        { fab    :      lb < x < ub
-c fab <- { min(0, fab) :  x <= lb 
-c        { max(0, fab) :  z => ub
+c fab <- { min(-steep, fab) :  x <= lb 
+c        { max( steep , fab) :  z => ub
 c-------------------------------------
       subroutine hardpointinctrl(CHF_FRA1[fab],
      &     CHF_CONST_FRA1[x],

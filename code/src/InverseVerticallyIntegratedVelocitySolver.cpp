@@ -953,7 +953,12 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   //convert a_x -> C, muCoef
   mapX(a_x);
 
-  //solve the forward problem (to update mu)
+  //solve the forward problem (to update the effective viscosity & drag)
+  if (a_inner)
+    {
+      // do not depend on the previous inner iteration
+      assign(m_velb, m_bestVel);
+    }
   solveStressEqn(m_velb,false,m_rhs,m_Cmasked,m_C0,m_A,m_muCoef);
 
   //todo : compute the L1L2 surface velocity ? was not too helpful before
@@ -997,15 +1002,14 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 	 << " || X1 ||^2 = " << normX1*normX1
 	 << std::endl;
 
-  if (a_fm < m_bestMisfit)
+  if ( a_fm < m_bestMisfit && (!a_inner) )
     {
       //save the velocity, muCoef, and C;
       assign(m_bestVel,m_velb);
-      //      assign(m_bestC,m_Cmasked);
       assign(m_bestC,m_C);      
       assign(m_bestMuCoef, m_muCoef);
+      m_bestMisfit = a_fm;
     }
-
 
   //solve the adjoint problem
   pout() << " solving adjoint equations... " << std::endl;
@@ -1690,38 +1694,37 @@ void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
     }
 }
 
-/// set gradient a_g to zero if a_x is at/outside bounds and descent direction is not inward
+/// set gradient a_g so that if a_x is at/outside bounds, descent direction (-a_g) is zero or inward
 void InverseVerticallyIntegratedVelocitySolver::applyProjection
 (Vector<LevelData<FArrayBox>* >& a_g, const  Vector<LevelData<FArrayBox>* >& a_x)
 {
 
  CH_TIME("InverseVerticallyIntegratedVelocitySolver::applyProjection");
  pout() << "InverseVerticallyIntegratedVelocitySolver::applyProjection" << std::endl;
-
   
-  for (int lev = 0; lev <= m_finest_level; lev++)
-    {
-      for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	{
-	  FArrayBox& G = (*a_g[lev])[dit];
-	  const FArrayBox& X = (*a_x[lev])[dit];
+ for (int lev = 0; lev <= m_finest_level; lev++)
+   {
+     for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+       {
+	 FArrayBox& G = (*a_g[lev])[dit];
+	 const FArrayBox& X = (*a_x[lev])[dit];
 	 
-	  FORT_HARDPOINTINCTRL(CHF_FRA1(G,CCOMP),
-			       CHF_CONST_FRA1(X,CCOMP),
-			       CHF_CONST_REAL(m_config.m_lowerX0),
-			       CHF_CONST_REAL(m_config.m_upperX0),
-			       CHF_BOX(G.box()));
-
-	  FORT_HARDPOINTINCTRL(CHF_FRA1(G,MUCOMP),
-			       CHF_CONST_FRA1(X,MUCOMP),
-			       CHF_CONST_REAL(m_config.m_lowerX1),
-			       CHF_CONST_REAL(m_config.m_upperX1),
-			       CHF_BOX(G.box()));
-	  
-	  
-	}
-    }
-
+	 FORT_HARDPOINTINCTRL(CHF_FRA1(G,CCOMP),
+			      CHF_CONST_FRA1(X,CCOMP),
+			      CHF_CONST_REAL(m_config.m_lowerX0),
+			      CHF_CONST_REAL(m_config.m_upperX0),
+			      CHF_BOX(G.box()));
+	 
+	 FORT_HARDPOINTINCTRL(CHF_FRA1(G,MUCOMP),
+			      CHF_CONST_FRA1(X,MUCOMP),
+			      CHF_CONST_REAL(m_config.m_lowerX1),
+			      CHF_CONST_REAL(m_config.m_upperX1),
+			      CHF_BOX(G.box()));
+	 
+	 
+       }
+   }
+ 
 }
 
 void InverseVerticallyIntegratedVelocitySolver::writeState
