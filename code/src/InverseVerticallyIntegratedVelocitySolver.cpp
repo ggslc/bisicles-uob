@@ -322,9 +322,19 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
       pp.getarr("outerSteps", m_outerSteps, 0, m_outerStepsNum);
     }
   
-
-
-
+  // CG save and read options  
+  m_CGsaveStateInterval = 987654321; // I guess this is more than anyone will do
+  pp.query("CGsaveStateInterval", m_CGsaveStateInterval);
+  m_CGsaveStateFileNameBase = "ControlCGState";
+  pp.query("CGsaveStateFileNameBase",m_CGsaveStateFileNameBase);
+  m_CGreadStateFile = "";
+  pp.query("CGreadStateFile", m_CGreadStateFile);
+  m_CGreadStateIter = -1;
+  if (m_CGreadStateFile != "")
+    {
+      pp.get("CGreadStateIter",m_CGreadStateIter);
+    }
+  
 }
 
 
@@ -420,7 +430,7 @@ int InverseVerticallyIntegratedVelocitySolver::solve
  int a_lbase, int a_maxLevel)
 {
   CH_TIME("InverseVerticallyIntegratedVelocitySolver::solve");
-  pout() << " InverseVerticallyIntegratedVelocitySolver::solve " << std::endl;
+  pout() << "InverseVerticallyIntegratedVelocitySolver::solve "<< std::endl;
 
   m_bestMisfit = 1.23456789e+300;
   m_coordSys = a_coordSys;
@@ -435,7 +445,7 @@ int InverseVerticallyIntegratedVelocitySolver::solve
   bool skipOptimization = ((m_time - m_prev_time) < m_config.m_minTimeBetweenOptimizations);
   if (skipOptimization)
     {
-      pout() << " InverseVerticallyIntegratedVelocitySolver::solve: skipping optimization" << std::endl;
+      pout() << "InverseVerticallyIntegratedVelocitySolver::solve: skipping optimization" << std::endl;
     }
 
   
@@ -577,7 +587,7 @@ int InverseVerticallyIntegratedVelocitySolver::solve
 	  //CGminIter = -1;		
 	}
   
-      pout() << " Optimization: CGmaxIter = " << CGmaxIter << "  m_time = " << m_time << "  m_prev_time = " << m_prev_time  << std::endl;
+      pout() << "Optimization: CGmaxIter = " << CGmaxIter << "  m_time = " << m_time << "  m_prev_time = " << m_prev_time  << std::endl;
       
       // attempt the optimization
       CGOptimize(*this,  X, CGmaxIter,
@@ -842,7 +852,7 @@ InverseVerticallyIntegratedVelocitySolver::mapX(const Vector<LevelData<FArrayBox
     Real minX1 = computeMin(a_x,m_refRatio,Interval(1,1));
     
     pout() 
-      << " InverseVerticallyIntegratedVelocitySolver::mapX "
+      << "InverseVerticallyIntegratedVelocitySolver::mapX "
       << " max X[0] = " << maxX0
       << " min X[0] = " << minX0
       << " max X[1] = " << maxX1
@@ -932,7 +942,7 @@ InverseVerticallyIntegratedVelocitySolver::solveStressEqn
 
   if (a_adjoint)
     {
-      pout() << " adjoint equation final residual = " << finalNorm  << "/" << initialNorm << " = " << finalNorm/initialNorm << std::endl;
+      pout() << " ... adjoint equation final residual = " << finalNorm  << "/" << initialNorm << " = " << finalNorm/initialNorm << std::endl;
       //CH_assert(finalNorm <= initialNorm);
     }
 }
@@ -940,7 +950,7 @@ InverseVerticallyIntegratedVelocitySolver::solveStressEqn
 void 
 InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 (Real& a_fm, Real& a_fp, Vector<LevelData        <FArrayBox>* >& a_g, 
- const Vector<LevelData<FArrayBox>* >& a_x, bool a_inner)
+ const Vector<LevelData<FArrayBox>* >& a_x, int a_iter, bool a_inner)
 {
 
   CH_TIME("InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient");
@@ -1070,11 +1080,12 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     }
   if (!a_inner)
     {
+      m_outerCounter = a_iter;  
       if (!m_config.m_writeSelectOuterSteps || (std::find(m_config.m_outerSteps.begin(), m_config.m_outerSteps.end(), m_outerCounter) != m_config.m_outerSteps.end()))
 	{
 	  writeState(outerStateFile(), m_innerCounter, a_x, a_g);
 	}
-      m_outerCounter++;
+      //m_outerCounter++;
     }
 }
 
@@ -1727,6 +1738,104 @@ void InverseVerticallyIntegratedVelocitySolver::applyProjection
  
 }
 
+
+void InverseVerticallyIntegratedVelocitySolver::saveCGState
+( int a_iter,
+    const Vector<LevelData<FArrayBox>* >& a_x,
+    const Vector<LevelData<FArrayBox>* >& a_r,
+    const Vector<LevelData<FArrayBox>* >& a_s,
+    const Vector<LevelData<FArrayBox>* >& a_d)
+{
+
+  if (a_iter % m_config.m_CGsaveStateInterval == 0)
+    {
+      std::string fileName(CGstateFile(a_iter));
+	
+      pout() << " InverseVerticallyIntegratedVelocitySolver::saveCGState: saving CG state to "
+	     << fileName << std::endl;
+
+      Vector<std::string> names(8);
+      int i(0);
+      names[i++] = "x0"; names[i++] = "x1";
+      names[i++] = "r0"; names[i++] = "r1";
+      names[i++] = "s0"; names[i++] = "s1";
+      names[i++] = "d0"; names[i++] = "d1";
+      
+      Vector<LevelData<FArrayBox>*> vdata(m_finest_level+1);
+      for (int lev = 0; lev <= m_finest_level;lev++)
+	{
+	  vdata[lev] = new LevelData<FArrayBox>(m_grids[lev],names.size(),IntVect::Unit);
+	  int j(0);
+	  a_x[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
+	  a_r[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
+	  a_s[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
+	  a_d[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
+	}
+
+      WriteAMRHierarchyHDF5(fileName, m_grids, vdata, names, m_domain[0].domainBox(),
+			    m_dx[0][0], 0.0, m_time , m_refRatio, vdata.size());
+      
+    }
+  
+}
+
+bool InverseVerticallyIntegratedVelocitySolver::readCGState
+( int& a_iter,
+  Vector<LevelData<FArrayBox>* >& a_x,
+  Vector<LevelData<FArrayBox>* >& a_r,
+  Vector<LevelData<FArrayBox>* >& a_s,
+  Vector<LevelData<FArrayBox>* >& a_d)
+{
+
+  if (m_config.m_CGreadStateFile == "")
+    {
+      //no file specified, so not reading...
+      return false;
+    }
+  
+  if (m_config.m_CGreadStateIter < a_iter)
+    {
+      //we read the file already...
+      return false;
+    }
+
+  //
+  pout() << " InverseVerticallyIntegratedVelocitySolver::readCGState: reading CG state from "
+	 << m_config.m_CGreadStateFile << std::endl;
+
+
+  // data we need to read an AMR hierarchy
+  int numLevels;
+  Vector<LevelData<FArrayBox>* > data;
+  Vector<DisjointBoxLayout> grids;
+  Vector<std::string> names;
+  Vector<int> ratio;
+  Real crseDx = 0.0, dt = 0.0, time = 0.0;
+  Box crseBox;
+  
+  int status = ReadAMRHierarchyHDF5
+    (m_config.m_CGreadStateFile,grids,data,names,crseBox,crseDx,dt,time,
+     ratio,numLevels);
+
+  CH_assert(data.size() == a_x.size()); 
+
+  for (int lev = 0; lev < numLevels; lev++)
+    {
+      int j(0);
+      data[lev]->copyTo(Interval(j,j+1), *a_x[lev], Interval(0,1));j+=2;
+      data[lev]->copyTo(Interval(j,j+1), *a_r[lev], Interval(0,1));j+=2;
+      data[lev]->copyTo(Interval(j,j+1), *a_s[lev], Interval(0,1));j+=2;
+      data[lev]->copyTo(Interval(j,j+1), *a_d[lev], Interval(0,1));j+=2;
+    }
+
+  a_iter = m_config.m_CGreadStateIter;
+  
+  return true;
+  
+}
+
+
+
 void InverseVerticallyIntegratedVelocitySolver::writeState
 (const std::string& a_file, int a_counter,
  const Vector<LevelData<FArrayBox>* >& a_x,
@@ -1811,6 +1920,21 @@ void InverseVerticallyIntegratedVelocitySolver::writeState
     }
 }
 
+std::string InverseVerticallyIntegratedVelocitySolver::CGstateFile(int a_iter) const
+{
+  std::stringstream ss;
+  ss << m_config.m_CGsaveStateFileNameBase;
+  
+  ss.width(2);ss.fill('0');ss << m_finest_level;
+  ss.width(0); ss << "lev.";
+    
+  ss.width(6);ss.fill('0');ss << int(m_time/m_config.m_dtTypical);
+  //ss.width(0); ss << "t.";
+    
+  ss.width(6);ss.fill('0');ss << a_iter;
+  ss.width(0);ss << ".2d.hdf5";
+  return ss.str(); 
+}    
 
 
 std::string InverseVerticallyIntegratedVelocitySolver::outerStateFile() const

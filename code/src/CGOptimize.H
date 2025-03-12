@@ -53,9 +53,10 @@ public:
      @param fp (output) penalty function
      @param g  (output) gradient
      @param x  (input)  state vector
+     @param iter (input) iteration number 
      @param inner  (input)  is this an 'inner' iteration?
   */
-   virtual void computeObjectiveAndGradient(Real& fm, Real& fp ,X& g, const X& x , bool inner) = 0;
+  virtual void computeObjectiveAndGradient(Real& fm, Real& fp ,X& g, const X& x , int iter, bool inner) = 0;
 
   /// Copy x to y
    virtual void assign(X& y, const X& x) = 0;
@@ -80,6 +81,11 @@ public:
 
   /// number of degrees-of-freedom (maximum number of iterations before restart)
    virtual int nDoF(const X& x) = 0;
+
+  /// save a state that would allow CG to resume from iteration iter.
+  virtual void saveCGState(int iter, const X& x, const X& r, const X& s, const X& d) = 0;
+   /// read a state allowing CG to resume. Should return true if a state was read
+  virtual bool readCGState(int& iter,  X& x,  X& r, X& s, X& d) = 0;
 
 };
 
@@ -116,7 +122,7 @@ void bisectionLineSearch
     b += s;
     a_F.assign(y, x);
     a_F.incr(y, d, b);
-    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,true);
+    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,iter,true);
     fb = -a_F.dotProduct(w,d);
 
     pout() << " ... bisection: searching for a bracket: iter " << iter
@@ -148,7 +154,7 @@ void bisectionLineSearch
     c = 0.5*(a + b); //midpoint
     a_F.assign(y, x);
     a_F.incr(y, d, c);
-    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,true);
+    a_F.computeObjectiveAndGradient(Fm,Fp,w,y,iter,true);
 
     fc = -a_F.dotProduct(w,d);
     
@@ -200,29 +206,32 @@ void secantLineSearch
   a_F.assign(y,x);
   a_F.incr(y,d,initialStep);
   Real fms,fps;
-  a_F.computeObjectiveAndGradient(fms,fps,p,y,true);
+  a_F.computeObjectiveAndGradient(fms,fps,p,y,0,true);
   Real etaPrev = a_F.dotProduct(p,d);
   
-  pout() << " ... initial secant ||f'(x+sd).f'(x)||^2 = " 
+  pout() << " ... initial secant ||f'(x+sd).d||^2 = " 
 	 << -etaPrev << " s = " << initialStep << " f(x+sd) = " << fms << std::endl;
-  
-  while ( (fms + fps <  a_fx) && (-etaPrev > -eta))
+
+  int iter = 0;
+  while ( (fms + fps <  a_fx) && (-etaPrev > -eta) && iter < a_maxIter)
     {
       //we have a problem, because although we have a descent direction in the  objective
-      //function f , we have an ascent direction for f'(x+sd).f'(x). For now, just walk along d till
+      //function f , we have an ascent direction for f'(x+sd).d. For now, just walk along d till
       // we do have descent in both, then start the secant method offset by alpha + a_initialStep
-      pout() << " d is a descent direction for f(x+sd) but not for f'(x+sd).f'(x)  " 
+      pout() << " d is a descent direction for f(x+sd) but not for f'(x+sd).d  " 
 	     << " so walking the line (remind SLC to look up a better method) " << std::endl;
       alpha -= initialStep;
       a_F.incr(y,d,initialStep);
-      a_F.computeObjectiveAndGradient(fms,fps,p,y,true);
+      a_F.computeObjectiveAndGradient(fms,fps,p,y,0,true);
       eta = etaPrev;
       etaPrev = a_F.dotProduct(p,d);
-      pout() << " ... initial secant f'(x+ sd).f'(x) = " 
+      pout() << " ... initial secant f'(x+ sd).d = " 
 	     << -etaPrev << " s = " << alpha << " f(x+ sd) = " << a_fx << std::endl;
+      iter++;
     }
   
-  while ( (fms + fps >  a_fx) && initialStep > 0.015624 * a_initialStep  )
+  iter = 0;
+  while ( (fms + fps >  a_fx) && iter < a_maxIter )
     {
       // here we have an ascent direction the objective function. Try reducing the step.
       // this can of course be a happy failure
@@ -230,11 +239,12 @@ void secantLineSearch
       a_F.incr(y,d,-0.5*initialStep);
       initialStep *= 0.5;
       alpha = - initialStep;
-      a_F.computeObjectiveAndGradient(fms,fps,p,y,true);
+      a_F.computeObjectiveAndGradient(fms,fps,p,y,0,true);
       eta = etaPrev;
       etaPrev = a_F.dotProduct(p,d);
-      pout() << " ... initial secant f'(x+ sd).f'(x) = " 
+      pout() << " ... initial secant f'(x+ sd).d = " 
 	     << -etaPrev << " s = " << initialStep << " f(x+ sd) = " << a_fx << std::endl;
+      iter++;
     }
   
   int j = 0;
@@ -248,11 +258,11 @@ void secantLineSearch
     
     if (j > 0)
       {
-	a_F.computeObjectiveAndGradient(fms,fps,r,x,true);
+	a_F.computeObjectiveAndGradient(fms,fps,r,x,j,true);
 	eta = a_F.dotProduct(r,d);
       }
     
-    pout() <<  " ... secant iteration j = " << j << " f'(x[0]+qd).f'(x[0]) = " << -eta
+    pout() <<  " ... secant iteration j = " << j << " f'(x[0]+qd).d = " << -eta
 	   << " q = " << q 
 	   << std::endl;
 	
@@ -310,14 +320,38 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
   a_F.create(p,x);
 
   Real fm,fp, fmOld; // just for retreiving the the misfit norm and penalty norm
-  a_F.computeObjectiveAndGradient(fm,fp,r,x,false);
+  int iter(a_iter);
+
+  //continue CG, or start afresh
+  if (a_F.readCGState(iter, x, r, s, d))
+    {
+      // Need to recompute fm,fp. We don't need to recompute r (= - grad F),
+      // but worth knowing whether we *would* re-compute it
+      a_F.computeObjectiveAndGradient(fm,fp,p,x,iter,false);
+      // check p = -r  
+      a_F.incr(p,r,1.0);
+      Real pdp = a_F.dotProduct(p,p);
+      Real rdr = a_F.dotProduct(r,r);
+      pout() << "CGOptimize read state iteration " << iter 
+	     << " (r_read-r_compute).(r_read-r_compute) / r_read.r_read = " << pdp/(rdr + 1.0e-10)
+	     << std::endl;
+    }
+  else
+    {
+      // fresh start
+      a_F.computeObjectiveAndGradient(fm,fp,r,x,iter,false);
+      a_F.scale(r,-1.0);
+      a_F.preCond(s,r);
+      a_F.assign(d,s);
+    }
+  
+  
   fmOld = fm;
-  a_F.scale(r,-1.0);
-  a_F.preCond(s,r);
-  a_F.assign(d,s);
+
   Real deltaNew = a_F.dotProduct(r,s);
   Real deltaZero = deltaNew;
-  int iter = a_iter; int k = 0;
+  int iter0(iter);
+  int k(0);
   bool hang(false);
   // if we have a_iter > a_maxIter, we have presumably restarted
   int niter = a_maxIter;
@@ -328,14 +362,19 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
 	  && (fm > 1.0e-16) 
 	  && (!hang))
     {
-      
+
+      if (iter > iter0)
+	{
+	  a_F.saveCGState(iter, x, r, s, d);
+	}
+
       pout() << "CGOptimize iteration " << iter 
 	     << " ||f'(x)||^2 = " << deltaNew 
 	     << " ||fm(x)||^2 = " << fm 
 	     << " ||fp(x)||^2 = " << fp 
 	     << " ||fm(x)||^2 + ||fp(x)||^ = " << fm + fp;
 
-      if (iter - a_iter > 0)
+      if (iter > iter0)
 	{
 	  pout() << " ||fm(x)||^2/||fm_old(x)||^2 = " << fm/fmOld;
 	  hang = (fm > a_hang * fmOld);
@@ -343,7 +382,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
       pout() << std::endl;
 
       fmOld = fm;
-      //fpOld = fp;
+  
 
       //find the (approximate) root of f'(y).f'(x)
       if (a_lineSearchMethod == CGOPT_LINE_SEARCH_BISECTION)
@@ -358,7 +397,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
 			   a_lineSearchInitialStep, a_lineSearchStepMaxGrow, a_lineSearchTol);
 	}
 	
-      a_F.computeObjectiveAndGradient(fm,fp,r,x,false);
+      a_F.computeObjectiveAndGradient(fm,fp,r,x,iter,false);
       a_F.scale(r,-1.0);
       Real deltaOld = deltaNew;
       Real deltaMid = a_F.dotProduct(r,s);

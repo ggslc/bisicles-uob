@@ -150,7 +150,10 @@ public:
    its directional derivatives with respect to X_0 and X_1. This function also
    writes the current state of the problem to hdf5 files, either every 'outer' CG iteration, 
    or even more frequently, on every call, which will correspond to CG's 'inner' (secant) 
-   iterations
+   iterations. 
+
+   Calls to saveCGState can also write a CG state to be read later to allow CG to continue (this requires
+   some CG specific vectors beyond those we would care about in general).
    
    Uses JFNKSolver to solve a number of internal problems. 
 */
@@ -307,6 +310,16 @@ public:
     /// Restart CG at a fixed interval. Set with <prefix>.CGrestartInterval, default 9999
     Real m_CGrestartInterval;
 
+    /// Save the CG state every n iterations. 
+    int m_CGsaveStateInterval;
+
+    /// base of filename for saved states which can be read to continue CG (not restart!)
+    std::string m_CGsaveStateFileNameBase;
+
+    /// continue CG from the state saved in a file
+    std::string m_CGreadStateFile;
+    int m_CGreadStateIter;
+   
     ///observed velocity data coefficient
     SurfaceData* m_velObs_c;
     
@@ -393,9 +406,22 @@ private:
   // set a_x = 0.0
   void setToZero(Vector<LevelData<FArrayBox>* >& a_a);
 
-
   void  mapX(const Vector<LevelData<FArrayBox>* >& a_x);
 
+  void saveCGState
+  ( int iter,
+    const Vector<LevelData<FArrayBox>* >& x,
+    const Vector<LevelData<FArrayBox>* >& r,
+    const Vector<LevelData<FArrayBox>* >& s,
+    const Vector<LevelData<FArrayBox>* >& d);
+  
+  bool readCGState
+  ( int& iter,
+    Vector<LevelData<FArrayBox>* >& x,
+    Vector<LevelData<FArrayBox>* >& r,
+    Vector<LevelData<FArrayBox>* >& s,
+    Vector<LevelData<FArrayBox>* >& d);
+  
   void writeState
   (const std::string& a_file, int a_counter,
    const Vector<LevelData<FArrayBox>* >& a_x,
@@ -488,6 +514,10 @@ private:
   /// write state to innerStateFile() on 'inner' iterations
   std::string innerStateFile() const;
 
+  /// write state to CGStateFile()
+  std::string CGstateFile(int a_iter) const;
+
+  
   /// co-ordinate system, stores thickness, topography, surfaces, mask
   Vector<RefCountedPtr<LevelSigmaCS > > m_coordSys;
   
@@ -632,7 +662,7 @@ public:
   (Real& a_fm, Real& a_fp,
    Vector<LevelData<FArrayBox>* >& a_g, 
    const  Vector<LevelData<FArrayBox>* >& a_x, 
-   bool a_inner);
+   int a_iter, bool a_inner);
   
   void restart(){;}
 
