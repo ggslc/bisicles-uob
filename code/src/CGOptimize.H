@@ -397,7 +397,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
 			   a_lineSearchInitialStep, a_lineSearchStepMaxGrow, a_lineSearchTol);
 	}
 	
-      a_F.computeObjectiveAndGradient(fm,fp,r,x,iter,false);
+      a_F.computeObjectiveAndGradient(fm,fp,r,x,iter+1,false);
       a_F.scale(r,-1.0);
       Real deltaOld = deltaNew;
       Real deltaMid = a_F.dotProduct(r,s);
