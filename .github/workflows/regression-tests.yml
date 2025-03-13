@@ -59,7 +59,7 @@ jobs:
             CHOMBO_HOME=$PWD/../../Chombo/lib make all OPT=TRUE MPI=TRUE -j4
 
     - name: twisty stream test
-      continue-on-error: true
+      continue-on-error: false
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/twistyStream/
           ${{ env.bike }} inputs.regression
@@ -67,7 +67,7 @@ jobs:
 
 
     - name: plot-cf test
-      continue-on-error: true
+      continue-on-error: false
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/plot-cf/
           ${{ env.bike }} inputs.regression
@@ -75,17 +75,28 @@ jobs:
 
 
     - name: ASE-Control test
-      continue-on-error: true
+      continue-on-error: false
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/ASE-control/
           ${{ env.bike }} inputs.regression
           egrep 'CG|secant|HDF5' pout.0
 
     - name: ASE-Control test (checkpoints)
-      continue-on-error: true
+      continue-on-error: false
       run: | 
           cd $GITHUB_WORKSPACE/code/regression/ASE-control/
           ${{ env.bike }} inputs.sequence_regression
           egrep 'CG|secant|HDF5' pout.0
           ${{ env.bike }} inputs.sequence_regression_resume
           egrep 'CG|secant|HDF5' pout.0
+
+    - name: ASE-Control test (CG continuation)
+      continue-on-error: false
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/ASE-control/
+          ${{ env.bike }} inputs.midCG_init
+          egrep 'CG|secant|HDF5' pout.0
+          ${{ env.bike }} inputs.midCG_cont
+          egrep 'CG|secant|HDF5' pout.0
+
+          
