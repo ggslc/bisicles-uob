@@ -139,6 +139,6 @@ control.outerStepFileNameBase = outer.ase-ctrl-seq-res.
 amr.verbosity = 5
 amr.restart_file = chk.ase-ctrl-seq.000000.2d.hdf5
 
-regression.result_hdf5 = outer.ase-ctrl-seq-res.01lev.000003000001.2d.hdf5
-regression.reference_hdf5 = outer.ase-ctrl-seq.01lev.000003000001.2d.hdf5
+regression.result_hdf5 = outer.ase-ctrl-seq-res.01lev.000012000001.2d.hdf5
+regression.reference_hdf5 = outer.ase-ctrl-seq.01lev.000012000001.2d.hdf5 
 regression.tol = 1.0e-6
