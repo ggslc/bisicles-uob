@@ -18,6 +18,7 @@
 
 #include "parstream.H"
 #include "REAL.H"
+#include "Misc.H"
 #include <cmath>
 #include "NamespaceHeader.H"
 #include "CH_assert.H"
