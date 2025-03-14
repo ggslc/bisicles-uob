@@ -47,27 +47,14 @@ public:
   /// factory method
   virtual CalvingModel* new_CalvingModel() = 0;
 
-  ///frontal ablation vector, if implelmented. Returns false  by default
-  virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
-			      const LevelData<FluxBox>& a_faceIceVel,
-			      const LevelData<FArrayBox>& a_centreIceVel,
-			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level)
-  {
-    return false;
-  }
-
-  ///cell centred frontal ablation vector, if implelmented. Returns false  by default
+  ///cell centred frontal ablation vector, if implelmented. Returns true and
+  ///zero calving by default
   virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
 			      const LevelData<FArrayBox>& a_centreIceVel,
 			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level)
-  {
-    return false;
-  }
-
+			      const AmrIce& a_amrIce,int a_level);
   
-  /// frontal ablation rate.
+  /// cell centered frontal ablation rate.
   virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
 			      const AmrIce& a_amrIce,int a_level);
 
@@ -189,11 +176,6 @@ public:
     return new  DomainEdgeCalvingModel( *this);
   }
   
-  ///cell centred frontal ablation vector
-  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
-			      const LevelData<FArrayBox>& a_centreIceVel,
-			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level);
 
 protected:
   Vector<int> m_frontLo;

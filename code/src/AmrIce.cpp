@@ -4165,32 +4165,32 @@ AmrIce::computeFaceCalvingVel
   // to be parallel to grad(thickness) or grad(iceFrac)
 
   //some calving model supply a face centered calving vector directly. Well done them. 
-  if (!m_calvingModelPtr->getCalvingVel(a_faceCalvingVel, a_faceIceVel, *m_velocity[a_lev], a_grids, *this, a_lev))
-    {
-      // calving rate is a cell-centered scalar and we need to interpolate
-      LevelData<FArrayBox> calvingRate(a_grids, 1, 2*IntVect::Unit);
-      LevelData<FArrayBox> calvingVel(a_grids, SpaceDim, 2*IntVect::Unit);
-      m_calvingModelPtr->getCalvingRate(calvingRate, *this, a_lev);
-      calvingRate.exchange(); //necessary?
-      //LevelData<FArrayBox> levelCCVel(a_grids, SpaceDim, IntVect::Unit);
-      //EdgeToCell( a_faceIceVel, levelCCVel);
-      //levelCCVel.exchange(); //necessary?
-      const LevelData<FArrayBox>& levelCCVel = *m_velocity[a_lev];
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-	{
-	  const FArrayBox& vel = levelCCVel[dit];
-	  calvingVel[dit].setVal(0.0);//for the ghost cells outside the domain 
-	  for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
-	      calvingVel[dit](iv,0) = - calvingRate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
-	      calvingVel[dit](iv,1) = - calvingRate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
-	    }
-	}
-      calvingVel.exchange();
-      CellToEdge(calvingVel, a_faceCalvingVel);
-    }
+  //if (!m_calvingModelPtr->getCalvingVel(a_faceCalvingVel, a_faceIceVel, *m_velocity[a_lev], a_grids, *this, a_lev))
+  {
+    // calving rate is a cell-centered scalar and we need to interpolate
+    LevelData<FArrayBox> calvingRate(a_grids, 1, 2*IntVect::Unit);
+    LevelData<FArrayBox> calvingVel(a_grids, SpaceDim, 2*IntVect::Unit);
+    m_calvingModelPtr->getCalvingRate(calvingRate, *this, a_lev);
+    calvingRate.exchange(); //necessary?
+    //LevelData<FArrayBox> levelCCVel(a_grids, SpaceDim, IntVect::Unit);
+    //EdgeToCell( a_faceIceVel, levelCCVel);
+    //levelCCVel.exchange(); //necessary?
+    const LevelData<FArrayBox>& levelCCVel = *m_velocity[a_lev];
+    for (DataIterator dit(a_grids); dit.ok(); ++dit)
+      {
+	const FArrayBox& vel = levelCCVel[dit];
+	calvingVel[dit].setVal(0.0);//for the ghost cells outside the domain 
+	for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
+	  {
+	    const IntVect& iv = bit();
+	    Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
+	    calvingVel[dit](iv,0) = - calvingRate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
+	    calvingVel[dit](iv,1) = - calvingRate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
+	  }
+      }
+    calvingVel.exchange();
+    CellToEdge(calvingVel, a_faceCalvingVel);
+  }
 }
 
 
