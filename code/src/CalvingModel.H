@@ -189,8 +189,12 @@ public:
     return new  DomainEdgeCalvingModel( *this);
   }
   
+  ///cell centred frontal ablation vector
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
 
-  
 protected:
   Vector<int> m_frontLo;
   Vector<int> m_frontHi;

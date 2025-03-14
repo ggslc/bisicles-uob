@@ -4475,8 +4475,7 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 	      for (int dir = 0; dir < SpaceDim; dir++)
 		{
 		  dF(iv) -= a_dt / dx[dir]
-		    * u(iv, dir) 
-		    //FC *0.5* (u[dir](iv + BASISV(dir)) + u[dir](iv))
+		    * u(iv,dir)
 		    * (f[dir](iv + BASISV(dir)) - f[dir](iv));
 		} // dir
 	    } // bit
@@ -4599,9 +4598,41 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 	 }
     }
 
+  
+  Vector<LevelData<FArrayBox>* > grownVel(m_finest_level+1, NULL);
+  // grow the velocity one cell beyond the ice extent
+  for (int lev=0; lev<= m_finest_level; lev++)
+    {
+      const DisjointBoxLayout& grids = m_velocity[lev]->getBoxes();
+      const LevelData<FArrayBox>& levelH = m_vect_coordSys[lev]->getH();
+      grownVel[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
+      for (DataIterator dit(grids); dit.ok(); ++dit)
+	{
+	  FArrayBox& u = (*grownVel[lev])[dit];
+	  const FArrayBox& v =  (*m_velocity[lev])[dit];
+	  u.copy(v); 
+	  const FArrayBox& h = m_vect_coordSys[lev]->getH()[dit];
+	  const Box& box = grids[dit];
+	  for (BoxIterator bit(box); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      if (h(iv) < TINY_THICKNESS)
+		{
+		  for (int dir = 0; dir < SpaceDim; dir++)
+		    {
+		      IntVect ivm = iv - BASISV(dir);
+		      IntVect ivp = iv + BASISV(dir);
+		      u(iv,dir) = (h(ivm) > h(ivp))?v(ivm):v(ivp);
+		    }
+		}
+	    }
+	}
+    }
+  
+  
   // non-conservative (because div u != 0) advection
   // FC PGAdvectFrac(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
-  PGAdvectFrac(frac_a, m_velocity, a_dt, TINY_FRAC);
+  PGAdvectFrac(frac_a, grownVel, a_dt, TINY_FRAC);
   updateInvalidIceFrac(frac_a);
   
   // u - uc
@@ -4611,19 +4642,14 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     {
       LevelData<FArrayBox>& levelF = *a_iceFrac[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
-      //FC unet[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
-      //FC computeFaceCalvingVel(*unet[lev], *a_faceVelAdvection[lev], grids, lev);
       unet[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
-      bool success = m_calvingModelPtr->getCalvingVel(*unet[lev],*m_velocity[lev],
+      bool success = m_calvingModelPtr->getCalvingVel(*unet[lev],*grownVel[lev],
 						      grids, *this, lev);
       CH_assert(success);
       
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
-	  // u + uc
-	  //FC (*unet[lev])[dit] += ( (*a_faceVelAdvection[lev])[dit]);
-
-	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
+	  (*unet[lev])[dit] += (*grownVel[lev])[dit];
 	}     
     }
 

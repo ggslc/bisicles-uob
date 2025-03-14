@@ -96,6 +96,22 @@ DeglaciationCalvingModelA::applyCriterion
     }
 }
 
+
+bool 
+DomainEdgeCalvingModel::getCalvingVel
+(LevelData<FArrayBox>& a_centreCalvingVel,
+ const LevelData<FArrayBox>& a_centreIceVel,
+ const DisjointBoxLayout& a_grids,
+ const AmrIce& a_amrIce,int a_level)
+{
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      a_centreCalvingVel[dit].setVal(0.0);
+    }
+  return true;
+}
+
+
 void DomainEdgeCalvingModel::applyCriterion
 (LevelData<FArrayBox>& a_thickness,
  LevelData<FArrayBox>& a_calvedIce,
