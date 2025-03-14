@@ -4622,7 +4622,9 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 		    {
 		      IntVect ivm = iv - BASISV(dir);
 		      IntVect ivp = iv + BASISV(dir);
-		      u(iv,dir) = (h(ivm) > h(ivp))?v(ivm):v(ivp);
+		      Real ua = (h(ivm) < h(ivp))?v(ivp):v(ivm);
+		      Real ub = (h(ivm) > h(ivp))?v(ivm):v(ivp);
+		      u(iv,dir) = 0.5 * (ua + ub);
 		    }
 		}
 	    }
