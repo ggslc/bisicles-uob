@@ -47,11 +47,12 @@ basalFlux.type = zeroFlux
 CalvingModel.type = RateAuBuhatCalvingModel
 CalvingModel.front_hi = 1 0
 CalvingModel.front_lo = 0 0
-CalvingModel.proportion.type = constantFlux
-CalvingModel.proportion.flux_value = 1.0
+CalvingModel.proportion.type =  pythonFlux
+CalvingModel.proportion.module = inclined_channel
+CalvingModel.proportion.function = marine_retreat_simpleP
 CalvingModel.independent.type = pythonFlux
 CalvingModel.independent.module = inclined_channel
-CalvingModel.independent.function = marine_retreat_simple
+CalvingModel.independent.function = marine_retreat_simpleI
 CalvingModel.vector = true
 
 #velocity solve type -- 0 = Picard, 1 = JFNK
@@ -107,7 +108,7 @@ amr.plot_interval = 1
 amr.plot_prefix = plot.inclined_channel.2lev.
 #amr.write_preSolve_plotfiles = true
 #amr.write_solver_rhs = 1
-#amr.write_viscous_tensor = true
+amr.write_viscous_tensor = true
 amr.write_thickness_sources = true
 
 #check points
@@ -150,3 +151,5 @@ amr.eliminate_remote_ice = true
 amr.evolve_ice_frac_2 = true
 amr.mask_sources = true
 amr.write_mask = true
+
+bodges.frac_friction_bodge = true
