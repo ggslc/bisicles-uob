@@ -44,10 +44,15 @@ surfaceFlux.function = acab
 basalFlux.type = zeroFlux
 
 
-CalvingModel.type = DomainEdgeCalvingModel
+CalvingModel.type = RateAuBuhatCalvingModel
 CalvingModel.front_hi = 1 0
 CalvingModel.front_lo = 0 0
-
+CalvingModel.proportion.type = constantFlux
+CalvingModel.proportion.flux_value = 1.0
+CalvingModel.independent.type = pythonFlux
+CalvingModel.independent.module = inclined_channel
+CalvingModel.independent.function = marine_retreat_simple
+CalvingModel.vector = true
 
 #velocity solve type -- 0 = Picard, 1 = JFNK
 amr.velocity_solver_type = 1

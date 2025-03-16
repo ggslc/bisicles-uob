@@ -19,3 +19,12 @@ def topography(x,y,*etc):
             
 def acab(x,y,t,thck,topg,*etc):
     return 0.5
+
+
+def marine_retreat_simple(x,y,t,thck,topg,*etc):
+
+    retreat_rate = 0.0
+    if (topg < 0.0) and (t > 32.0):
+        retreat_rate = 128.0
+        
+    return retreat_rate
