@@ -1,4 +1,3 @@
-
 #ifdef CH_LANG_CC
 /*
 *      _______              __
@@ -543,20 +542,21 @@ public:
 
 /// A Calving model that provides a rate with a part proportional to velocity and a part independent of velocity
 /**
-   The rate is either a face-centred vector (opposed to ice velocity or grad f)
+   The rate is either a cell - centred vector (opposed to ice velocity or grad f)
    or a cell-centered scalar
 
-   The rate is r = a u + b u/|u|
+   The rate is r = a u + b u/|u| + c grad f/|grad f|
 
    The constants a,b are specified by SurfaceData.
  */
-class RateAuBuhatCalvingModel : public CalvingModel
+class RateVectorCalvingModel : public CalvingModel
 {
 
   Real m_startTime, m_endTime;
   DomainEdgeCalvingModel* m_domainEdgeCalvingModel;
   SurfaceFlux* m_independent; // b 
   SurfaceFlux* m_proportion; // a
+  SurfaceFlux* m_normal;
   bool m_vector; // face-centred vector or cell-centred scalar?
 
 public:
@@ -570,9 +570,9 @@ public:
 			      int a_level,
 			      Stage a_stage);
   
-  RateAuBuhatCalvingModel (ParmParse& a_pp);
+  RateVectorCalvingModel (ParmParse& a_pp);
 
-  virtual ~RateAuBuhatCalvingModel();
+  virtual ~RateVectorCalvingModel();
   
   virtual CalvingModel* new_CalvingModel();
 

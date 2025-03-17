@@ -497,14 +497,17 @@ CalvingModel* CalvingModel::parseCalvingModel(const char* a_prefix)
       ptr = new VariableRateCalvingModel(pp);
     }
 
-   else if (type == "RateAuBuhatCalvingModel")
+   else if (type == "RateVectorCalvingModel")
     {
-      ptr = new RateAuBuhatCalvingModel(pp);
+      ptr = new RateVectorCalvingModel(pp);
     }
+   else if (type == "RateAuBuhatCalvingModel")
+     {
+      ptr = new RateVectorCalvingModel(pp);
+     }
    else if (type == "RateProportionalToSpeedCalvingModel")
     {
-  
-      ptr = new RateAuBuhatCalvingModel(pp);
+      ptr = new RateVectorCalvingModel(pp);
     }   
    else if (type == "VonMisesCalvingModel")
     {
@@ -1033,7 +1036,7 @@ CliffCollapseCalvingModel::applyCriterion(LevelData<FArrayBox>& a_thickness,
 }
 
 
-RateAuBuhatCalvingModel::RateAuBuhatCalvingModel(ParmParse& a_pp)
+RateVectorCalvingModel::RateVectorCalvingModel(ParmParse& a_pp)
 {
       Real startTime = -1.2345678e+300;
       a_pp.query("start_time",  startTime);
@@ -1055,14 +1058,16 @@ RateAuBuhatCalvingModel::RateAuBuhatCalvingModel(ParmParse& a_pp)
       m_proportion = SurfaceFlux::parse( (prefix + ".proportion").c_str());
       if (!m_proportion) m_proportion = new zeroFlux(); 
       m_independent = SurfaceFlux::parse( (prefix + ".independent").c_str());
-      if (!m_independent) m_independent  = new zeroFlux(); 
+      if (!m_independent) m_independent  = new zeroFlux();
+      m_normal = SurfaceFlux::parse( (prefix + ".normal").c_str());
+      if (!m_normal) m_normal  = new zeroFlux(); 
       m_vector = false;
       a_pp.query("vector", m_vector);
 
       
 }
 
-void RateAuBuhatCalvingModel::applyCriterion
+void RateVectorCalvingModel::applyCriterion
 (LevelData<FArrayBox>& a_thickness,
  LevelData<FArrayBox>& a_calvedIce,
  LevelData<FArrayBox>& a_addedIce,
@@ -1078,18 +1083,19 @@ void RateAuBuhatCalvingModel::applyCriterion
 
 
 
-CalvingModel* RateAuBuhatCalvingModel::new_CalvingModel()
+CalvingModel* RateVectorCalvingModel::new_CalvingModel()
   {
-    RateAuBuhatCalvingModel* ptr = new RateAuBuhatCalvingModel(*this);
+    RateVectorCalvingModel* ptr = new RateVectorCalvingModel(*this);
     ptr->m_startTime = m_startTime;
     ptr->m_endTime = m_endTime;
     ptr->m_proportion = m_proportion->new_surfaceFlux();
     ptr->m_independent = m_independent->new_surfaceFlux();
+    ptr->m_normal = m_normal->new_surfaceFlux();
     ptr->m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(*m_domainEdgeCalvingModel);
     return ptr; 
   }
 
-RateAuBuhatCalvingModel::~RateAuBuhatCalvingModel()
+RateVectorCalvingModel::~RateVectorCalvingModel()
 {
 
   if (m_domainEdgeCalvingModel != NULL)
@@ -1110,11 +1116,16 @@ RateAuBuhatCalvingModel::~RateAuBuhatCalvingModel()
       m_independent = NULL;
     }
 
+    if (m_normal != NULL)
+    {
+      delete m_normal;
+      m_normal = NULL;
+    }
   
 }
 
 bool 
-RateAuBuhatCalvingModel::getCalvingVel
+RateVectorCalvingModel::getCalvingVel
 (LevelData<FArrayBox>& a_centreCalvingVel,
  const LevelData<FArrayBox>& a_centreIceVel,
  const DisjointBoxLayout& a_grids,
@@ -1154,12 +1165,52 @@ RateAuBuhatCalvingModel::getCalvingVel
 	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit();
-	      Real umod = 1.0e-10 + std::sqrt(u(iv,0)*u(iv,0) + u(iv,1)*u(iv,1));
-	      u_c(iv,0) -=  ccrate[dit](iv)*u(iv,0) / umod;
-	      u_c(iv,1) -=  ccrate[dit](iv)*u(iv,1) / umod;
+	      RealVect uiv;
+	      for (int dir = 0; dir < SpaceDim; dir++)
+		{
+		  uiv[dir] = u(iv);
+		}
+	      Real umod = 1.0e-10 + uiv.vectorLength();
+	      for (int dir = 0; dir < SpaceDim; dir++)
+		{
+		  u_c(iv,dir) -=  ccrate[dit](iv)*u(iv,dir) / umod;
+		}
 	    } // bit
 	} // dit
     } // m_independent
+  
+  if (m_normal)
+    {
+      // cell-centered independent front-normal part
+      LevelData<FArrayBox> ccrate(a_grids, 1, 1*IntVect::Unit);
+      m_normal->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
+      ccrate.exchange();
+
+      const LevelData<FArrayBox>& levelF = *a_amrIce.iceFraction(a_level);
+     
+      for (DataIterator dit(a_grids); dit.ok(); ++dit)
+      	{
+	  const FArrayBox& f = (*a_amrIce.iceFraction(a_level))[dit];
+	  FArrayBox& u_c = a_centreCalvingVel[dit];
+	  Box box = a_grids[dit];
+	  for (BoxIterator bit(box); bit.ok(); ++bit)
+	    {
+	      const IntVect& iv = bit();
+	      RealVect uiv;
+	      for (int dir = 0; dir < SpaceDim; dir++)
+		{
+		  uiv[dir] = f(iv + BASISV(dir)) - f(iv - BASISV(dir));
+		}
+	      Real umod = 1.0e-10 + uiv.vectorLength();
+	      for (int dir = 0; dir < SpaceDim; dir++)
+		{
+		  u_c(iv,dir) +=  ccrate[dit](iv)*uiv[dir] / umod;
+		}
+	    } // bit
+	} // dit
+    } // m_normal
+  
+  
   return true;
   
 }
@@ -1167,7 +1218,7 @@ RateAuBuhatCalvingModel::getCalvingVel
 
 
 bool 
-RateAuBuhatCalvingModel::getCalvingVel
+RateVectorCalvingModel::getCalvingVel
 (LevelData<FluxBox>& a_faceCalvingVel,
  const LevelData<FluxBox>& a_faceIceVel,
  const LevelData<FArrayBox>& a_centreIceVel,
@@ -1313,10 +1364,10 @@ RateAuBuhatCalvingModel::getCalvingVel
 }
 
 void
-RateAuBuhatCalvingModel::getCalvingRate
+RateVectorCalvingModel::getCalvingRate
 (LevelData<FArrayBox>& a_calvingRate, const AmrIce& a_amrIce,int a_level)
 {
-  // CH_assert(false); // we don't want to use this
+  CH_assert(false); // we don't want to use this
   m_proportion->evaluate(a_calvingRate, a_amrIce, a_level, a_amrIce.dt());
   LevelData<FArrayBox> indep(a_calvingRate.disjointBoxLayout(), 1, 2*IntVect::Unit);
   if (m_independent) m_independent->evaluate(indep, a_amrIce, a_level, a_amrIce.dt());
