@@ -44,15 +44,21 @@ surfaceFlux.function = acab
 basalFlux.type = zeroFlux
 
 
-CalvingModel.type = RateAuBuhatCalvingModel
+CalvingModel.type = RateVectorCalvingModel
 CalvingModel.front_hi = 1 0
 CalvingModel.front_lo = 0 0
+
 CalvingModel.proportion.type =  pythonFlux
 CalvingModel.proportion.module = inclined_channel
 CalvingModel.proportion.function = marine_retreat_simpleP
-CalvingModel.independent.type = pythonFlux
-CalvingModel.independent.module = inclined_channel
-CalvingModel.independent.function = marine_retreat_simpleI
+
+#CalvingModel.independent.type = pythonFlux
+#CalvingModel.independent.module = inclined_channel
+#CalvingModel.independent.function = marine_retreat_simpleI
+
+CalvingModel.normal.type  = pythonFlux
+CalvingModel.normal.module = inclined_channel
+CalvingModel.normal.function = marine_retreat_simpleN
 CalvingModel.vector = true
 
 #velocity solve type -- 0 = Picard, 1 = JFNK
@@ -128,7 +134,7 @@ amr.fill_ratio = 0.85    # how efficient are the grids
 amr.nestingRadius = 1    # proper nesting radius required
 amr.tags_grow = 0        # amount to buffer tags
 amr.tags_grow_dir = 1 0 0 # grow tags in x only
-amr.tagCap = 0
+amr.tagCap = 1
 
 amr.interpolate_zb = 0 #go back to the IBC to regrid geometry
 amr.max_box_size = 40 # largest box length allowed
@@ -140,8 +146,11 @@ amr.tag_on_grad_velocity = 0
 amr.tag_on_grounded_laplacian_velocity = 0
 amr.lap_vel_tagging_val = 1
 
-amr.tag_grounding_line = 0
-amr.grounding_line_tagging_min_vel = 0
+amr.tag_grounding_line = 1
+amr.grounding_line_tagging_min_vel = 100
+
+#amr.tag_margin = 1
+
 
 #misc options
 amr.verbosity = 5
@@ -151,5 +160,8 @@ amr.eliminate_remote_ice = true
 amr.evolve_ice_frac_2 = true
 amr.mask_sources = true
 amr.write_mask = true
+amr.write_thickness_sources = true
+
 
 bodges.frac_friction_bodge = true
+bodges.frac_rhs_bodge = false
