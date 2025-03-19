@@ -1168,7 +1168,7 @@ RateVectorCalvingModel::getCalvingVel
 	      RealVect uiv;
 	      for (int dir = 0; dir < SpaceDim; dir++)
 		{
-		  uiv[dir] = u(iv);
+		  uiv[dir] = u(iv,dir);
 		}
 	      Real umod = 1.0e-10 + uiv.vectorLength();
 	      for (int dir = 0; dir < SpaceDim; dir++)
