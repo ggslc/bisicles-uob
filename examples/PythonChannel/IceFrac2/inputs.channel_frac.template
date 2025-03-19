@@ -1,6 +1,7 @@
 #domain details
+main.poutBaseName = pout.channel_frac.@EXPT.tc@TC
 main.domain_size = 128.0e+3 16.0e+3 1.0e+3
-amr.num_cells = 64 8 10 # 2 km
+amr.num_cells = 64 8 10 # 2 km base
 amr.is_periodic = 0 0 0
 
 #bulk constitutive relation and parameters
@@ -12,7 +13,7 @@ constRate.A =  5.6e-17
 
 #geometry,temperarture & basal friction input data
 geometry.problem_type = Python
-PythonIBC.module = inclined_channel
+PythonIBC.module = channel_frac
 PythonIBC.thicknessFunction = thickness
 PythonIBC.topographyFunction = topography	
 PythonIBC.bc_lo = 1 1 # noslip x, no slip y
@@ -20,7 +21,7 @@ PythonIBC.bc_hi = 2 1 # natural x, no slip y
 
 
 geometry.beta_type = constantBeta
-geometry.betaValue = 100.0
+geometry.betaValue = 5.0e+2
 
 temperature.type = constant
 temperature.value = 268
@@ -38,28 +39,10 @@ constants.water_density=1028
 constants.gravity=9.81
 
 surfaceFlux.type = pythonFlux
-surfaceFlux.module = inclined_channel
+surfaceFlux.module = channel_frac
 surfaceFlux.function = acab 
 
 basalFlux.type = zeroFlux
-
-
-CalvingModel.type = RateVectorCalvingModel
-CalvingModel.front_hi = 1 0
-CalvingModel.front_lo = 0 0
-
-CalvingModel.proportion.type =  pythonFlux
-CalvingModel.proportion.module = inclined_channel
-CalvingModel.proportion.function = marine_retreat_simpleP
-
-#CalvingModel.independent.type = pythonFlux
-#CalvingModel.independent.module = inclined_channel
-#CalvingModel.independent.function = marine_retreat_simpleI
-
-CalvingModel.normal.type  = pythonFlux
-CalvingModel.normal.module = inclined_channel
-CalvingModel.normal.function = marine_retreat_simpleN
-CalvingModel.vector = true
 
 #velocity solve type -- 0 = Picard, 1 = JFNK
 amr.velocity_solver_type = 1
@@ -100,8 +83,8 @@ JFNKSolver.minStepFactor = 0.125
 
 
 #time stepping
-main.maxTime = 100.0  # maximum time to run to
-main.maxStep = 1000  # maximum number of steps to runx
+main.maxTime = 256.0  # maximum time to run to
+main.maxStep = 8192  # maximum number of steps to run
 amr.temporal_accuracy = 1
 amr.cfl = 0.25
 amr.initial_cfl = 0.25 
@@ -109,9 +92,9 @@ amr.max_dt_grow_factor = 2.0
 amr.time_step_ticks = 1
 
 #plotting options
-amr.plot_interval = 1
-#amr.plot_time_interval = 20.0
-amr.plot_prefix = plot.inclined_channel.2lev.
+#amr.plot_interval = 1
+amr.plot_time_interval = 4.0
+amr.plot_prefix = plot.channel_frac.@EXPT.tc@TC.
 #amr.write_preSolve_plotfiles = true
 #amr.write_solver_rhs = 1
 amr.write_viscous_tensor = true
@@ -119,7 +102,7 @@ amr.write_thickness_sources = true
 
 #check points
 amr.check_interval = 300
-amr.check_prefix = chk.inclined_channel.2lev.
+amr.check_prefix = chk.channel_frac.@EXPT.tc@TC
 amr.check_overwrite = 0
 amr.verbosity = 5
 
@@ -127,14 +110,14 @@ amr.verbosity = 5
 #AMR mesh options
 amr.maxLevel = 10 # finest level allowed in simulation
 amr.ref_ratio = 2 2 2 2 2 2 2 2 2 2 2
-amr.regrid_interval = 10
+amr.regrid_interval = 16
 # number of timesteps between regridding
 amr.blockFactor = 8      # block factor used in grid generation
 amr.fill_ratio = 0.85    # how efficient are the grids
-amr.nestingRadius = 1    # proper nesting radius required
-amr.tags_grow = 0        # amount to buffer tags
+amr.nestingRadius = 3    # proper nesting radius required
+amr.tags_grow = 4        # amount to buffer tags
 amr.tags_grow_dir = 1 0 0 # grow tags in x only
-amr.tagCap = 1
+amr.tagCap = @TC # -1 -> 2km, 0 -> 1 km, 1 -> 500m, 2 -> 250 km 
 
 amr.interpolate_zb = 0 #go back to the IBC to regrid geometry
 amr.max_box_size = 40 # largest box length allowed
@@ -147,9 +130,9 @@ amr.tag_on_grounded_laplacian_velocity = 0
 amr.lap_vel_tagging_val = 1
 
 amr.tag_grounding_line = 1
-amr.grounding_line_tagging_min_vel = 100
+amr.grounding_line_tagging_min_vel = 0
 
-#amr.tag_margin = 1
+#amr.tag_margin = 1 # not needed since the GL is so close to the front
 
 
 #misc options
@@ -162,6 +145,24 @@ amr.mask_sources = true
 amr.write_mask = true
 amr.write_thickness_sources = true
 
-
 bodges.frac_friction_bodge = true
 bodges.frac_rhs_bodge = false
+
+
+CalvingModel.type = RateVectorCalvingModel
+CalvingModel.front_hi = 1 0
+CalvingModel.front_lo = 0 0
+
+CalvingModel.proportion.type =  pythonFlux
+CalvingModel.proportion.module = channel_frac
+CalvingModel.proportion.function = marine_retreat_simpleP@EXPT
+
+CalvingModel.independent.type = pythonFlux
+CalvingModel.independent.module = channel_frac
+CalvingModel.independent.function = marine_retreat_simpleI@EXPT
+
+CalvingModel.normal.type  = pythonFlux
+CalvingModel.normal.module = channel_frac
+CalvingModel.normal.function = marine_retreat_simpleN@EXPT
+
+CalvingModel.vector = true # deprecate this flag soon
