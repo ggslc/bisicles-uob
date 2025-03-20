@@ -4707,6 +4707,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   // clean up
   for (int lev=0; lev<= m_finest_level; lev++)
     {
+      if (grownVel[lev]) {delete  (grownVel[lev]); grownVel[lev] = NULL;}
       if (unet[lev]) {delete  (unet[lev]); unet[lev] = NULL;}
       if (frac_a[lev]) {delete  (frac_a[lev]); frac_a[lev] = NULL;}
       if (frac_start[lev]) {delete  (frac_start[lev]); frac_start[lev] = NULL;}
