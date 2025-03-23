@@ -5,7 +5,7 @@ Demonstrates user of amr.evolve_ice_frac2 = true
 
 Ice area fraction $f$ evolves according to the non-conservative advection equation
 
-$ (\vec{u} - \vec{u}_c) . \nabla f = 0 $
+$\frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) \cdot \nabla f = 0$
 
 - $f$ - fractional ice coverered area within cell
 - $\vec{u}$: ice velocity
@@ -13,14 +13,15 @@ $ (\vec{u} - \vec{u}_c) . \nabla f = 0 $
 
 # Simulations
 
-- Straight channel, 128 km $\times$ 16 km domain
-- No-slip conditions at $x = 0$, $y = 0$, $y = 16 km$
-- Initial state provides a calving front at $x = 96 km$
+- Idealized tidewater glacier with fjord
+	- Straight channel, 128 km $\times$ 16 km domain
+	- No-slip conditions at $x = 0$, $y = 0$, $y = 16 km$
+	- Initial state provides a calving front at $x = 96 km$
 - Front held steady for $ 0 < t \leq 8 $ years by setting calving rate $u_c = u$
 - Front retreats when $ 8 < t < 256 $, three cases:
-	- rn: $\vec{u}_c = \vec{u} + \alpha \nabla f$ - 
-	- ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ 
-        - rp: $\vec{u}_c = \gamma \vec{u}$
+	- rn: $\vec{u}_c = \vec{u} - \alpha \nabla f$ (calving applied normal to front)
+	- ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ (calving against ice velocity direction)
+        - rp: $\vec{u}_c = \gamma \vec{u}$ (calving proportiobal to ice velocity)
 - Each case repeated over 0-4 levels of refinement
 
 # How to run
