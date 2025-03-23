@@ -110,7 +110,7 @@ def snap_plot_expt(result, expt, level):
     ax.set_axis_off()
     ax.set_title(r'$f$')
     fig.suptitle(f'expt {expt} / AMR {level}')
-    fig.savefig(f'snapshots_{expt}_AMR{level}.png',dpi=200)
+    fig.savefig(f'snapshots_{expt}_AMR{level}.png',dpi=128)
     
 
 
@@ -136,7 +136,7 @@ for j, expt in enumerate(expts):
       
 axs[j,0].set_xlabel('time')
 axs[j,1].set_xlabel('time')
-
+fig.savefig(f'retreat_area_time.png',dpi=128)
 
 #%% snap shot plots
 for expt in expts[0:]:
