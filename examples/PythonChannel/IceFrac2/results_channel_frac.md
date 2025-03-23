@@ -5,7 +5,7 @@ Demonstrates user of amr.evolve_ice_frac2 = true
 
 Ice area fraction $f$ evolves according to the non-conservative advection equation
 
-$ \frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) . \nabla f = 0 $
+$ (\vec{u} - \vec{u}_c) . \nabla f = 0 $
 
 - $f$ - fractional ice coverered area within cell
 - $\vec{u}$: ice velocity
@@ -25,11 +25,11 @@ $ \frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) . \nabla f = 0 $
 
 # How to run
 
-1. mk_inputs.sh \# produces inputs.\* files for each case
-2. mk_ouputs.sh \# run BISICLES for each case. runs all jobs in the background, as simultaneous serial jobs
-3. python3 plot_channel_frac.py - \# produces the plots. Needs libamrfile to read the hdf5 files
+1. mk_inputs.sh  produces inputs.\* files for each case
+2. mk_ouputs.sh  runs BISICLES for each case. runs all jobs in the background, as simultaneous serial jobs
+3. plot_channel_frac.py  produces the plots. Needs libamrfile to read the hdf5 files
 
-#Results
+# Results
 
 ## Ice area and calving zone area
 
