@@ -35,7 +35,7 @@ $\frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) \cdot \nabla f = 0$
 ## Ice area and calving zone area
 
 
-![image](retreat_area_time.png){width=128}
+![image](retreat_area_time.png){width=128px}
 
 ##Snaphot images
 
