@@ -4,7 +4,8 @@
 Demonstrates user of amr.evolve_ice_frac2 = true
 
 Ice area fraction $f$ evolves according to the non-conservative advection equation
-$$ \frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) . \nabla f $$
+
+$ \frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) . \nabla f = 0 $
 
 - $f$ - fractional ice coverered area within cell
 - $\vec{u}$: ice velocity
