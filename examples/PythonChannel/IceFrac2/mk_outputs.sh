@@ -1,4 +1,4 @@
-for EXPT in rp ri rn ap ai an
+for EXPT in rp ri rn 
 do
     for TC in -1 0 1 2 3;
     do
