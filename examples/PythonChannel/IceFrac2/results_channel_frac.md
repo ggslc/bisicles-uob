@@ -12,12 +12,12 @@ $$ \frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) . \nabla f $$
 
 # Simulations
 
-- Straight channel, 128 km $\time$ 16 km domain
+- Straight channel, 128 km $\times$ 16 km domain
 - No-slip conditions at $x = 0$, $y = 0$, $y = 16 km$
 - Initial state provides a calving front at $x = 96 km$
 - Front held steady for $ 0 < t \leq 8 $ years by setting calving rate $u_c = u$
 - Front retreats when $ 8 < t < 256 $, three cases:
-	- rn: $\vec{u}_c = \vec{u} + \alpha \grad f$ - 
+	- rn: $\vec{u}_c = \vec{u} + \alpha \nabla f$ - 
 	- ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ 
         - rp: $\vec{u}_c = \gamma \vec{u}$
 - Each case repeated over 0-4 levels of refinement
