@@ -67,7 +67,9 @@ $L = B \Delta X, B > 1$.
 
 <img src="retreat_area_time.png"  width=50%>
 
-##Snaphot images
+## Snaphot images
+
+Plots beloiw show ice speed ($u$) and contours of fractional area $f$ for each simulation.
 
 ### (rn): Set retreat rate, directed along $\nabla f$
 
