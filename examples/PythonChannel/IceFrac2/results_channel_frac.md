@@ -61,6 +61,16 @@ For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $
 
 ##Snaphot images
 
+### (rn): Set retreat rate, directed along $\nabla f$
+
+$u_c = \alpha \nabla f$
+
+<img src="snapshots_rn_AMR0.png" width="50%">
+<img src="snapshots_rn_AMR1.png" width="50%">
+<img src="snapshots_rn_AMR2.png" width="50%">
+<img src="snapshots_rn_AMR3.png" width="50%">
+<img src="snapshots_rn_AMR4.png" width="50%">
+
 ### (ri) Set retreat rate, directed along $u$
 
 $u_c = \alpha u/|u|$ 
@@ -71,16 +81,6 @@ $u_c = \alpha u/|u|$
 <img src="snapshots_ri_AMR3.png" width="50%">
 <img src="snapshots_ri_AMR4.png" width="50%">
 
-
-### (rn): Set retreat rate, directed along $\nabla f$
-
-$u_c = \alpha \nabla f$
-
-<img src="snapshots_rn_AMR0.png" width="50%">
-<img src="snapshots_rn_AMR1.png" width="50%">
-<img src="snapshots_rn_AMR2.png" width="50%">
-<img src="snapshots_rn_AMR3.png" width="50%">
-<img src="snapshots_rn_AMR4.png" width="50%">
 
 ### (rp) Retreat rate proportional to $u$
 
