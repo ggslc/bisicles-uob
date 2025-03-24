@@ -11,62 +11,84 @@ $\frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) \cdot \nabla f = 0$
 - $\vec{u}$: ice velocity
 - $\vec{u}_c$: calving vector.
 
+$\vec{u}_c$ is defined in terms of a scalar calving rate ($\alpha$) and a choice of direction. 
+Three cases are included.
+
+- rn: $\vec{u}_c = \vec{u} - \alpha \nabla f$ (calving applied normal to front)
+- ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ (calving against ice velocity direction but independent of magnitude)
+- rp: $\vec{u}_c = (1 + \gamma) \vec{u}$ (calving proportional to ice velocity)
+
+For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $ 
+
 # Simulations
 
 - Idealized tidewater glacier with fjord
 	- Straight channel, 128 km $\times$ 16 km domain
 	- No-slip conditions at $x = 0$, $y = 0$, $y = 16 km$
+	- Bedrock $b = 100 (x - x_1)/(-x1)$, $x_1 = 72 $ km 
 	- Initial state provides a calving front at $x = 96 km$
 - Front held steady for $ 0 < t \leq 8 $ years by setting calving rate $u_c = u$
-- Front retreats when $ 8 < t < 256 $, three cases:
-	- rn: $\vec{u}_c = \vec{u} - \alpha \nabla f$ (calving applied normal to front)
-	- ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ (calving against ice velocity direction)
-        - rp: $\vec{u}_c = \gamma \vec{u}$ (calving proportiobal to ice velocity)
-- Each case repeated over 0-4 levels of refinement
+- Front retreats when $ 8 < t < 256 $, three cases: rn,ri,rp. Calving > 0 only when $b < 0$, ie $x > x1$
+- Each case repeated over 0-4 levels of refinement: AMR0-4
 
 # How to run
 
 1. mk_inputs.sh  produces inputs.\* files for each case
-2. mk_ouputs.sh  runs BISICLES for each case. runs all jobs in the background, as simultaneous serial jobs
+	- calving rates, geometry etc provided by channel_frac.py 
+2. mk_ouputs.sh  runs BISICLES for each case.
+	- runs all jobs in the background, as simultaneous serial jobs
 3. plot_channel_frac.py  produces the plots. Needs libamrfile to read the hdf5 files
 
 # Results
 
 ## Ice area and calving zone area
+ 
+### (rn): Set retreat rate, directed along $\nabla f$
+- retreat rate constant after $t = 8$ until front reaches $b = 0$.  
+- calving zone length $\~\Delta x$
 
+### (ri) Set retreat rate, directed along $u$
+
+- retreat rate constant after $t = 8$ until front reaches $b = 0$.  
+- calving zone length $\~\Delta x$
+
+### (rp) Retreat rate proportional to $u$
+
+- retreat increases afer $b = 0$.  
+- calving zone length $\~\Delta x$
 
 <img src="retreat_area_time.png"  width=50%>
 
 ##Snaphot images
 
-### Set retreat rate, directed along $u$
+### (ri) Set retreat rate, directed along $u$
 
 $u_c = \alpha u/|u|$ 
 
-![image](snapshots_ri_AMR0.png)
-![image](snapshots_ri_AMR1.png)
-![image](snapshots_ri_AMR2.png)
-![image](snapshots_ri_AMR3.png)
-![image](snapshots_ri_AMR4.png)
+<img src="snapshots_ri_AMR0" width="50%">
+<img src="snapshots_ri_AMR1" width="50%">
+<img src="snapshots_ri_AMR2" width="50%">
+<img src="snapshots_ri_AMR3" width="50%">
+<img src="snapshots_ri_AMR4" width="50%">
 
 
-### Set retreat rate, directed along $\nabla f$
+### (rn): Set retreat rate, directed along $\nabla f$
 
 $u_c = \alpha \nabla f$
 
-![image](snapshots_rn_AMR0.png)
-![image](snapshots_rn_AMR1.png)
-![image](snapshots_rn_AMR2.png)
-![image](snapshots_rn_AMR3.png)
-![image](snapshots_rn_AMR4.png)
+<img src="snapshots_rn_AMR0" width="50%">
+<img src="snapshots_rn_AMR1" width="50%">
+<img src="snapshots_rn_AMR2" width="50%">
+<img src="snapshots_rn_AMR3" width="50%">
+<img src="snapshots_rn_AMR4" width="50%">
 
-### Retreat rate proportional to $u$
+### (rp) Retreat rate proportional to $u$
 
 $u_c = \alpha u$
 
-![image](snapshots_rp_AMR0.png)
-![image](snapshots_rp_AMR1.png)
-![image](snapshots_rp_AMR2.png)
-![image](snapshots_rp_AMR3.png)
-![image](snapshots_rp_AMR4.png)
+<img src="snapshots_rp_AMR0" width="50%">
+<img src="snapshots_rp_AMR1" width="50%">
+<img src="snapshots_rp_AMR2" width="50%">
+<img src="snapshots_rp_AMR3" width="50%">
+<img src="snapshots_rp_AMR4" width="50%">
 
