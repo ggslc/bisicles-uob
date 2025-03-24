@@ -65,30 +65,30 @@ For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $
 
 $u_c = \alpha u/|u|$ 
 
-<img src="snapshots_ri_AMR0" width="50%">
-<img src="snapshots_ri_AMR1" width="50%">
-<img src="snapshots_ri_AMR2" width="50%">
-<img src="snapshots_ri_AMR3" width="50%">
-<img src="snapshots_ri_AMR4" width="50%">
+<img src="snapshots_ri_AMR0.png" width="50%">
+<img src="snapshots_ri_AMR1.png" width="50%">
+<img src="snapshots_ri_AMR2.png" width="50%">
+<img src="snapshots_ri_AMR3.png" width="50%">
+<img src="snapshots_ri_AMR4.png" width="50%">
 
 
 ### (rn): Set retreat rate, directed along $\nabla f$
 
 $u_c = \alpha \nabla f$
 
-<img src="snapshots_rn_AMR0" width="50%">
-<img src="snapshots_rn_AMR1" width="50%">
-<img src="snapshots_rn_AMR2" width="50%">
-<img src="snapshots_rn_AMR3" width="50%">
-<img src="snapshots_rn_AMR4" width="50%">
+<img src="snapshots_rn_AMR0.png" width="50%">
+<img src="snapshots_rn_AMR1.png" width="50%">
+<img src="snapshots_rn_AMR2.png" width="50%">
+<img src="snapshots_rn_AMR3.png" width="50%">
+<img src="snapshots_rn_AMR4.png" width="50%">
 
 ### (rp) Retreat rate proportional to $u$
 
 $u_c = \alpha u$
 
-<img src="snapshots_rp_AMR0" width="50%">
-<img src="snapshots_rp_AMR1" width="50%">
-<img src="snapshots_rp_AMR2" width="50%">
-<img src="snapshots_rp_AMR3" width="50%">
-<img src="snapshots_rp_AMR4" width="50%">
+<img src="snapshots_rp_AMR0.png" width="50%">
+<img src="snapshots_rp_AMR1.png" width="50%">
+<img src="snapshots_rp_AMR2.png" width="50%">
+<img src="snapshots_rp_AMR3.png" width="50%">
+<img src="snapshots_rp_AMR4.png" width="50%">
 
