@@ -42,20 +42,28 @@ For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $
 # Results
 
 ## Ice area and calving zone area
- 
+
+Plots below show total ice covered area
+
+$A = \int_\Omega f {\rm d} \Omega$
+
+and the length of the calving zone $L$, $L^2$ is the area where $\epsilon < f < 1 - \epsilon$. In a true VOF methods,
+$L = \Delta X$ i s the front is a straight line, i.e only one layer of part-filled cells. For our pseudo-VOF method,
+$L = B \Delta X, B > 1$.
+
 ### (rn): Set retreat rate, directed along $\nabla f$
 - retreat rate constant after $t = 8$ until front reaches $b = 0$.  
-- calving zone length $\~\Delta x$
+- calving zone length, $L \sim \Delta x$.
 
 ### (ri) Set retreat rate, directed along $u$
 
 - retreat rate constant after $t = 8$ until front reaches $b = 0$.  
-- calving zone length $\~\Delta x$
+- calving zone length $\sim \Delta x$
 
 ### (rp) Retreat rate proportional to $u$
 
 - retreat increases afer $b = 0$.  
-- calving zone length $\~\Delta x$
+- calving zone length $\sim \Delta x$
 
 <img src="retreat_area_time.png"  width=50%>
 
