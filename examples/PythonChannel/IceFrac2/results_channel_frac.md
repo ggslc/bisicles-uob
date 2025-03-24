@@ -58,12 +58,12 @@ $L = B \Delta X, B > 1$.
 ### (ri) Set retreat rate, directed along $u$
 
 - retreat rate constant after $t = 8$ until front reaches $b = 0$.  
-- calving zone length $\sim \Delta x$
+- calving zone length $L \sim \Delta x$
 
 ### (rp) Retreat rate proportional to $u$
 
-- retreat increases afer $b = 0$.  
-- calving zone length $\sim \Delta x$
+- retreat increases after $t = 8$ until $b = 0$   
+- calving zone length $ L \sim \Delta x$
 
 <img src="retreat_area_time.png"  width=50%>
 
