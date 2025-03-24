@@ -18,7 +18,7 @@ Three cases are included.
 - ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ (calving against ice velocity direction but independent of magnitude)
 - rp: $\vec{u}_c = (1 + \gamma) \vec{u}$ (calving proportional to ice velocity)
 
-For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $ 
+For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = \alpha / 256 $ 
 
 # Simulations
 
@@ -47,8 +47,8 @@ Plots below show total ice covered area
 
 $A = \int_\Omega f {\rm d} \Omega$
 
-and the length of the calving zone $L$, $L^2$ is the area where $\epsilon < f < 1 - \epsilon$. In a true VOF methods,
-$L = \Delta X$ i s the front is a straight line, i.e only one layer of part-filled cells. For our pseudo-VOF method,
+and the length of the calving zone $L$, $L^2$ is the area where $\epsilon < f < 1 - \epsilon$. In a true VOF method,
+$L = \Delta X$ if the front is a straight line, i.e only one layer of part-filled cells. For our pseudo-VOF method,
 $L = B \Delta X, B > 1$.
 
 ### (rn): Set retreat rate, directed along $\nabla f$
