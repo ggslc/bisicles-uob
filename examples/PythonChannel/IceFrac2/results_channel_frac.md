@@ -14,7 +14,7 @@ $\frac{\partial f}{\partial t} + (\vec{u} - \vec{u}_c) \cdot \nabla f = 0$
 $\vec{u}_c$ is defined in terms of a scalar calving rate ($\alpha$) and a choice of direction. 
 Three cases are included.
 
-- rn: $\vec{u}_c = \vec{u} - \alpha \nabla f$ (calving applied normal to front)
+- rn: $\vec{u}_c = \vec{u} - \alpha \nabla f / |\nabla f|$ (calving applied normal to front)
 - ri: $\vec{u}_c = \vec{u} + \alpha \vec{u} / |\vec{u}|$ (calving against ice velocity direction but independent of magnitude)
 - rp: $\vec{u}_c = (1 + \gamma) \vec{u}$ (calving proportional to ice velocity)
 
@@ -63,7 +63,7 @@ For rn, ri, set $\alpha = 128 {\rm m/a}$. For rp, $\gamma = $\alpha / 256 $
 
 ### (rn): Set retreat rate, directed along $\nabla f$
 
-$u_c = \alpha \nabla f$
+$u_c = \alpha \nabla f/ |\nabla f|$
 
 <img src="snapshots_rn_AMR0.png" width="50%">
 <img src="snapshots_rn_AMR1.png" width="50%">
