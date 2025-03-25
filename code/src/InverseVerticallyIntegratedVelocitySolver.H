@@ -319,6 +319,7 @@ public:
     /// continue CG from the state saved in a file
     std::string m_CGreadStateFile;
     int m_CGreadStateIter;
+    bool m_CGfreshStart; // re-initialize CG rather than continuing
    
     ///observed velocity data coefficient
     SurfaceData* m_velObs_c;
@@ -417,6 +418,7 @@ private:
   
   bool readCGState
   ( int& iter,
+    bool& fresh_start,
     Vector<LevelData<FArrayBox>* >& x,
     Vector<LevelData<FArrayBox>* >& r,
     Vector<LevelData<FArrayBox>* >& s,

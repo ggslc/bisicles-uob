@@ -330,9 +330,11 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   m_CGreadStateFile = "";
   pp.query("CGreadStateFile", m_CGreadStateFile);
   m_CGreadStateIter = -1;
+  m_CGfreshStart = false;
   if (m_CGreadStateFile != "")
     {
       pp.get("CGreadStateIter",m_CGreadStateIter);
+      pp.query("CGfreshStart",m_CGfreshStart);
     }
   
 }
@@ -1781,6 +1783,7 @@ void InverseVerticallyIntegratedVelocitySolver::saveCGState
 
 bool InverseVerticallyIntegratedVelocitySolver::readCGState
 ( int& a_iter,
+  bool& a_fresh_start,
   Vector<LevelData<FArrayBox>* >& a_x,
   Vector<LevelData<FArrayBox>* >& a_r,
   Vector<LevelData<FArrayBox>* >& a_s,
@@ -1803,7 +1806,8 @@ bool InverseVerticallyIntegratedVelocitySolver::readCGState
   pout() << " InverseVerticallyIntegratedVelocitySolver::readCGState: reading CG state from "
 	 << m_config.m_CGreadStateFile << std::endl;
 
-
+  a_fresh_start = m_config.m_CGfreshStart;
+  
   // data we need to read an AMR hierarchy
   int numLevels;
   Vector<LevelData<FArrayBox>* > data;

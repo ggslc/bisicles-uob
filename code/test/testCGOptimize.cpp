@@ -140,7 +140,8 @@ public:
 
   }
    /// (never) read a state allowing CG to resume. Should return true if a state was read
-  virtual bool readCGState(int& iter,  RealVector& x,  RealVector& r, RealVector& s, RealVector& d)
+  virtual bool readCGState(int& iter,  bool& fresh_start,
+			   RealVector& x,  RealVector& r, RealVector& s, RealVector& d)
   {
     return false;
   }

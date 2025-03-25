@@ -86,7 +86,7 @@ public:
   /// save a state that would allow CG to resume from iteration iter.
   virtual void saveCGState(int iter, const X& x, const X& r, const X& s, const X& d) = 0;
    /// read a state allowing CG to resume. Should return true if a state was read
-  virtual bool readCGState(int& iter,  X& x,  X& r, X& s, X& d) = 0;
+  virtual bool readCGState(int& iter, bool& fresh_start, X& x,  X& r, X& s, X& d) = 0;
 
 };
 
@@ -324,7 +324,9 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
   int iter(a_iter);
 
   //continue CG, or start afresh
-  if (a_F.readCGState(iter, x, r, s, d))
+  bool fresh_start(false);
+  bool readCG = a_F.readCGState(iter, fresh_start, x, r, s, d);
+  if (readCG && !fresh_start)
     {
       // Need to recompute fm,fp. We don't need to recompute r (= - grad F),
       // but worth knowing whether we *would* re-compute it
@@ -339,7 +341,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
     }
   else
     {
-      // fresh start
+      // fresh start, either because we read nothing, or we read x but specified fresh_start
       a_F.computeObjectiveAndGradient(fm,fp,r,x,iter,false);
       a_F.scale(r,-1.0);
       a_F.preCond(s,r);
