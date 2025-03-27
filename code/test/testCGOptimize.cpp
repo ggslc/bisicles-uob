@@ -177,7 +177,9 @@ int main(int argc, char* argv[])
 
   pout() << "initial F(x) = " << F(x) << std::endl;
 
-  CGOptimize(F,x,100,1.0e-10,0.999,0,1.0e-3,-1.0,100,1.0e-10);
+
+  
+  CGOptimize(F,x,100,1.0e-10,0.999,20,1.0e-3,-1.0,100,1.0e-10);
 
   Real final = F(x);
 
