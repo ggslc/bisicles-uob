@@ -211,49 +211,81 @@ void secantLineSearchV2
  int a_maxIter, Real a_initialStep, Real a_stepMaxGrow, Real a_tol)
 {
 
-  Real a, b, s, s_prev, ds; // brackets a,b , current points, increment ds
-  Real fa, fb, fs, fs_prev; // f'(x + s d).d @ s = a,b,s, s_prev
+  Real a, b, m, s, s_prev, s_best, ds; // brackets a,b,current & previous point s, best s, increment ds
+  Real fa, fb, fs, fs_prev, fs_best, df; // f'(x + s d).d @ s = a,b,s, s_prev, s_best, difference df
   Real Fm, Fp; // misfit and penalty norms (F = Fm + Fp)
   Real f0, s0; // initial values
   int iter(0);
-  fa =  a_F.dotProduct(r,d); a = 0.0; f0 = fa; fs_prev=fa;
+  bool b_exists(false);
+  
+  fa =  a_F.dotProduct(r,d); a = 0.0; f0 = fa; fs_prev=fa; fs_best = fa;
   b = 1.2345678e+300; fb = -b; // dummy valued for b, fb s.t b > 0,  f(b) < 0 
-  s = a_initialStep; s0 = s; ds = s; s_prev = 0.0;
+  s = a_initialStep; s0 = s; ds = s; s_prev = 0.0; s_best = s;
 
+  
   do {
-    
-    a_F.incr(x,d,ds);
-    a_F.computeObjectiveAndGradient(Fm,Fp,r,x,iter,true);
+    a_F.assign(v, x);
+    a_F.incr(v, d, s);
+    a_F.computeObjectiveAndGradient(Fm,Fp,r,v,iter,true);
     fs = -a_F.dotProduct(r,d);
+
+    if (Abs(fs) < Abs(fs_best))
+      {
+	fs_best = fs;
+	s_best = s;
+      }
 
     pout() <<  " ... secant v2 iteration " << iter << " f'(x[0]+ s d).d = " << fs
 	   << " s = " << s << " ds = " << ds << " f(x[0] + sd) = " << Fm + Fp
 	   << " (" << a << " = a " << " < s < b = " << b << ")"
 	   << std::endl;
 
-    if ((fs > 0) && (fs < fa) && (a < s))
+    if (b_exists && (fs > 0) && (a < s))
       {
-	//update the near bracket;
-	fa = fs; a =s;
+    	//update the near bracket (a);
+    	fa = fs; a = s;
       }
-    else if ((fs < 0) && (fs > fb) && (b > s))
+    else if ((fs < 0) && (b > s))
       {
-	// update the far bracket.
-	fb = fs; b = s;
+    	// update the far bracket (b).
+    	b_exists = true;
+    	fb = fs; b = s;
       }
 
     // vanilla secant step
-    ds = ds * fs / (fs_prev - fs);
-    fs_prev = fs; s_prev = s;
-    s += ds;
-
-    // bracket s
-    s = std::max(a, std::min(s, b )); 
-    ds = s - s_prev;
     
-    iter++;
-  } while (iter < a_maxIter  && (sqr(ds) * f0 > sqr(a_tol)));
+    df = fs - fs_prev;
+    if (Abs(df) > 1.0e-16)
+      {
+	s -= ds * fs / df;
+      }
+    else
+      {
+     	// not likely, but possible....
+     	s = 0.5 * (s_prev + (b_exists && (-fb < fa))?b:a);
+      }
+    
+    // Switch to bisection a la Dekker (not Brent...) 
+    if ((b_exists) && ((s < a) || (s > b)))
+      {
+    	s = 0.5 * (a+b);
+      }
 
+    ds = s - s_prev;
+    s_prev = s;
+    fs_prev = fs;
+    
+    pout() <<  " ... ... secant v2 test  " << iter 
+    	   << " s = " << s
+    	   << " ds = " << ds
+    	   << " sqr(ds) * f0 = " << sqr(ds) * f0
+    	   << std::endl;
+   
+    iter++;
+    
+  } while (iter < a_maxIter  && (sqr(ds) * f0 > sqr(a_tol)));
+  
+  a_F.incr(x, d, s_best);
   
 }
 
