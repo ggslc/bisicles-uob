@@ -276,7 +276,7 @@ void secantLineSearchV2
     // limit growth in secant ds (for now, ds stores ds[iter-1])
     if ((a_stepMaxGrow > 0.0) && (Abs(s - s_prev) > a_stepMaxGrow * Abs(ds)))
       {
-	s = s_prev + (s < s_prev)?-1.0:1.0 * a_stepMaxGrow * Abs(ds);
+	s = s_prev + ((s < s_prev)?-1.0:1.0) * a_stepMaxGrow * Abs(ds);
       }
 		
     // Switch to bisection a la Dekker (not Brent...) 
