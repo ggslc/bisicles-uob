@@ -64,8 +64,12 @@ public:
    virtual void assign(X& y, const X& x) = 0;
 
   /// Set y = y + s * x
-   virtual void incr(X& y, const X& x, Real s) = 0;
+  virtual void incr(X& y, const X& x, Real s) = 0;
 
+  /// y = y + s * x, state vector version. Defaults to incr
+  virtual void incrState(X& y, const X& x, Real s) {incr(y,x,s);}
+
+  
   /// resize a / allocate storage to conform with b
    virtual void create (X &a, const X &b) = 0;
 
@@ -199,9 +203,15 @@ void bisectionLineSearch
    w - workspace vector
    a_fx: input f(x) (where f' is the gradient of scalar f > 0)
 
-   V2 is a 'vanilla' secant method, apart from storing/updating 
+   V2 is a modified secant method . It stores / updates 
    brackets a, b, where - f'(x + ad).d > 0 and - f'(x + bd).d < 0,
-   and enforcing a < s < b (attempt to prevent divergence)
+   and enforces a < s < b (attempt to prevent divergence) by switching
+   to bisection (s = 0.5* (a + b) where s < a or s > b.
+   
+   Method requires a initial step s (a_initialStep) and limits the
+   growth of *secant* step ds[i+1] = s[i+1] - s[i] 
+   such that |ds[i+1]| < a_stepMaxGrow * |ds[i]|
+   (bisection steps are not limnited)
 
  */
 
@@ -220,12 +230,11 @@ void secantLineSearchV2
   
   fa =  a_F.dotProduct(r,d); a = 0.0; f0 = fa; fs_prev=fa; fs_best = fa;
   b = 1.2345678e+300; fb = -b; // dummy valued for b, fb s.t b > 0,  f(b) < 0 
-  s = a_initialStep; s0 = s; ds = s; s_prev = 0.0; s_best = s;
+  s = a_initialStep; s0 = s; ds = s; s_prev = 0.0; s_best = 0.0;
 
-  
   do {
     a_F.assign(v, x);
-    a_F.incr(v, d, s);
+    a_F.incrState(v, d, s);
     a_F.computeObjectiveAndGradient(Fm,Fp,r,v,iter,true);
     fs = -a_F.dotProduct(r,d);
 
@@ -253,7 +262,6 @@ void secantLineSearchV2
       }
 
     // vanilla secant step
-    
     df = fs - fs_prev;
     if (Abs(df) > 1.0e-16)
       {
@@ -265,12 +273,18 @@ void secantLineSearchV2
      	s = 0.5 * (s_prev + (b_exists && (-fb < fa))?b:a);
       }
     
+    // limit growth in secant ds (for now, ds stores ds[iter-1])
+    if ((a_stepMaxGrow > 0.0) && (Abs(s - s_prev) > a_stepMaxGrow * Abs(ds)))
+      {
+	s = s_prev + (s < s_prev)?-1.0:1.0 * a_stepMaxGrow * Abs(ds);
+      }
+		
     // Switch to bisection a la Dekker (not Brent...) 
     if ((b_exists) && ((s < a) || (s > b)))
       {
     	s = 0.5 * (a+b);
       }
-
+    
     ds = s - s_prev;
     s_prev = s;
     fs_prev = fs;
@@ -285,7 +299,7 @@ void secantLineSearchV2
     
   } while (iter < a_maxIter  && (sqr(ds) * f0 > sqr(a_tol)));
   
-  a_F.incr(x, d, s_best);
+  a_F.incrState(x, d, s_best);
   
 }
 
@@ -514,7 +528,7 @@ int CGOptimize(ObjectiveWithGradient<X>& a_F, X& a_x,
 	}
       else
 	{
-	  // we had secant as the only option since 2011, so make it default
+	  // we had secant as the only option 2011-2025, so make it default
 	  secantLineSearch(a_F, x, r, d, y, p, fm+fp,  a_lineSearchMaxIter, 
 			   a_lineSearchInitialStep, a_lineSearchStepMaxGrow, a_lineSearchTol);
 	}

@@ -696,6 +696,11 @@ public:
   // set a_y = a_y + a_s * a_x
   void incr(Vector<LevelData<FArrayBox>* >& y, 
 	    const Vector<LevelData<FArrayBox>* >& x, Real s);
+
+
+  // set a_y = a_y + a_s * a_x subject to bounds 
+  void incrState(Vector<LevelData<FArrayBox>* >& y, 
+		 const Vector<LevelData<FArrayBox>* >& x, Real s);
   
   // return a_y.a_x
   Real dotProduct(Vector<LevelData<FArrayBox>* >& a_y, 

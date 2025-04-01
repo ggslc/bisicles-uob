@@ -686,7 +686,35 @@ void InverseVerticallyIntegratedVelocitySolver::incr
   for (int lev = 0; lev < std::min(a_x.size(),a_y.size()); lev++)
     m_vectOps[lev].incr(*a_y[lev],*a_x[lev],a_s);
 }
+
+// set a_y = a_y + a_s * a_x subject to bounds
+void InverseVerticallyIntegratedVelocitySolver::incrState
+(Vector<LevelData<FArrayBox>* >& a_y, 
+ const Vector<LevelData<FArrayBox>* >& a_x, Real a_s)
+{
+  incr(a_y, a_x, a_s);
+  for (int lev = 0; lev < std::min(a_x.size(),a_y.size()); lev++)
+    {
+      for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+       {
+  	 FArrayBox& y = (*a_y[lev])[dit];
+	 
+  	 FORT_BOUNDCTRL(CHF_FRA1(y,0),
+  			CHF_CONST_REAL(m_config.m_lowerX0),
+  			CHF_CONST_REAL(m_config.m_upperX0),
+  			CHF_BOX(m_grids[lev][dit]));
+
+  	 FORT_BOUNDCTRL(CHF_FRA1(y,1),
+  			CHF_CONST_REAL(m_config.m_lowerX1),
+  			CHF_CONST_REAL(m_config.m_upperX1),
+  			CHF_BOX(m_grids[lev][dit]));
+	 
+       } 
+    }
+}
   
+
+
 // return a_y.a_x
 Real InverseVerticallyIntegratedVelocitySolver::dotProduct
 (Vector<LevelData<FArrayBox>* >& a_1, 
