@@ -17,8 +17,9 @@
   <li><a href='#debian'>Debian based systems (e.g Ubuntu) </a></li>
   <li><a href='#rocky8'>Rocky Linux 8</a></li>
   <li><a href='#uob'>University of Bristol</a></li>
+  <li><a href='#isambard3'>Isambard 3 (Cray, ARM) </li>
   <li><a href='#nersc'>NERSC</a></li>
-  <li><a href='#archer'>ARCHER (Cray XC30,</li>
+  <li><a href='#archer'>ARCHER (Cray XC30)</li>
   <li><a href='#monsoon'>UKMO Monsoon (Cray XC40)</a></li>
 </ol>
 </div>
@@ -28,10 +29,9 @@
 <h1><a name='top'>BISICLES site specific notes</a></h1>
 
 <h2><a name='debian'>Debian based systems (e.g Ubuntu)</a></h2>
-
 <p>
-  Recent Debian GNU/Linux derivatives (from around 2016), including Ubuntu 22.04 (Jammy Jellyfish, the latest LTS) allow an mpi environment ,
-  hdf5, and netcdf to be installed in a way that works well for BISICLES. On Ubuntu 22.04 run
+Debian GNU/Linux derivatives including Ubuntu 22.04 (Jammy Jellyfish, the latest LTS) allow an mpi environment ,
+hdf5, and netcdf to be installed in a way that works well for BISICLES. On Ubuntu 22.04 run
 </p>
 <pre>
   sudo apt install subversion build-essential g++ gfortran csh mpi-default-bin mpi-default-dev libhdf5-mpi-dev libhdf5-dev hdf5-tools libnetcdff-dev libnetcdf-dev python3 python3-dev libpython3-dev libfftw3-dev
@@ -80,7 +80,7 @@ NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
 </pre>
 <p>
   Then follow the <a href='readme.html'>generic instructions</a>.
-  For BISICLES configuration, used the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.rocky8. For
+  For BISICLES configuration, use the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.rocky8. For
   example,
 </p>
 <pre>
@@ -113,9 +113,54 @@ NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
 </pre>
 <h3>Blue Crystal Phase 4, GNU Compilers</h3>
  
-    
 
-   <h2><a name='nersc'>NERSC</a></h2>
+<h2><a name='isambard3'>Isambard 3</a></h2>
+
+The Isambard systems are UK HPC facilities managed by the Bristol Centre for Supercomputing.
+See the <a href='https://docs.isambard.ac.uk'>BriCS Isambard documentation</a>
+for details. BISICLES has been built and runs on the main Isambard 3 Grace machine.
+This is an ARM machine, built around NVIDIA Grace CPUs. BISICLES has been built and
+runs well using the GNU compilers on this system.  
+
+Isambard 3 Grace is a Cray of some sort. To build and run, use the following modules.   
+<pre>
+module load craype-network-ofi
+module load PrgEnv-Gnu
+module load cray-python/3.11.7
+</pre>
+
+There is (as yet) no pre-installed hdf5 or PETSc, so follow the <a href='readme.html'>generic instructions</a> to install
+those. There is no reason to build serial hdf5. The file $BISICLES_HOME/Chombo/lib/mk/Make.defs.local should contain:
+<pre>
+MPI=TRUE 
+OPT=TRUE
+DEBUG=TRUE
+CXX=CC
+FC=ftn
+MPICXX=CC
+USE_64=TRUE
+CH_CPP=$(CXX) -E -P -C
+XTRACONFIG=.GNU
+cxxoptflags += -O3 -mcpu=neoverse-v2
+foptflags += -cpp -O3 -mcpu=neoverse-v2
+USE_HDF=TRUE
+# isambard 3 does not have an hdf5 module, so we need to build it.
+HDF5_PAR_DIR=...# path to parallel HDF5 install
+HDF5_SER_DIR=$(HDF5_PAR_DIR)# unless you decided to build serial versions for some reason 
+HDFLIBFLAGS=   -L$(HDF5_SER_DIR)/lib  -lhdf5 -lz -Wl,-rpath=$(HDF5_PAR_DIR)/lib
+HDFMPILIBFLAGS=-L$(HDF5_PAR_DIR)/lib  -lhdf5 -lz -Wl,-rpath=$(HDF5_PAR_DIR)/lib
+HDFINCFLAGS=   -I$(HDF5_SER_DIR)/include
+HDFMPIINCFLAGS=-I$(HDF5_PAR_DIR)/include
+</pre>
+The file $BISICLES_HOME/Chombo/lib/mk/Make.defs.none should include
+<pre>
+PYTHON_INC=$(shell python3-config --includes)
+#--ldflags does not include -lpython for reasons that escape me
+PYTHON_LIBS=-lpython3.11 $(shell python3-config --ldflags)
+</pre>
+
+
+<h2><a name='nersc'>NERSC</a></h2>
     The US DOE-run National Energy Research Supercomputing Center ( <a href='http://www.nersc.gov'>NERSC</a>)
     has several machines which BISICLES users may find useful. 
 
