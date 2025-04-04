@@ -94,25 +94,44 @@ NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
   You might not need to compile BISICLES at UoB since
   a number of the developers work there. 
 </p>
-  <h3>Blue Pebble, GNU Compilers</h3>
+
+<h3>Blue Pebble, GNU Compilers</h3>
 <p>
-  Load the module lib/openmpi/4.0.2-gcc.
+  Load the modules openmpi/5.0.3-et6p and languages/python/3.8.20 (the more recent versions of python contain a libmpi version that conflicts with the one in openmpi/5.0.3-et6p).
   Add the commands below to ~/.bash_profile.
 </p>
 <pre>
-  module load lib/openmpi/4.0.2-gcc
+  module load languages/python/3.8.20
+  module load openmpi/5.0.3-et6p
 </pre>
 <p>
   Then follow the <a href='readme.html'>generic instructions</a>.
-  For BISICLES configuration, used the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.blue_pebble. For
+  For BISICLES configuration, used the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.bp1. For
   example,
 </p>
 <pre>
   cd $BISICLES_HOME/BISICLES/code/mk
-  ln -s Make.defs.blue_pebble Make.defs.none
+  ln -s Make.defs.bp1 Make.defs.none
 </pre>
+
 <h3>Blue Crystal Phase 4, GNU Compilers</h3>
- 
+<p>
+  Load the modules openmpi/5.0.3-gi7y and languages/python/biopython-1.83 (this version is needed as python/3.12.3 contains a libmpi version that conflicts with the one in openmpi/5.0.3-gi7y).
+  Add the commands below to ~/.bash_profile.
+</p>
+<pre>
+  module load languages/python/biopython-1.83
+  module load openmpi/5.0.3-gi7y
+</pre>
+<p>
+  Then follow the <a href='readme.html'>generic instructions</a>.
+  For BISICLES configuration, used the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.bc4. For
+  example,
+</p>
+<pre>
+  cd $BISICLES_HOME/BISICLES/code/mk
+  ln -s Make.defs.bc4 Make.defs.none
+</pre>
 
 <h2><a name='isambard3'>Isambard 3</a></h2>
 
