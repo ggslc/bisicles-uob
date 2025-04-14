@@ -1167,6 +1167,7 @@ InverseVerticallyIntegratedVelocitySolver::computeDivUH()
 	  delete crseCellDiffusivityPtr;
 
       }
+    if (cellDiffusivity != NULL) delete cellDiffusivity;
   }
 
   //2. compute face thickness (PPM...)
