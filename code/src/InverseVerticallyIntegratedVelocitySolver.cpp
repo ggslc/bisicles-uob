@@ -1785,12 +1785,16 @@ void InverseVerticallyIntegratedVelocitySolver::saveCGState
       pout() << " InverseVerticallyIntegratedVelocitySolver::saveCGState: saving CG state to "
 	     << fileName << std::endl;
 
-      Vector<std::string> names(8);
+      Vector<std::string> names(8+SpaceDim);
       int i(0);
       names[i++] = "x0"; names[i++] = "x1";
       names[i++] = "r0"; names[i++] = "r1";
       names[i++] = "s0"; names[i++] = "s1";
       names[i++] = "d0"; names[i++] = "d1";
+      // not strictly part of the CG state, but used to initialize velocity solve
+      names[i++] = "ux"; 
+      if (SpaceDim > 1) names[i++] = "uy";		
+
       
       Vector<LevelData<FArrayBox>*> vdata(m_finest_level+1);
       for (int lev = 0; lev <= m_finest_level;lev++)
@@ -1801,6 +1805,7 @@ void InverseVerticallyIntegratedVelocitySolver::saveCGState
 	  a_r[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
 	  a_s[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
 	  a_d[lev]->copyTo(Interval(0,1), *vdata[lev], Interval(j,j+1));j+=2;
+	  m_velb[lev]->copyTo(Interval(0,SpaceDim-1), *vdata[lev], Interval(j,j+SpaceDim-1));j+=SpaceDim;	
 	}
 
       WriteAMRHierarchyHDF5(fileName, m_grids, vdata, names, m_domain[0].domainBox(),
@@ -1859,6 +1864,11 @@ bool InverseVerticallyIntegratedVelocitySolver::readCGState
       data[lev]->copyTo(Interval(j,j+1), *a_r[lev], Interval(0,1));j+=2;
       data[lev]->copyTo(Interval(j,j+1), *a_s[lev], Interval(0,1));j+=2;
       data[lev]->copyTo(Interval(j,j+1), *a_d[lev], Interval(0,1));j+=2;
+      if ((names.size() > j) && names[j] == "ux") 
+	{
+	   //save state contains the velocity
+	   data[lev]->copyTo(Interval(j,j+SpaceDim-1), *m_velb[lev], Interval(0,SpaceDim-1));j+=SpaceDim;
+	}
     }
 
   a_iter = m_config.m_CGreadStateIter;
