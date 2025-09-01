@@ -33,6 +33,7 @@ namespace NCIO
 		const Vector<std::string>& a_cf_long_names,
 		const FArrayBox& a_fab, 
 		const Real& a_dx,
+		const Real& a_time, 
 		const RealVect& a_x0, 
 		int a_epsg,
 		const DomainDiagnosticData& a_dd,

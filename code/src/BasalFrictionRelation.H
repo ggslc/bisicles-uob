@@ -102,6 +102,16 @@ public:
 	
     An alternate version of the above, \f$ N (N_r^{1/m} |u_b|/|u_r| + N^{1/m} )^{-m} ) \f$ is available
 
+    N (the pressure at the bed) is assumed to be
+    \f$ N = \rho g [ w (h-h_f) + (1-w) h] \f$.
+    
+    - \f$ h,h_f \f$ are the ice thickness and flotation thickness
+    - \f$ 0 < w < 1 \f$ is somethign like a 'channel density': when \f$ w = 1 \f$
+      the base is jacked up by the ocean pressure at the bed depth, when \f$ w = 0 \f$
+      the base is not jacked.
+
+    Note that the \rho g factor is eliminated in the actual calculation
+
     Run-time configuation is carried out in BasalFrictionRelation::parse.
     If the string `A.B.basalFrictionRelation = powerLaw` is found, the expected
     form is
@@ -110,6 +120,7 @@ public:
     - `BasalFrictionPowerLaw.includeEffectivePressure = <bool>`
     - `BasalFrictionPowerLaw.fastSlidingSpeed = <float. e.g 300 for Joughin 2019>`
     - `BasalFrictionPowerLaw.highThickness = <float. e.g 1e2 for ~100 kPa>`
+    - `BasalFrictionPowerLaw.oceanConnectivityCoef = <float>, 0-1`
     
     if includeEffectivePressure, \f$n = m\f$ so that there is a 
     dependence on the thickness over flotation \f$h_ab\f$. Otherwise,
@@ -123,10 +134,14 @@ public:
   BasalFrictionPowerLaw(Real a_m,
 			Real a_fastSlidingSpeed = -1.0,
 			Real a_highThickness = -1.0  ,
-			bool a_includeEffectivePressure = false) 
+			bool a_includeEffectivePressure = false,
+			Real a_oceanConnectivityCoef = 1.0) 
     : m_m(a_m),  m_includeEffectivePressure(a_includeEffectivePressure) ,
-      m_fastSlidingSpeed(a_fastSlidingSpeed), m_highThickness(a_highThickness)
-  {;}
+      m_fastSlidingSpeed(a_fastSlidingSpeed), m_highThickness(a_highThickness),
+      m_oceanConnectivityCoef(a_oceanConnectivityCoef)
+  {
+    CH_assert((m_oceanConnectivityCoef >= 0.0) && (m_oceanConnectivityCoef <= 1.0));
+    ;}
   
   virtual ~BasalFrictionPowerLaw() {;}
 
@@ -139,7 +154,7 @@ public:
 			    const Box& a_box) const;
 
   BasalFrictionRelation* getNewBasalFrictionRelation() const{
-    return static_cast<BasalFrictionRelation*> (new BasalFrictionPowerLaw(m_m, m_fastSlidingSpeed, m_highThickness, m_includeEffectivePressure));
+    return static_cast<BasalFrictionRelation*> (new BasalFrictionPowerLaw(m_m, m_fastSlidingSpeed, m_highThickness, m_includeEffectivePressure,m_oceanConnectivityCoef ));
   }
 
   /// \callergraph
@@ -151,6 +166,7 @@ private:
   bool m_includeEffectivePressure;
   Real m_fastSlidingSpeed; // a scale u_r for fast flow : u >> u_r -> Tb -> a constant
   Real m_highThickness; // a scale for thickness above flotation
+  Real m_oceanConnectivityCoef; // set to 1 for perfect ocean connectivity
   BasalFrictionPowerLaw();
 
 };

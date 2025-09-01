@@ -160,7 +160,8 @@ void secantLineSearch
       }
     
     pout() <<  " ... secant iteration j = " << j << " f'(x[0]+qd).f'(x[0]) = " << -eta
-	   << " a = " << alpha << " q =  " << q << std::endl;
+	   << " q = " << q 
+	   << std::endl;
 	
     Real absAlphaPrev = std::abs(alpha);
     alpha = alpha * eta / (etaPrev-eta);
@@ -172,13 +173,12 @@ void secantLineSearch
       }
     
     q += alpha;
-    pout() << " ... testing a = " << alpha << "  q = " << q  << std::endl;
+    pout() << " ... secant step a = " << alpha << "  q = " << q  << std::endl;
     
     a_F.incr(x,d,alpha);
     etaPrev = eta;
     j++;
-  } while (j < a_maxIter 
-	   && sqr(alpha) * deltaD > sqr(a_tol));
+  } while (j < a_maxIter  && (sqr(alpha) * deltaD > sqr(a_tol)));
   
   
 }

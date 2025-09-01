@@ -1,0 +1,25 @@
+name: report system information
+
+on:
+
+    workflow_dispatch:
+
+jobs:
+  build:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+   
+    #report CPU info
+    - name: CPU info
+      run: cat /proc/cpuinfo
+
+    #report paths
+    - name: paths
+      run: |
+        echo "PWD: "$PWD
+        echo "GITHUB_WORKSPACE: "$GITHUB_WORKSPACE
+        echo "HOME: $HOME"
+

@@ -1459,7 +1459,8 @@ AmrIce::initialize()
           initGrids(finest_level);
         }
       
-     
+      m_cf_domain_diagnostic_data.initDiagnostics
+      	(*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
     }
   else
     {
@@ -1524,8 +1525,7 @@ AmrIce::initialize()
         }
     } // end loop over levels to determine covered levels
 
-  m_cf_domain_diagnostic_data.initDiagnostics
-    (*this, m_vect_coordSys, m_amrGrids, m_refinement_ratios, m_amrDx[0], time() , m_finest_level);
+
 
 }  
   
@@ -2257,9 +2257,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
 	  
 	  timeStep(dt);
 
-	  //m_dt = trueDt; 
-	  // restores the correct timestep in cases where it was chosen just to reach a plot file
-	  //update CF data mean
+	  //update CF data time-means and diagnostics
 	  if (m_plot_style_cf) accumulateCFData(dt);	  
 	  
 	} // end of plot_time_interval
@@ -2407,16 +2405,16 @@ AmrIce::timeStep(Real a_dt)
 
   // compute thickness fluxes
   computeThicknessFluxes(vectFluxes, H_half, m_faceVelAdvection);
-  
-  if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.computeDischarge
-	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
-	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
-    }
+
+  // not supportred for now, but could be
+  // if (m_report_discharge && (m_next_report_time - m_time) < (a_dt + TIME_EPS))
+  //   {
+  //     m_cf_domain_diagnostic_data.computeDischarge
+  // 	(m_vect_coordSys, vectFluxes, m_amrGrids, m_amrDx, m_refinement_ratios, 
+  // 	 m_time, time(), m_cur_step, m_finest_level, s_verbosity);
+  //   }
 
 
-  
   // make a copy of m_vect_coordSys before it is overwritten \todo clean up
   Vector<RefCountedPtr<LevelSigmaCS> > vectCoords_old (m_finest_level+1);
   for (int lev=0; lev<= m_finest_level; lev++)
@@ -2512,26 +2510,14 @@ AmrIce::timeStep(Real a_dt)
       solveVelocityField();
     }
   
-  if ((m_next_report_time - m_time) < (a_dt + TIME_EPS))
-    {
-      m_cf_domain_diagnostic_data.endTimestepDiagnostics
-	(m_vect_coordSys, m_old_thickness, m_divThicknessFlux, m_basalThicknessSource, m_surfaceThicknessSource, m_calvedIceArea,
-	 m_calvedIceThickness, m_addedIceThickness, m_removedIceThickness,
-	 m_amrGrids, m_refinement_ratios, m_amrDx[0], time(), m_time, m_dt,
-	 m_cur_step, m_finest_level, s_verbosity);
-    }
-
   if (s_verbosity > 0) 
     {
       pout () << "AmrIce::timestep " << m_cur_step
               << " --     end time = " 
 	      << setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << m_time  << " ( " << time() << " )"
-        //<< " (" << m_time/secondsperyear << " yr)"
               << ", dt = " 
-        //<< setiosflags(ios::fixed) << setprecision(6) << setw(12)
               << a_dt
-        //<< " ( " << a_dt/secondsperyear << " yr )"
 	      << resetiosflags(ios::fixed)
               << endl;
     }
@@ -2919,7 +2905,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	      //remove calved area.
 	      const FArrayBox& frac = (*m_iceFrac[lev])[dit];
 	      const FArrayBox& calved_frac = (*m_calvedIceArea[lev])[dit];
-	      Real frac_tol = 1.0e-10;
+	      Real frac_tol = TINY_FRAC;
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	      	{
 	      	  const IntVect& iv = bit();
@@ -2927,6 +2913,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 		    {
 		      Real remove(0.0);
 		      if (frac(iv) > frac_tol)
+			
 			{
 			  if (calved_frac(iv) > frac_tol)
 			    {
@@ -3988,7 +3975,6 @@ AmrIce::updateIceFrac(LevelData<FArrayBox>& a_thickness, int a_level)
   // set ice fraction to 0 if no ice in cell...
 
   // "zero" thickness value
-  // Check that this rountine doesn't interfer with diagnostics (endTimestepDiagnostics).
   Real ice_eps = 1.0;
   DataIterator dit = m_iceFrac[a_level]->dataIterator();
   for (dit.begin(); dit.ok(); ++dit)
@@ -4001,10 +3987,11 @@ AmrIce::updateIceFrac(LevelData<FArrayBox>& a_thickness, int a_level)
           IntVect iv = bit();
 
 	  if (thisH(iv) < ice_eps)
-	     {
-	       thisFrac(iv,0) = 0.0;
-	       thisH(iv,0) = 0.0;
-	     }
+	    {
+	      //thisFrac(iv,0) = 0.0;
+	      thisH(iv,0) = 0.0;
+	    }
+
         }
     }
 }
@@ -4138,77 +4125,196 @@ AmrIce::advectIceFrac(FArrayBox& a_frac,
     }
 }
 
-void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
-		      const Vector<LevelData<FluxBox>* >& a_u,
-		      Real a_dt, Real a_tol)
+/// Non-conservative variant of AdvectPhysics (df/dt + v.grad f = s)
+class NCAdvectPhysics : public AdvectPhysics
 {
+  /// Post-normal predictor calculation.
+  /**
+     AdvectPhysics adds a source term to conserve W when div vel != 0.
+     Here were avoid that term.
+  */
+  virtual void postNormalPred(FArrayBox&       a_dWMinus,
+                              FArrayBox&       a_dWPlus,
+                              const FArrayBox& a_W,
+                              const Real&      a_dt,
+                              const Real&      a_dx,
+                              const int&       a_dir,
+                              const Box&       a_box)
+  {
+  }
 
-  // attempt to use the patch godunov methods to evolve f.
-  // f is not conserved: the eqn is df/dt + u. grad(f) = 0
-  // applies on a domain where dx * |grad(f)| < a_tol 
+  /// Compute the solution to the Riemann problem.
+  /**
+     Given input left and right states (WLeft,WRight) in a direction, a_dir,
+     compute a Riemann problem and generate WGdnv at the faces within a_box.
 
+     Differs from AdvectPhysics in that the calculation requires only the
+     cell-centered velocity
+  */
+  virtual void riemann(FArrayBox&       a_WGdnv,
+                       const FArrayBox& a_WLeft,
+                       const FArrayBox& a_WRight,
+                       const FArrayBox& a_W,
+                       const Real&      a_time,
+                       const int&       a_dir,
+                       const Box&       a_box)
+  {
+     CH_assert(isDefined());
+
+  CH_assert(a_WGdnv.box().contains(a_box));
+
+  CH_assert(m_advVelPtr != NULL);
+  FluxBox& advVel = *m_advVelPtr;
+  // CH_assert(advVel.box().contains(a_box));
+
+  // Get the numbers of relevant variables
+  int numPrim = numPrimitives();
+
+  CH_assert(a_WGdnv .nComp() == numPrim);
+  CH_assert(a_WLeft .nComp() == numPrim);
+  CH_assert(a_WRight.nComp() == numPrim);
+
+  // Cast away "const" inputs so their boxes can be shifted left or right
+  // 1/2 cell and then back again (no net change is made!)
+  FArrayBox& shiftWLeft  = (FArrayBox&)a_WLeft;
+  FArrayBox& shiftWRight = (FArrayBox&)a_WRight;
+
+  // Solution to the Riemann problem
+
+  // Shift the left and right primitive variable boxes 1/2 cell so they are
+  // face centered
+  shiftWLeft .shiftHalf(a_dir, 1);
+  shiftWRight.shiftHalf(a_dir,-1);
+
+  CH_assert(shiftWLeft .box().contains(a_box));
+  CH_assert(shiftWRight.box().contains(a_box));
+
+  const FArrayBox& u = *m_cellVelPtr;
   
-  
-  // domain mask coefficient: 0 in the interior, 1 close to the front and in ice free regions.
-  Real f_front = 1.0 - a_tol;
-  Real dfdx_tol = a_tol * 1.0e-4;
-  Vector<LevelData<FArrayBox>* > mask(m_finest_level+1, NULL);
-  for (int lev=0; lev<= m_finest_level; lev++)
+  // Riemann solver computes WGdnv all edges that are not on the physical
+  // boundary. THE DIFFERENT BIT
+  for (BoxIterator bit(a_box); bit.ok(); ++bit)
     {
-      Real dx = m_vect_coordSys[lev]->dx()[0]; 
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
-      const DisjointBoxLayout& grids = levelF.getBoxes();
-      mask[lev] = new LevelData<FArrayBox>(grids, 1 , IntVect::Zero);
+      const IntVect& iv_face = bit();
+      const IntVect& iv_cell_right = iv_face;
+      IntVect iv_cell_left = iv_cell_right - BASISV(a_dir);
+      const Real& ul = u(iv_cell_left,a_dir);
+      const Real& ur = u(iv_cell_right,a_dir);
+      const Real& wl = shiftWLeft(iv_face);
+      const Real& wr = shiftWRight(iv_face);
       
-      for (DataIterator dit(grids); dit.ok(); ++dit)
+      Real uf = 0.5*(ul + ur);
+      if (uf > 0.0)
 	{
-	  FArrayBox& f = (*a_f[lev])[dit];
-	  const Box& box = grids[dit];
-	  FArrayBox& m = (*mask[lev])[dit];
-	  m.setVal(0.0);
-	  for (BoxIterator bit(box); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      if (f(iv) < f_front) m(iv) = 1.0;
-	       
-	      for (int dir=0; dir<SpaceDim; dir++){
-		for (int sign = -1; sign <=1 ; sign += 2){
-		  IntVect ivp = iv + sign*BASISV(dir);
-		  if (Abs(f(iv) - f(ivp)) > dfdx_tol * dx)
-		    {
-		      m(iv) = 1.0;
-		    } // if
-		} // sign
-	      } // dir
-	    } // bit
-	} // dit
-    } // lev
+	  a_WGdnv(iv_face) = wl;
+	}
+      else if (uf < 0.0)
+	{
+	  a_WGdnv(iv_face) = wr;
+	}
+      else
+	{
+	  a_WGdnv(iv_face) = 0.5*(wr + wl) ;
+	}
+    }
+  
+  // Call boundary Riemann solver (note: periodic BC's are handled there).
+  m_bc->primBC(a_WGdnv,shiftWLeft ,a_W,a_dir,Side::Hi,a_time);
+  m_bc->primBC(a_WGdnv,shiftWRight,a_W,a_dir,Side::Lo,a_time);
 
+  // Shift the left and right primitive variable boxes back to their original
+  // position
+  shiftWLeft .shiftHalf(a_dir,-1);
+  shiftWRight.shiftHalf(a_dir, 1);
+
+    
+  }
+
+  
+// Factory method - this object is its own factory.  It returns a pointer
+// to new NCAdvectPhysics object with the same definition as this object.
+  virtual GodunovPhysics* new_godunovPhysics() const
+  {
+    NCAdvectPhysics* newPtr = new NCAdvectPhysics();
+    
+    // Pass the current initial and boundary condition (IBC) object to this new
+    // patch integrator so it can create its own IBC object and define it as it
+    // needs to (i.e. new domain and grid spacing if necessary)
+    newPtr->setPhysIBC(getPhysIBC());
+    // Define the same domain and dx
+    newPtr->define(m_domain,m_dx);
+
+    GodunovPhysics* retval = static_cast<GodunovPhysics*>(newPtr);
+
+    // Return the new object
+    return retval;
+}
+
+};
+
+
+void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
+			  //FC const Vector<LevelData<FluxBox>* >& a_u,
+			  const Vector<LevelData<FArrayBox>* >&a_u,
+			  Real a_dt, Real a_tol)
+{
+  
+  // Use the patch godunov methods to evolve f.
+  // f is not conserved: the eqn is df/dt + v. grad(f) = 0
+ 
   // face/half-time centred f
   Vector<LevelData<FluxBox>* > fHalf(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
     {
-      PatchGodunov* patchGod = m_thicknessPatchGodVect[lev]; 
-      AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(patchGod->getGodunovPhysicsPtr());
-      if (advectPhysPtr == NULL)
-        {
-          MayDay::Error("AmrIce::timestep -- unable to upcast GodunovPhysics to AdvectPhysics");
-        }
-      patchGod->setCurrentTime(m_time);
+      
+      NCAdvectPhysics fracPhys;
+      fracPhys.setPhysIBC(m_thicknessIBCPtr);
+      
+      PatchGodunov patchGodunov;      
+      {
+	int normalPredOrder = 2;
+	bool useFourthOrderSlopes = true;
+	bool usePrimLimiting = true;
+	bool useCharLimiting = false;
+	bool useFlattening = false;
+	Real artificialViscosity = 0.0;
+	bool useArtificialViscosity = artificialViscosity > TINY_NORM;     
+      
+	patchGodunov.define(m_amrDomains[lev],m_amrDx[lev],
+			    &fracPhys,
+			    normalPredOrder,
+			    useFourthOrderSlopes,
+			    usePrimLimiting,
+			    useCharLimiting,
+			    useFlattening,
+			    useArtificialViscosity,
+			    artificialViscosity);
+      }
+
+      patchGodunov.setCurrentTime(m_time);
       LevelData<FArrayBox>& levelF = *a_f[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
       fHalf[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
-      LevelData<FArrayBox> levelCCVel(grids, SpaceDim, IntVect::Unit);
-      EdgeToCell(*a_u[lev], levelCCVel);
+
+      //FC LevelData<FArrayBox> levelCCVel(grids, SpaceDim, IntVect::Unit);
+      //FC EdgeToCell(*a_u[lev], levelCCVel);
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
-	  patchGod->setCurrentBox(grids[dit]);
-          advectPhysPtr->setVelocities(&(levelCCVel[dit]),
-				       &((*a_u[lev])[dit]));
+	  patchGodunov.setCurrentBox(grids[dit]);
+	  NCAdvectPhysics* NCAdvectPhysPtr = dynamic_cast<NCAdvectPhysics*>(patchGodunov.getGodunovPhysicsPtr());
+	  if (NCAdvectPhysPtr == NULL)
+	    {
+	      MayDay::Error("AmrIce::PGAdvectFrac -- unable to upcast GodunovPhysics to NCAdvectPhysics");
+	    }
+
+          // FC NCAdvectPhysPtr->setVelocities(&(levelCCVel[dit]),&((*a_u[lev])[dit]));
+	  FluxBox dummy(grids[dit],1); dummy.setVal(1.01e+300); // should not be used
+	  NCAdvectPhysPtr->setVelocities(&((*a_u[lev])[dit]) , &dummy);
 	  FArrayBox src(grids[dit],1); src.setVal(0.0);
-	  patchGod->computeWHalf( (*fHalf[lev])[dit], levelF[dit],
-				  src, a_dt, grids[dit]);
+	  patchGodunov.computeWHalf( (*fHalf[lev])[dit], levelF[dit],
+				     src, a_dt, grids[dit]);
 	}
+
       // coarse average fHalf downward
       if (lev > 0)
 	{
@@ -4220,13 +4326,17 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
   // update f.
   for (int lev=0; lev<= m_finest_level; lev++)
     {
-      LevelData<FArrayBox>& levelF = *a_f[lev]; 
+
+      LevelData<FArrayBox>& levelF = *a_f[lev];
+      const LevelData<FArrayBox>& levelH =  (*m_vect_coordSys[lev]).getH();
       const DisjointBoxLayout& grids = levelF.getBoxes();
+
       const RealVect& dx = m_vect_coordSys[lev]->dx(); 
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
 	  const FluxBox& f =  (*fHalf[lev])[dit];
-	  const FluxBox& u = (*a_u[lev])[dit];
+	  //FC const FluxBox& u = (*a_u[lev])[dit];
+	  const FArrayBox& u = (*a_u[lev])[dit];
 	  const Box& box = grids[dit];
 	  FArrayBox dF(box, 1);
 	  dF.setVal(0.0);
@@ -4235,26 +4345,22 @@ void AmrIce::PGAdvect(Vector<LevelData<FArrayBox>* >& a_f,
 	      const IntVect& iv = bit();
 	      for (int dir = 0; dir < SpaceDim; dir++)
 		{
-		  dF(iv) -= 0.5 * a_dt / dx[dir]
-		    * (u[dir](iv + BASISV(dir)) + u[dir](iv))
-		    * (f[dir](iv + BASISV(dir)) - f[dir](iv))
-		    * (*mask[lev])[dit](iv) 
-		    ;
+		  dF(iv) -= a_dt / dx[dir]
+		    * u(iv, dir) 
+		    //FC *0.5* (u[dir](iv + BASISV(dir)) + u[dir](iv))
+		    * (f[dir](iv + BASISV(dir)) - f[dir](iv));
 		} // dir
 	    } // bit
 	  levelF[dit] += dF; 
 	} // dit
     } // lev
-
+  
   // clean up
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       if (fHalf[lev]) {
 	delete  (fHalf[lev]); fHalf[lev] = NULL;}
-      if (mask[lev]) {
-	delete  (mask[lev]); mask[lev] = NULL;}
     }
-  
   
 }
 
@@ -4365,26 +4471,35 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     }
 
   // non-conservative (because div u != 0) advection
-  PGAdvect(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
+  // FC PGAdvectFrac(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
+  PGAdvectFrac(frac_a, m_velocity, a_dt, TINY_FRAC);
   updateInvalidIceFrac(frac_a);
   
   // u - uc
-  Vector<LevelData<FluxBox>* > unet(m_finest_level+1, NULL);
+  //FC Vector<LevelData<FluxBox>* > unet(m_finest_level+1, NULL);
+  Vector<LevelData<FArrayBox>* > unet(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       LevelData<FArrayBox>& levelF = *a_iceFrac[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
-      unet[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
-      computeFaceCalvingVel(*unet[lev], *a_faceVelAdvection[lev], grids, lev);
+      //FC unet[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
+      //FC computeFaceCalvingVel(*unet[lev], *a_faceVelAdvection[lev], grids, lev);
+      unet[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
+      bool success = m_calvingModelPtr->getCalvingVel(*unet[lev],*m_velocity[lev],
+						      grids, *this, lev);
+      CH_assert(success);
+      
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
 	  // u + uc
-	  (*unet[lev])[dit] += ( (*a_faceVelAdvection[lev])[dit]);
-	}
+	  //FC (*unet[lev])[dit] += ( (*a_faceVelAdvection[lev])[dit]);
+
+	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
+	}     
     }
 
   // non-conservative (because div u != 0) advection
-  PGAdvect(a_iceFrac, unet, a_dt, TINY_FRAC);
+  PGAdvectFrac(a_iceFrac, unet, a_dt, TINY_FRAC);
 
 
   // enforce 0 <= frac <=1 0
@@ -4414,7 +4529,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
   updateInvalidIceFrac(a_iceFrac);
 
   // Front compression bodges 
-  CompressFront(a_iceFrac, frac_start, m_finest_level, m_cur_step);
+  //CompressFront(a_iceFrac, frac_start, m_finest_level, m_cur_step);
   
   // record the calved ice area
   for (int lev=0; lev<= m_finest_level; lev++)

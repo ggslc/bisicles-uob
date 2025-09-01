@@ -170,6 +170,7 @@ void NCIO::writeFAB(const std::string& a_file,
 		    const Vector<std::string>& a_cf_long_names,
 		    const FArrayBox& a_fab, 
 		    const Real& a_dx,
+		    const Real& a_time,
 		    const RealVect& a_x0,
 		    int a_epsg,
 		    const DomainDiagnosticData& a_dd,
@@ -216,6 +217,9 @@ void NCIO::writeFAB(const std::string& a_file,
 
   //define diagnostic data
   defineCF(ncID, a_dd);
+
+  int timeID;
+  rc = nc_def_var(ncID, "time_of_array", NC_DOUBLE, 0, 0, &timeID);
   
   // fab data
   // dimensions
@@ -299,6 +303,18 @@ void NCIO::writeFAB(const std::string& a_file,
   //write diagnostic data
   writeCF(ncID, a_dd);
 
+  //write time
+  size_t zero(0), one(1);
+  if ( (rc = nc_inq_varid(ncID, "time_of_array", &timeID)) != NC_NOERR)
+    {
+      MayDay::Error("failed to find time variable id");
+    }
+  if ( (rc = nc_put_vara_double(ncID, timeID, &zero, &one , &a_time)) != NC_NOERR)
+    {
+      MayDay::Error("failed to write time");
+    }
+
+  
   // write fab data
   for (int dir = 0; dir < SpaceDim; ++dir)
     {
