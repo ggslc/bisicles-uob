@@ -1075,32 +1075,33 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   
   //const FArrayBox& uo = (*m_velObs[lev])[dit];			// MJT
 
-
+  Real sumOneMinusMuSqBeta = 0.0;
   if ( m_config.m_muRegularizationType == 2 )
-  {
-    pout() << "COMPUTING MU ONE MINUS MU SQUARED BETA" << std::endl;
-
-    for (int lev = 0; lev <= m_finest_level; lev++)
-      {
-        LevelData<FArrayBox>& oneMinusMuSqBeta = (*m_oneMinusMuSqBeta[lev]);
-        for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
     {
-
-      oneMinusMuSqBeta[dit].setVal(1.0);
-
-      const FArrayBox& muCoef = (*m_muCoef[lev])[dit];
-      const FArrayBox& drc = (*m_damRegCoef[lev])[dit];
-
-      for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
-        const IntVect& iv = bit();
-        oneMinusMuSqBeta[dit](iv)-= muCoef(iv);
-        oneMinusMuSqBeta[dit](iv)*= oneMinusMuSqBeta[dit](iv);
-        oneMinusMuSqBeta[dit](iv)*= drc(iv);
-      }
+      pout() << "COMPUTING MU ONE MINUS MU SQUARED BETA" << std::endl;
+      
+      for (int lev = 0; lev <= m_finest_level; lev++)
+	{
+	  LevelData<FArrayBox>& oneMinusMuSqBeta = (*m_oneMinusMuSqBeta[lev]);
+	  for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
+	    {
+	      
+	      oneMinusMuSqBeta[dit].setVal(1.0);
+	      
+	      const FArrayBox& muCoef = (*m_muCoef[lev])[dit];
+	      const FArrayBox& drc = (*m_damRegCoef[lev])[dit];
+	      
+	      for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
+		const IntVect& iv = bit();
+		oneMinusMuSqBeta[dit](iv)-= muCoef(iv);
+		oneMinusMuSqBeta[dit](iv)*= oneMinusMuSqBeta[dit](iv);
+		oneMinusMuSqBeta[dit](iv)*= drc(iv);
+	      }
+	    }
+	}
+      sumOneMinusMuSqBeta = computeSum(m_oneMinusMuSqBeta, m_refRatio, m_dx[0][0]);
     }
-      }
-  }
-  Real sumOneMinusMuSqBeta = computeSum(m_oneMinusMuSqBeta, m_refRatio, m_dx[0][0]);
+  
 
 
   Real sumScaledX1Norm = 0;
