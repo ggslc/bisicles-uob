@@ -1,0 +1,26 @@
+1km antarctic inverse problem / stage 1 / 15 April 2025
+
+purpose
+-------
+
+Refine the initial guess (btrc = rho*g*h*grad(s)/u) with m = 1
+to avoid poor perfomance with (e.g) m = 1/3.  
+
+job
+---
+run on isambard3 / 144 nodes / job ID 134894 
+
+code
+--------
+>git show
+commit ff4ff48756a552baaa66a6b33d185f1c4688da17 (HEAD -> invprob_sliding, origin/invprob_sliding)
+Author: Stephen Cornford <ggslc@.bris.ac.uk>
+Date:   Mon Apr 14 17:17:14 2025 +0100
+
+post processing
+---------------
+PYTHONF=/path/to/filetools/pythonf2d.Linux.64.g++.gfortran.DEBUG.OPT.ex 
+FLATTEN=/path/to/filetools/flatten.2d.Linux.64.g++.gfortran.DEBUG.OPT.ex 
+
+PYTHONPATH=$PWD $PYTHONF ctrl.ant_bm_m1_rb.03lev.000000000020.2d.hdf5 tmp.2d.hdf5 stage_1_post pp Cwshelf,xVelb,yVelb btrc_m1,btrc_m2,btrc_m3,btrc_m4,uu,tb
+FLATTEN tmp.2d.hdf5 antarctica_bedmachine2_inverse_ps1_1km.2d.hdf5 3

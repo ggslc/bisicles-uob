@@ -1,26 +1,53 @@
 
 
 EXTERNAL_DATA_PATH='../external_data'
-#BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineAntarctica_2019-11-05_v01.nc')
-BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineAntarctica_2020-07-15_v02.nc')
+BEDMACHINE_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'BedMachineAntarctica-v3.nc')
 MEASURES_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'antarctica_ice_velocity_450m_v2.nc')
-MORLIGHEM_TEMPERATURE_NC ='{}/{}'.format(EXTERNAL_DATA_PATH,'AntarcticTemperature-2020-02-14.nc')
 IMBIE2_BASINS_NC='{}/{}'.format(EXTERNAL_DATA_PATH,'imbie2_basin_numbers_8km.nc')
 
 INTERMEDIATE_DATA_PATH='.'
 
+def add_projection_attr_antarctica(ncout, xv, yv):
+    """
+
+    Add projections data to an antarctic netcdf (assuming EPGS 3031)
+
+    Parameters
+    ----------
+    ncout : Dataset object 
+    xv : x  variable in ncout
+    yv : y variable in ncout
+
+    Returns
+    -------
+    None.
+
+    """
+    crsv =  ncout.createVariable('crs','int')
+    EPSG = 3031
+
+    ncout.setncattr('Conventions','CF-1.7') 
+    crsv.setncattr('EPSG',int(EPSG))
+    crsv.setncattr('grid_mapping_name','polar_stereographic')
+    crsv.setncattr('latitude_of_projection_origin', -90.0)
+    crsv.setncattr('straight_vertical_longitude_from_pole', 0.0)
+    crsv.setncattr('scale_factor',1.0)
+    crsv.setncattr('standard_parallel',-71.0)
+    crsv.setncattr('false_easting',0.0)
+    crsv.setncattr('false_northing',0.0)
+    xv.setncattr('standard_name','projection_x_coordinate')
+    xv.setncattr('units','meter')
+    yv.setncattr('standard_name','projection_y_coordinate')
+    yv.setncattr('units','meter')
+
+
+
+
+    
+
 def name(s):
     return '{}/antarctica_bedmachine_{}.nc'.format(INTERMEDIATE_DATA_PATH,s)
 
-def temp_name_incr(s,n_layer, incr=0):
-
-    pm = 'm' if incr < 0 else 'p'    
-    return '{}/antarctica_bedmachine_temperature_morlighem_{}_{}_{}{}.nc'.format(
-        INTERMEDIATE_DATA_PATH,s,n_layer,pm,abs(incr))
-
-def temp_name(s,n_layer):
-    return '{}/antarctica_bedmachine_temperature_morlighem_{}_{}.nc'.format(
-        INTERMEDIATE_DATA_PATH,s,n_layer)
 
 def imbie_name(s):
     return '{}/antarctica_bedmachine_imbie2_basins_{}.nc'.format(INTERMEDIATE_DATA_PATH,s)
@@ -28,8 +55,6 @@ def imbie_name(s):
 OUTPUT_NC = name('500m')
 N_LAYER=24
 OUTPUT_TEMP_DX='4km'
-OUTPUT_TEMP_MOR_NC = temp_name(OUTPUT_TEMP_DX,N_LAYER)
-OUTPUT_TEMP_MOR_NC_M10 = temp_name_incr(OUTPUT_TEMP_DX,N_LAYER,-10)
 OUTPUT_IMBIE2_DX='4km'
 OUTPUT_IMBIE2_NC = imbie_name(OUTPUT_IMBIE2_DX)
 
@@ -47,7 +72,8 @@ def create_new_only(file_name, fun):
 
 def preprocess_500m(output_nc):        
     from preprocess_thk_bed_btrc import preprocess
-    preprocess(output_nc, BEDMACHINE_NC, MEASURES_NC)
+    preprocess(output_nc, BEDMACHINE_NC, MEASURES_NC,
+               add_projection_attr_antarctica)
     return None
                         
 create_new_only(OUTPUT_NC, preprocess_500m)
@@ -60,28 +86,13 @@ for i in range(1,len(suffix)):
     coarse = name(suffix[i])
     def f(file_name):
         from coarsen import coarsenc
-        coarsenc(file_name , fine)
+        coarsenc(file_name , fine, add_projection_attr_antarctica)
         return(None)
     create_new_only(coarse, f)
 
 
-def preprocess_T_4km(file_name):
-    from preprocess_temp import morlighem_temperature_nc, sigma
-    sigma_face, sigma_mid = sigma(N_LAYER)
-    morlighem_temperature_nc( file_name, name('4km'), MORLIGHEM_TEMPERATURE_NC, sigma_mid)
-
-create_new_only(OUTPUT_TEMP_MOR_NC, preprocess_T_4km)
-
-def preprocess_T_4km_m10(file_name):
-    from preprocess_temp import morlighem_temperature_nc, sigma
-    sigma_face, sigma_mid = sigma(N_LAYER)
-    morlighem_temperature_nc( file_name, name('4km'), MORLIGHEM_TEMPERATURE_NC, sigma_mid, T_INCR=-10)
-
-create_new_only(OUTPUT_TEMP_MOR_NC_M10, preprocess_T_4km_m10)
-
-
-def preprocess_imbie(file_name):
+def preprocess_imbie(file_n4ame):
     from preprocess_imbie2 import imbie2_mask_nc
     imbie2_mask_nc(file_name,  IMBIE2_BASINS_NC, name('4km'))
 
-create_new_only(OUTPUT_IMBIE2_NC, preprocess_imbie)
+#create_new_only(OUTPUT_IMBIE2_NC, preprocess_imbie)
