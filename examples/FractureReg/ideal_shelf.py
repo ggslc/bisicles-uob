@@ -4,8 +4,8 @@ L = 128.0e+3
 W = 128.0e+3
 H0 = 512.0 # thickness at left boundary
 HL = 256.0 # thickness at CF
-B0 = -SL # bed elevation at left boundary
-BL = -S0 # bed elevation at CF
+B0 = -HL # bed elevation at left boundary
+BL = -H0 # bed elevation at CF
 
 # crack parallel to front
 L3 = 32.0e+3 #crack to front
