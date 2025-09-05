@@ -131,26 +131,26 @@ amr.velocity_solver_type = 6 # Inverse problem !
 
 #initial guess for C!
 geometry.beta_type = LevelData
-inputLevelData.frictionFile = synthetic_observations.2d.hdf5
+inputLevelData.frictionFile = synthetic_observations_500m.2d.hdf5
 inputLevelData.frictionName = beta_init
 
 control.velMisfitType = speed # match observed speed (not velocity)
     
 #field of data expressing confidence in speed observations. 0 for no confidence
 control.velCoef.type = LevelData
-control.velCoef.fileFormat = synthetic_observations.2d.hdf5
+control.velCoef.fileFormat = synthetic_observations_500m.2d.hdf5
 control.velCoef.name = uc_grounded
 control.velCoef.n = 1
 
 #x-component of the observed velocity (could be the speed if the y-component is zero)
 control.xVel.type = LevelData
-control.xVel.fileFormat = synthetic_observations.2d.hdf5
+control.xVel.fileFormat = synthetic_observations_500.2d.hdf5
 control.xVel.name = umod_dirty
 control.xVel.n = 1
 
 #y-component of the observed velocity (could be the speed if the x-component is zero))
 #control.yVel.type = LevelData
-#control.yVel.fileFormat = synthetic_observations.2d.hdf5
+#control.yVel.fileFormat = synthetic_observations_500m.2d.hdf5
 #control.yVel.name = yVel
 #control.yVel.n = 1
 

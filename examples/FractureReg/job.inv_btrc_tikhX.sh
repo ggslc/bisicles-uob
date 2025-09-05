@@ -35,7 +35,7 @@ echo $SLURM_ARRAY_JOB_ID" "$SLURM_ARRAY_TASK_ID" "$PARM"="$VAL
 sed -e s/@"$PARM"/"$VAL"/ $SLURM_SUBMIT_DIR/$INFILEBASE > $RUNDIR/$INFILE
 cp $SLURM_SUBMIT_DIR/.petscrc $RUNDIR/
 cd $RUNDIR
-ln -s $SLURM_SUBMIT_DIR/synthetic_observations.2d.hdf5
+ln -s $SLURM_SUBMIT_DIR/synthetic_observations_500m.2d.hdf5
 
 export CH_TIMER=1
 export CH_OUTPUT_INTERVAL=999
