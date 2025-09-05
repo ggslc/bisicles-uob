@@ -1,4 +1,4 @@
-
+main.poutBaseName = pout.ctrl_ideal_shelf_inv_known_btrc_mucoef_tikhM@TIKHM_x
 #domain details
 main.domain_size = 128.0e+3 128.0e+3 1.0e+3
 amr.num_cells = 256 256 10 
@@ -21,11 +21,9 @@ PythonIBC.bc_hi = 0 1 # bc type at x = L , y = W
 geometry.beta_type = Python
 PythonBasalFriction.module = ideal_shelf
 PythonBasalFriction.function = beta
-
-muCoefficient.type = Python
-PythonMuCoefficient.module = ideal_shelf
-PythonMuCoefficient.function = mucoef_rifted
-
+#muCoefficient.type = Python
+#PythonMuCoefficient.module = ideal_shelf
+#PythonMuCoefficient.function = mucoef_rifted
 
 temperature.type = constant
 temperature.value = 268
@@ -35,6 +33,7 @@ amr.sigma = 0 0.1 0.2 0.3 0.4 0.5 0.6 0.7 0.8 0.9 1.0
 #basal friction relation parameters
 main.basalFrictionRelation = powerLaw
 BasalFrictionPowerLaw.m = 0.3333
+BasalFrictionPowerLaw.includeEffectivePressure = false
 
 #physical constants
 constants.ice_density=918.0
@@ -77,7 +76,6 @@ JFNKSolver.h = 0.025
 JFNKSolver.switchRate = 1.8
 #JFNKSolver.writeResiduals = true
 
-
 #time stepping
 main.maxTime = 0.0  # maximum time to run to
 main.maxStep = 0   # maximum number of steps to runx
@@ -89,7 +87,7 @@ amr.time_step_ticks = 0
 
 #plotting options
 amr.plot_interval = 1
-amr.plot_prefix = plot.ideal_shelf_synthetic_data.
+amr.plot_prefix = plot.ideal_shelf_inv_known_btrc_mucoef_tikhM@TIKHM.
 
 amr.write_solver_rhs = 1
 amr.write_viscous_tensor = true
@@ -98,7 +96,7 @@ amr.write_mask = true
 
 #check points
 amr.check_interval = 1000
-amr.check_prefix = chk.rift.
+amr.check_prefix = chk.ideal_shelf_inv_known_btrc_mucoef_tikhM@TIKHM.
 
 amr.check_overwrite = 0
 amr.verbosity = 5
@@ -129,3 +127,70 @@ amr.grounding_line_tagging_min_vel = 0.1
 amr.verbosity = 5
 amr.velocity_solve_interval = 1
 
+amr.velocity_solver_type = 6 # Inverse problem !
+
+#initial guess for C!
+#geometry.beta_type = LevelData
+#inputLevelData.frictionFile = synthetic_observations.2d.hdf5
+#inputLevelData.frictionName = beta_init
+
+control.velMisfitType = speed # match observed speed (not velocity)
+    
+#field of data expressing confidence in speed observations. 0 for no confidence
+control.velCoef.type = LevelData
+control.velCoef.fileFormat = synthetic_observations.2d.hdf5
+control.velCoef.name = uc_all
+control.velCoef.n = 1
+
+#x-component of the observed velocity (could be the speed if the y-component is zero)
+control.xVel.type = LevelData
+control.xVel.fileFormat = synthetic_observations.2d.hdf5
+control.xVel.name = umod_dirty
+control.xVel.n = 1
+
+#y-component of the observed velocity (could be the speed if the x-component is zero))
+#control.yVel.type = LevelData
+#control.yVel.fileFormat = synthetic_observations.2d.hdf5
+#control.yVel.name = yVel
+#control.yVel.n = 1
+
+#optmize muCoef only
+control.optimizeX0 = false
+control.optimizeX1 = true
+
+
+#some box constraints. 
+control.boundMethod = Projection
+control.lowerX0 = -5
+control.upperX0 = 5.0
+control.lowerX1 = -3.0
+control.upperX1 = 0.0125
+    
+control.writeInnerSteps = false
+control.CGmaxIter = 1024
+control.CGtol = 1.0e-300 # keep at it
+control.CGhang = 2.0
+
+control.minLevelForOptimization = 0 # refine to level 2 based on the observed speed, then optmize
+
+
+control.outerStepFileNameBase = ctrl.ideal_shelf_inv_known_btrc_mucoef_tikhM@TIKHM.
+
+#inner steps
+control.CGlineSearchMaxIter = 8
+control.CGlineSearchInitialStep = 3.0e-8
+control.CGlineSearchMethod = 20 # new secant
+control.CGlineSearchTol = 1.0e-2
+
+#control.rankRedBlack = true
+
+#control.CGsaveStateInterval = -1
+#control.CGsaveStateFileNameBase = cg-state.ideal_shelf_quick.
+
+#Tikhonov regularization coefficients
+control.gradCsqRegularization = 0.0
+control.gradMuCoefsqRegularization = @TIKHM
+control.gradX0sqRegularization = 1.0e-20
+control.gradX1sqRegularization = 1.0e-20
+control.X0sqRegularization = 1.0e-20
+control.X1sqRegularization = 1.0e-20
