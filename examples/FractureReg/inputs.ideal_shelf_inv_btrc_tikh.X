@@ -144,7 +144,7 @@ control.velCoef.n = 1
 
 #x-component of the observed velocity (could be the speed if the y-component is zero)
 control.xVel.type = LevelData
-control.xVel.fileFormat = synthetic_observations_500.2d.hdf5
+control.xVel.fileFormat = synthetic_observations_500m.2d.hdf5
 control.xVel.name = umod_dirty
 control.xVel.n = 1
 
