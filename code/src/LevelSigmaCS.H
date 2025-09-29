@@ -197,8 +197,8 @@ public:
      oceanconnected
      oceanisolated
    */
-  const LevelData<FArrayBox >& getOceanConnected() const {return m_oceanConnected;}
-  
+  const LevelData<BaseFab<int> >& getOceanConnectedMask() const {return m_oceanConnectedMask;}
+
   /// recomputes quantities which are dependent on cell-centered H. 
   /** Should be called after cell-centered H is modified to ensure 
       that things don't get out of sync. Also computes face-centered H 
@@ -363,7 +363,7 @@ protected:
      a floating or open ocean cell adjacent to 
      a domain boundary. 
    */
-  LevelData<FArrayBox>  m_oceanConnected;
+  LevelData<BaseFab<int> >  m_oceanConnectedMask;
 
   ///
   LevelData<FArrayBox> m_deltaFactors;
