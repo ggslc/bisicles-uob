@@ -217,7 +217,31 @@ basalFlux.floating.type = constantFlux
 basalFlux.floating.flux_value = -100.0
 </pre> 
 gives zero flux everywhere except the shelf, where a melt rate of 100 m/a
-is applied. 
+is applied. Note the maskedFlux is <strong>non-conservative</strong> - it 
+restricts flux to the masked. For exmaple, if the supplied floating flux is
+a gridded outout from an ocean model, melt/freeze in regions outside of the BISICLES
+ice shelf will be discarded. There is a specific option, conservedSumIceShelfFlux, for 
+this case (see below).
+
+<h3>conservedSumIceShelfFlux</h3>
+
+Designed for use with ocean models that supply an ice shelf freeze/melt rate over a region
+that does not correspond exactly to the BISICLES ice shelf. The regions should be reasonably
+close, such that the distribution of flux within the BISICLES ice shelf is representative
+of the supplied flux. The flux computed will be restriced to fully-floating cells, but amplified 
+so that the total flux into the BISICLES ice shelf is equal to the total supplied flux. 
+<pre>
+basalFlux.type = conservedSumIceShelfFlux
+basalFlux.flux.type = LevelData # the supplied flux
+basalFlux.flux.n = 1
+basalFlux.flux.fileFormat = coarse_bmb.2d.hdf5 #output from an ocean model
+basalFlux.flux.name = bmb
+basalFlux.amplication_cap = 2.0 # default, can be ignored
+geometry.compute_ocean_connection_iter = 4 # set this to avoid ocean melt applied in (e.g) subglacial lakes
+basalFlux.check_ocean_conected = true # default when geometry.compute_ocean_connection_iter > 0, else always false
+basalFlux.conserve_sum = true # default
+</pre>
+Note: if <tt>geometry.compute_ocean_connection_iter < 1</tt>, <tt>check_ocean_connected</tt> is always <tt>false</tt>.
 
 <h3>boxBoundedFlux</h3>
 
