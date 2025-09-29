@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>BISICLES surface fluxes</title>
   <link href="bikedoc.css" rel="stylesheet" type="text/css"/>
 </head>
@@ -7,18 +9,18 @@
 
 
 <div id="head">
-<ul>
-<li><a href='index.html'>Index page<a/> </li>
-<li><a href='#top'>Top of page<a/> </li>
-</ul>
+	<ul>
+		<li><a href='index.html'>Index page</a> </li>
+		<li><a href='#top'>Top of page</a> </li>
+	</ul>
 
-<h1>Contents</h1>
+	<h1>Contents</h1>
 
-<ol>
-<li><a href='#whatflux'>Flux quantities</a></li>
-<li><a href='#simple'>Simple fluxes</a></li>
-<li><a href='#complex'>Complex fluxes</a></li>
-</ol>
+	<ol>
+		<li><a href='#whatflux'>Flux quantities</a></li>
+		<li><a href='#simple'>Simple fluxes</a></li>
+		<li><a href='#complex'>Complex fluxes</a></li>
+	</ol>
 </div>
 
 <div id="main">
@@ -165,7 +167,7 @@ surfaceFlux.offset = 1980
 which would see accfile1980.2d.hdf5 loaded at time t = 0. If
 you need accfile1980.2d.hdf5 to be used every year up till
 1980, and only then to start loading new data, add
-</pre>
+<pre>
 surfaceFlux.startTime = 1980
 </pre>
 
