@@ -119,7 +119,7 @@ surfaceFlux.floating.flux_value = 0.29
 basalFlux.type = conservedSumIceShelfFlux
 basalFlux.flux.type = LevelData
 basalFlux.flux.n = 1
-basalFlux.flux.fileFormat = coarse_bmb.2d.hdf5
+basalFlux.flux.fileFormat = coarse_bmb.2d.H5
 basalFlux.flux.name = bmb
 # compute ocean connection
 geometry.compute_ocean_connection_iter = 4

@@ -2755,6 +2755,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_surfaceThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
+
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
 	     }
 	   return &a_buf;
 	} );
@@ -2798,6 +2803,12 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_basalThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
+
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	} );
@@ -2825,6 +2836,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	 } );
@@ -2851,6 +2867,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	 } );
