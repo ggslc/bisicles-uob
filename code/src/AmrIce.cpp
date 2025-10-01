@@ -1824,7 +1824,7 @@ void AmrIce::updateH(Vector<LevelData<FArrayBox>*>& a_H,
 	  setStableSources((*m_surfaceThicknessSource[lev])[dit],
 	  		   (*m_basalThicknessSource[lev])[dit], dH,
 	  		   m_vect_coordSys[lev]->getFloatingMask()[dit],
-			   no_mask,geometry(lev)->getOceanConnected()[dit],
+			   no_mask,geometry(lev)->getOceanConnectedMask()[dit],
 			   (*a_H[lev])[dit],
 			   m_vect_coordSys[lev]->getTopography()[dit],
 			   m_vect_coordSys[lev]->iceDensity(),
@@ -2695,7 +2695,7 @@ void AmrIce::setStableSources(FArrayBox& a_smb,
 			      const FArrayBox& a_divuh,
 			      const BaseFab<int>& a_mask,
 			      const FArrayBox& a_stableSourcesMask,
-			      const FArrayBox& a_oceanConn,
+			      const BaseFab<int>& a_oceanConnMask,
 			      const FArrayBox& a_oldH,
 			      const FArrayBox& a_topg,
 			      Real rhoi,
@@ -2723,7 +2723,8 @@ void AmrIce::setStableSources(FArrayBox& a_smb,
 	      //keep floating ice stable if required, assuming that
 	      // any balance is due to basal freezing/melting
 	      // limit to ocean connected cells? 
-	      Real ocean = (floating_check_ocean_connected)?a_oceanConn(iv):1.0;
+	      Real ocean = (floating_check_ocean_connected && 
+			      (a_oceanConnMask(iv) == OCEANISOLATED))?0.0:1.0;
 	      if ( floating_ice_stable )
 		{
 		  a_bmb(iv) = ocean * (a_divuh(iv) - a_smb(iv)) ;
@@ -2866,7 +2867,7 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	  		   levelDivThckFlux[dit],
 	  		   levelCoords.getFloatingMask()[dit],
 			   levelStableSourcesMask[dit],
-			   geometry(lev)->getOceanConnected()[dit],
+			   geometry(lev)->getOceanConnectedMask()[dit],
 			   oldH,
 			   topg,
 			   levelCoords.iceDensity(),

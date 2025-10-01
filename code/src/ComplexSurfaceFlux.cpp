@@ -154,7 +154,23 @@ void ConservedSumIceShelfFlux::surfaceThicknessFlux
 	  delete tmpFlux[lev]; tmpFlux[lev] = NULL;
 	}
       }
-    factor = (Abs(mask_sum) > 1.0e-10)?(raw_sum/mask_sum):1.0;     
+ 
+    Real factor_limit(4.0);
+    if (mask_sum * raw_sum < 0.0)
+    {
+	pout() << "conservedSumIceShelfFlux: masked flux * supplied flux < 0, setting amplification factor = 0.0" << std::endl;	
+	factor = 0.0;
+    }	    
+    else if (Abs(raw_sum) > factor_limit * Abs(mask_sum))
+    {
+	pout() << "conservedSumIceShelfFlux: |supplied flux| > * " << factor_limit << " * |masked flux|, setting amplication factor = 4.0" << std::endl;
+	factor = 4.0;
+    }
+    else
+    {
+        factor = raw_sum / mask_sum;
+    }
+
   }
  
   // (re-)evaluate the flux on the level requested, and amplify
@@ -196,15 +212,32 @@ SurfaceFlux* MaskedFlux::new_surfaceFlux()
   return static_cast<SurfaceFlux*>(new MaskedFlux(g,f,s,l,m_floating_check_ocean_connected));
 }
 
+void MaskedReplace(LevelData<FArrayBox>& a_dest,
+	       	   const LevelData<FArrayBox>& a_src,	
+	           const LevelData<BaseFab<int> >& a_mask,
+		   int a_mask_val)
+{
+
+  for (DataIterator dit(a_dest.dataIterator()); dit.ok(); ++dit)
+	{
+		Box box = a_mask[dit].box();
+	       	box &= a_dest[dit].box();
+		FORT_MASKEDREPLACE(CHF_FRA1(a_dest[dit],0),
+			     CHF_CONST_FRA1(a_src[dit],0),
+			     CHF_CONST_FIA1(a_mask[dit],0),
+			     CHF_CONST_INT(a_mask_val),
+			     CHF_BOX(box));
+	}
+}
+
+
 void MaskedFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 				      const AmrIceBase& a_amrIce, 
 				      int a_level, Real a_dt)
 {
 
   //somewhat ineffcient, because we compute all fluxes everywhere. 
-  //At some point, come back and only compute (say) grounded ice flux
-  //in boxes where at least some of the ice is grounded.
-
+  //
   //first, grounded ice values
   m_groundedIceFlux->surfaceThicknessFlux(a_flux,a_amrIce,a_level,a_dt);
 
@@ -218,13 +251,14 @@ void MaskedFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
   for (std::map<int,SurfaceFlux*>::iterator i = mask_flux.begin(); i != mask_flux.end(); ++i)
     {
       i->second->surfaceThicknessFlux(tmpFlux, a_amrIce,a_level,a_dt);
-      MaskLevelData(a_flux, a_amrIce.geometry(a_level)->getFloatingMask(), FLOATINGMASKVAL);
       int m = i->first;
       if ((m_floating_check_ocean_connected) && 
 		      ((m == FLOATINGMASKVAL) || (m == OPENSEAMASKVAL)))
 	{		
-		MaskLevelData(a_flux, a_amrIce.geometry(a_level)->getOceanConnectedMask(), OCEANCONNECTED);
-  	}  
+	MaskLevelData(tmpFlux, a_amrIce.geometry(a_level)->getOceanConnectedMask(), OCEANCONNECTED);
+  	} 
+      MaskedReplace(a_flux, tmpFlux,  a_amrIce.geometry(a_level)->getFloatingMask(), m);
+      
     }
 }
 

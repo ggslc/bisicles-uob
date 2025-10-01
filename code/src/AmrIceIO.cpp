@@ -1738,7 +1738,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
         }
 
       // Get the refinement ratio
-      if (lev < max_level_check)
+      if ((lev < max_level_check) && (lev < m_max_level))
         {
           int checkRefRatio;
           if (levheader.m_int.find("ref_ratio") == levheader.m_int.end())
