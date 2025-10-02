@@ -24,10 +24,10 @@
 #define openlandmaskval (8)
 #define OCEANMASKVAL OPENSEAMASKVAL
 #define oceanmaskval openseamaskval
-#define oceanconnected (1.0)
-#define OCEANCONNECTED (1.0)
-#define oceanisolated (0.0)
-#define OCEANISOLATED (0.0)
+#define oceanconnected (1)
+#define OCEANCONNECTED (1)
+#define oceanisolated (0)
+#define OCEANISOLATED (0)
 
 
 #if defined(CH_USE_FLOAT) || defined(CH_LANG_CC)

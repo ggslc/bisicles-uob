@@ -14,7 +14,7 @@
 <h1>Contents</h1>
 
 <ol>
-  <li><a href='#debian'>Debian based systems (e.g Ubuntu) </a></li>
+  <li><a href='#debian'>Debian based systems (e.g Ubuntu and Ubuntu on WSL)  </a></li>
   <li><a href='#rocky8'>Rocky Linux 8</a></li>
   <li><a href='#uob'>University of Bristol</a></li>
   <li><a href='#isambard3'>Isambard 3 (Cray, ARM) </li>
@@ -28,10 +28,10 @@
 <div id="main">
 <h1><a name='top'>BISICLES site specific notes</a></h1>
 
-<h2><a name='debian'>Debian based systems (e.g Ubuntu)</a></h2>
+<h2><a name='debian'>Debian based systems (e.g Ubuntu and Ubuntu on WSL)</a></h2>
 <p>
-Debian GNU/Linux derivatives including Ubuntu 22.04 (Jammy Jellyfish, the latest LTS) allow an mpi environment ,
-hdf5, and netcdf to be installed in a way that works well for BISICLES. On Ubuntu 22.04 run
+Debian GNU/Linux derivatives including Ubuntu 22.04 and 24.04 allow an mpi environment ,
+hdf5, and netcdf to be installed in a way that works well for BISICLES. Likewise the Windows Subsystem for Linux (WSL), with Ubuntu installed.  On Ubuntu 22.04 or 24.04 run
 </p>
 <pre>
   sudo apt install subversion build-essential g++ gfortran csh mpi-default-bin mpi-default-dev libhdf5-mpi-dev libhdf5-dev hdf5-tools libnetcdff-dev libnetcdf-dev python3 python3-dev libpython3-dev libfftw3-dev
@@ -54,12 +54,13 @@ cxxdbgflags    = -g -fPIC
 cxxoptflags    = -fPIC -O2
 fdbgflags     =  -g -fPIC 
 foptflags     = -fPIC -O3 -ffast-math -funroll-loops
-USE_FFTW=TRUE  
+USE_FFTW=TRUE
+FFTW_3=TRUE
 FFTWDIR=/usr
 </pre>
 <p>
   and the file $BISICLES_HOME/BISICLES/code/mk/Make.defs.$mymachine (where $mymachine is
-  the output from 'uname -n') can be copied from s$BISICLES_HOME/BISICLES/code/mk/Make.defs.ubuntu_22.4 and should contain
+  the output from 'uname -n') can be copied from s$BISICLES_HOME/BISICLES/code/mk/Make.defs.ubuntu_22.4 (or 24.04) and should contain
 </p>
 <pre>
 PYTHON_INC=$(shell python3-config --includes)
@@ -68,7 +69,14 @@ PYTHON_LIBS=-lpython3.10 $(shell python3-config --ldflags)
 NETCDF_HOME=$(shell nc-config --prefix)
 NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
 </pre>
-
+or (for 24.04), 
+<pre>
+PYTHON_INC=$(shell python3-config --includes)
+#--ldflags does not contain -lpython for reasons that escape me
+PYTHON_LIBS=-lpython3.12 $(shell python3-config --ldflags)
+NETCDF_HOME=$(shell nc-config --prefix)
+NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
+</pre>  
 
 <h2><a name='rocky8'>Rocky Linux 8 </a></h2>
 <p>

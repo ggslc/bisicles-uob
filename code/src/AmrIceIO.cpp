@@ -1904,7 +1904,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
         }
 
       // Get the refinement ratio
-      if (lev < max_level_check)
+      if ((lev < max_level_check) && (lev < m_max_level))
         {
           int checkRefRatio;
           if (levheader.m_int.find("ref_ratio") == levheader.m_int.end())
@@ -3032,6 +3032,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_surfaceThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
+
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
 	     }
 	   return &a_buf;
 	} );
@@ -3075,6 +3080,12 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_basalThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
+
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	} );
@@ -3102,6 +3113,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	 } );
@@ -3128,6 +3144,11 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
+	       if (m_frac_sources)
+	       {
+		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
+	       }
+
 	     }
 	   return &a_buf;
 	 } );
