@@ -38,165 +38,54 @@
 #include "FillFromReference.H"
 #include "IceThicknessIBC.H"
 #include "LevelDataIBC.H"
+#include "DomainDiagnosticData.H"
 #include <functional>
  
 
-
-typedef BaseFab<int> IArrayBox; // just so it lines up neatly with FArrayBox :)
-
-void FtoI(IArrayBox& dest, const FArrayBox& src)
+/**
+   convert single level mask data, to which stores integer mask labels (as reals...) 
+   between a_mask_label_start and a_mask_no, to multi-level real fractional coverage areas for each 
+   distinct mask label. Resulting a_mask_fraction FABS will have a_mask_no components
+*/
+void maskToAMR(Vector<LevelData<FArrayBox>* >& a_mask_fraction,
+	       const Vector<Real>& a_mask_fraction_dx,
+	       const LevelData<FArrayBox>& a_mask,
+	       int a_mask_id_start,
+	       int a_n_mask_ids,
+	       const Real& a_mask_dx)
 {
-  CH_assert(src.box().contains(dest.box()));
-  CH_assert(src.nComp() >= dest.nComp());
-  for (int comp = 0; comp < dest.nComp(); comp++)
-    {
-      for (BoxIterator bit(dest.box()); bit.ok(); ++bit)
-	{
-	  dest(bit(), comp) = src(bit(),comp);
-	}
-    }
-}
 
-
-void integrateScalarInside(Real& integral, 
-			   function<bool(Real h, Real f, int mask)> inside,
-			   const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-			   const Vector<LevelData<FArrayBox>* >& integrand, 
-			   const Vector<LevelData<FArrayBox>* >& topography,
-			   const Vector<LevelData<FArrayBox>* >& thickness,
-			   const Vector<LevelData<FArrayBox>* >& iceFrac,
-			   const Vector<LevelData<IArrayBox>* >& sectorMask,
-			   const Vector<Real>& dx, const Vector<int>& ratio, 
-			   int maskNo)
-{
-  CH_TIME("integrateScalarInside");
   
-  int numLevels = coords.size();
-  Vector<LevelData<FArrayBox>* > maskedIntegrand(numLevels, NULL);
-  for (int lev = 0; lev < numLevels; lev++)
+  Real tol = 1.0e-10; // tolerance in Abs(x - y) < tol test
+  
+  for (int comp = 0; comp < a_n_mask_ids ; comp++)
     {
-      const DisjointBoxLayout& grids = integrand[lev]->disjointBoxLayout();
-      maskedIntegrand[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      for (DataIterator dit(grids);dit.ok();++dit)
+      Real mask_id = Real(comp + a_mask_id_start);
+      
+      // create field of mask areas on the mask level (all cells 1 or 0)
+      const DisjointBoxLayout mask_grids = a_mask.disjointBoxLayout();
+      LevelData<FArrayBox> mask_fraction(mask_grids,1,IntVect::Zero);
+      for (DataIterator dit(mask_grids); dit.ok(); ++dit)
 	{
-	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
-    	  const FArrayBox& thck = (*thickness[lev])[dit];
-	  const FArrayBox& frac = (*iceFrac[lev])[dit];
-	  const Box& b = grids[dit];
-	  const FArrayBox& f = (*integrand[lev])[dit];
-	  FArrayBox& g = (*maskedIntegrand[lev])[dit];
-	  g.setVal(0.0);
-	  for (BoxIterator bit(b);bit.ok();++bit)
+	  for (BoxIterator bit(mask_grids[dit]); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit();
-	      if (((*sectorMask[lev])[dit](iv) == maskNo) || maskNo == 0)
-		{
-		  if (inside(thck(iv), frac(iv), mask(iv)))
-		    {
-		      g(iv) = f(iv);
-		    }
-		}
-	    } // bit
-	} //dit
-    } //lev
-
-  integral = computeSum(maskedIntegrand, ratio, dx[0], Interval(0,0), 0);
-
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      if (maskedIntegrand[lev] != NULL)
-	{
-	  delete maskedIntegrand[lev];maskedIntegrand[lev]= NULL;
-	}  
-    }
-  
-}
-
-void integrateDischargeInside(Real& sumDischarge, Real& sumDivUH,
-			      function<bool(Real h, Real f, int mask)> inside,
-			      const Vector<RefCountedPtr<LevelSigmaCS > >& coords,
-			      const Vector<LevelData<FluxBox>* >& fluxOfIce,
-			      const Vector<LevelData<FArrayBox>* >& topography,
-			      const Vector<LevelData<FArrayBox>* >& thickness,
-			      const Vector<LevelData<FArrayBox>* >& iceFrac,
-			      const Vector<Real>& dx, const Vector<int>& ratio, 
-			      const Vector<LevelData<IArrayBox>* >& sectorMask,  
-			      int maskNo)
-{
-
-  CH_TIME("integrateDischargeInside");
-  
-  int numLevels = coords.size();
-  Vector<LevelData<FArrayBox>* > ccDischarge(numLevels, NULL);
-  Vector<LevelData<FArrayBox>* > ccDivUH(numLevels, NULL);
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      int comp = 0;
-      const DisjointBoxLayout& grids = topography[lev]->disjointBoxLayout();
-      ccDischarge[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-      ccDivUH[lev] = new LevelData<FArrayBox>(grids,1,IntVect::Zero);
-     
-      //work out discharge across boundary and flux divergence inside region 
-      for (DataIterator dit(grids);dit.ok();++dit)
-    	{
-    	  FArrayBox& discharge = (*ccDischarge[lev])[dit];
-    	  discharge.setVal(0.0);
-	  FArrayBox& divuh = (*ccDivUH[lev])[dit];
-	  divuh.setVal(0.0);
-	  const BaseFab<int>& mask = coords[lev]->getFloatingMask()[dit];
-    	  const FArrayBox& thck = (*thickness[lev])[dit];
-	  const FArrayBox& frac = (*iceFrac[lev])[dit];
-    	  const Box& b = grids[dit];
-	  
-    	  for (int dir =0; dir < SpaceDim; dir++)
-    	    {
-	      const FArrayBox& flux  = (*fluxOfIce[lev])[dit][dir];
-    	      for (BoxIterator bit(b);bit.ok();++bit)
-    		{
-    		  const IntVect& iv = bit();
-    		  if (((*sectorMask[lev])[dit](iv) == maskNo) || maskNo == 0)
-		    {
-		      if (inside(thck(iv), frac(iv), mask(iv)))
-		       	{
-			  //inside the sub-region - compute div(flux)
-		       	  divuh(iv) += (flux(iv + BASISV(dir)) - flux(iv))/dx[lev];
-		       	}
-		      else
-    			{
-			  //outside - compute discharge/dx if neigbours are inside
-			  IntVect ivp = iv + BASISV(dir);
-			  if (inside(thck(ivp), frac(ivp), mask(ivp)))
-			    {
-			      discharge(iv) += -flux(ivp) / dx[lev]; // ivp is the iv+ face
-    			    }
-			  IntVect ivm = iv - BASISV(dir);
-			  if (inside(thck(ivm), frac(ivm), mask(ivm)))
-    			    {
-    			      discharge(iv) += flux(iv) / dx[lev]; // iv is the iv- face
-    			    }
-    			}//end if inside else
-    		    }//end if mask
-    		} //end loop over cells
-    	    } // end loop over direction
-    	} // end loop over grids
-    } //end loop over levels
-
-  sumDischarge = computeSum(ccDischarge, ratio, dx[0], Interval(0,0), 0);
-  sumDivUH = computeSum(ccDivUH, ratio, dx[0], Interval(0,0), 0);
-  
-  for (int lev = 0; lev < numLevels; lev++)
-    {
-      
-      if (ccDischarge[lev] != NULL)
-	{
-	  delete ccDischarge[lev];ccDischarge[lev]= NULL;
+	      mask_fraction[dit](iv) = (Abs(a_mask[dit](iv) - mask_id) < tol)?1.0:0.0;  
+	    }
 	}
-      if (ccDivUH[lev] != NULL)
+      // coarsen/refine the mask areas, store in component mask_no - a_mask_no_start)
+      for (int lev = 0; lev < a_mask_fraction.size(); lev++)
 	{
-	  delete ccDivUH[lev];ccDivUH[lev]= NULL;
-	}      
+	  LevelData<FArrayBox>& dest = *a_mask_fraction[lev];
+	  LevelData<FArrayBox> tmp(dest.disjointBoxLayout(),1,IntVect::Zero);
+	  RealVect src_dx = RealVect::Unit * a_mask_dx;
+	  RealVect dest_dx = RealVect::Unit * a_mask_fraction_dx[lev];
+	  FillFromReference(tmp, mask_fraction, dest_dx, src_dx, false);
+	  tmp.localCopyTo(Interval(0,0), dest, Interval(comp, comp));
+	}
     }
 }
+
 
 struct NameUnitValue
 {
@@ -233,19 +122,21 @@ void reportConservationInside(Vector<NameUnitValue>& report,
 			      const Vector<LevelData<FArrayBox>* >& topography,
 			      const Vector<LevelData<FArrayBox>* >& thickness,
 			      const Vector<LevelData<FArrayBox>* >& iceFrac, 
-			      const Vector<LevelData<IArrayBox>* >& sectorMask,
+			      const Vector<LevelData<FArrayBox>* >& sectorMaskFraction,
 			      const Vector<Real>& dx, const Vector<int>& ratio, 
-			      int maskNo)
+			      int finestLevel, int maskNo, int maskComp)
 {
 
   CH_TIME("reportConservationInside");
   // just to make the args less reptitive...
-  auto sumScalar = [inside,coords,topography, thickness, iceFrac, sectorMask, dx, ratio, maskNo ]
+
+  auto sumScalar = [inside,coords,topography, thickness, iceFrac, sectorMaskFraction, dx, ratio, finestLevel, maskNo, maskComp ]
     (const Vector<LevelData<FArrayBox>* >& scalar)
 		   {
 		     Real sumScalar;
-		     integrateScalarInside(sumScalar, inside ,coords, scalar, topography, thickness,
-					   iceFrac,sectorMask, dx, ratio, maskNo);
+		     MaskedIntegration::integrateScalarInside
+		       (sumScalar, inside ,coords, scalar, topography, thickness,
+			iceFrac,sectorMaskFraction, dx, ratio, finestLevel,  maskNo, maskComp);
 		     return sumScalar;
 		   };
 
@@ -267,9 +158,10 @@ void reportConservationInside(Vector<NameUnitValue>& report,
 
   //discharge, div(uh) reconstructed from uh
   Real sumDischarge, flxDivReconstr;
-  integrateDischargeInside(sumDischarge, flxDivReconstr,
+  MaskedIntegration::integrateDischargeInside(sumDischarge, flxDivReconstr,
 			   inside, coords, fluxOfIce,topography,
-			   thickness, iceFrac, dx, ratio, sectorMask, maskNo);
+			   thickness, iceFrac, dx, ratio, sectorMaskFraction, 
+			   finestLevel, maskNo, maskComp);
   report.push_back(NameUnitValue("flxDivReconstr",dhunit,flxDivReconstr));
   report.push_back(NameUnitValue("discharge",dhunit,sumDischarge));
 
@@ -688,7 +580,7 @@ void computeFlux(Vector<LevelData<FluxBox>* >& fluxOfIce,
 }
 
 void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
-		      const Vector<LevelData<IArrayBox>* >& sectorMask,
+		      const Vector<LevelData<FArrayBox>* >& sectorMaskFraction,
 		      int maskNoStart, int maskNoEnd,
 		      const Vector<LevelData<FArrayBox>* >& data,
 		      const Vector<DisjointBoxLayout >& grids,
@@ -758,7 +650,8 @@ void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
   
   for (int maskNo = maskNoStart; maskNo <= maskNoEnd; ++maskNo)
     {
-      
+      int maskComp = maskNo - maskNoStart; // component of sectorMaskFraction FABs corresponding to maskNo
+       
       typedef std::map<std::string, function<bool(Real, Real, int)> > MapSF;
       MapSF regions;
       
@@ -781,10 +674,11 @@ void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
       for (MapSF::const_iterator mit = regions.begin(); mit != regions.end(); ++mit)
 	{
 	  Vector<NameUnitValue> report;
+	 
 	  reportConservationInside(report, mit->second,coords, fluxOfIce, surfaceThicknessSource,
 				   basalThicknessSource, deltaThickness, divergenceThicknessFlux,
 				   calvingFlux,topography, thickness, iceFrac,
-				   sectorMask, dx, ratio, maskNo);
+				   sectorMaskFraction, dx, ratio, numLevels-1, maskNo, maskComp);
 	  
 	  for (int i = 0; i < report.size(); i++)
 	    {
@@ -795,7 +689,7 @@ void stateDiagnostics(std::ostream& sout, bool append, std::string plot_file,
     
   for (int lev=0;lev<numLevels;++lev)
     {
-      if (sectorMask[lev] != NULL) delete sectorMask[lev];
+      //if (sectorMask[lev] != NULL) delete sectorMask[lev];
       if (thickness[lev] != NULL) delete thickness[lev];
       if (topography[lev] != NULL) delete topography[lev];
       if (deltaThickness[lev] != NULL) delete deltaThickness[lev];
@@ -893,49 +787,57 @@ int main(int argc, char* argv[]) {
 	domain[lev] = domain[lev-1];
 	domain[lev].refine(ratio[lev-1]);
       }
-    //load the sector mask, if it exists    
-    Box mdomainBox;
-    Vector<std::string> mname;
-    Vector<LevelData<FArrayBox>* > mdata;
-    Vector<DisjointBoxLayout > mgrids;
-    Vector<int > mratio;
-    int mnumLevels;
-    Real mdt ,mcrseDx, mtime;
 
+    Vector<LevelData<FArrayBox>* > sector_mask_fraction(numLevels);
     if (maskFile)
-      {   	
+      {
+	//load the sector mask, if it exists    
+	Box mdomainBox;
+	Vector<std::string> mname;
+	Vector<LevelData<FArrayBox>* > mdata;
+	Vector<DisjointBoxLayout > mgrids;
+	Vector<int > mratio;
+	int mnumLevels;
+	Real mdt ,mcrseDx, mtime;
 	ReadAMRHierarchyHDF5(std::string(mask_file), mgrids, mdata, mname , 
 			     mdomainBox, mcrseDx, mdt, mtime, mratio, mnumLevels);
-      }
-   
-    Vector<LevelData<IArrayBox>* > sectorMask(numLevels,NULL);
-    for (int lev=0;lev<numLevels;++lev)
-      {
-	sectorMask[lev] = new LevelData<IArrayBox>(grids[lev],1,IntVect::Unit);
 
-	for (DataIterator dit(grids[lev]); dit.ok(); ++dit)
+	if (mnumLevels > 1) MayDay::Error("mask files assumed to have one AMR level");
+
+	// create storage for sector mask fractions - one FAB component for each mask label
+	int n_mask_nos = 1 + mask_no_end - mask_no_start;
+	
+	for (int lev = 0; lev < data.size(); lev++)
 	  {
-	    (*sectorMask[lev])[dit].setVal(0);
+	    sector_mask_fraction[lev] = new LevelData<FArrayBox>(grids[lev],n_mask_nos,IntVect::Unit);
 	  }
+	
+	maskToAMR(sector_mask_fraction, dx, *mdata[0], mask_no_start, n_mask_nos, mcrseDx);
 
-	if (maskFile)
+	//free heap
+	for (int lev = 0; lev < mdata.size(); lev++)
 	  {
-	    // reading real values...
-	    LevelData<FArrayBox> tmp(grids[lev],1,IntVect::Unit);
-	    FillFromReference(tmp, *mdata[0], RealVect::Unit*dx[lev], RealVect::Unit*mcrseDx,true);
-	    for (DataIterator dit(grids[lev]); dit.ok(); ++dit)
-	      {
-		FtoI((*sectorMask[lev])[dit],tmp[dit]);
-	      }
+	    if (mdata[lev]) delete mdata[lev];
 	  }
-
+	
       }
+    
 
-    stateDiagnostics(sout, append, plot_file, sectorMask, mask_no_start, mask_no_end,
+    
+    
+    stateDiagnostics(sout, append, plot_file, sector_mask_fraction, mask_no_start, mask_no_end,
 		     data, grids, name, numLevels,  dx, dt, time,  ratio,
 		     ice_density, water_density, gravity, h_min, f_min);
 
-		  
+
+    // free heap
+    for (int lev = 0; lev < data.size(); lev++)
+      {
+	if (sector_mask_fraction[lev]) delete sector_mask_fraction[lev];
+	if (data[lev]) delete data[lev];
+      }
+   
+    		  
   }  // end nested scope
   CH_TIMER_REPORT();
 

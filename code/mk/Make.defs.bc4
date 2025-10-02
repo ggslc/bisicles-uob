@@ -1,7 +1,7 @@
-PYTHON_HOME=/usr
-PYTHON_INC=-I$(PYTHON_HOME)/include/python2.7
-PYTHON_LIBS=-L$(PYTHON_HOME)/lib64 -lpython2.7
+PYTHON_INC=$(shell python3-config --includes)
+#--ldflags does not include -lpython for reasons that escape me
+PYTHON_LIBS=$(shell python3-config --ldflags) -lpython3.12 -Wl,-rpath=$(shell python3-config --prefix)/lib
 
-NETCDF_HOME=/mnt/storage/software/libraries/gnu/netcdf-4.7.3/
+NETCDF_HOME=$(BISICLES_HOME)/netcdf/serial/
 NETCDF_INC=-I$(NETCDF_HOME)/include
-NETCDF_LIBS=-L$(NETCDF_HOME)/lib64 -lnetcdff -lnetcdf -lhdf5_hl
+NETCDF_LIBS=-L$(NETCDF_HOME)/lib -lnetcdf -lhdf5_hl

@@ -91,6 +91,59 @@ c---------------------------------------------------
       
       return
       end
+c----------------------------------------------------
+c sweep in all four directions dir \in {east,west,south,north)
+c settting fab(i) = max(fab(i),fab(i-e[dir])) wherever
+c conn(i) > tol and conn(i-e[dir]) > tol. fab and conn must
+c be at least one cell bigger than box
+c----------------------------------------------------
+
+      subroutine sweepconnected2di(CHF_FIA1[fab],
+     &     CHF_CONST_FRA1[conn], 
+     &     CHF_CONST_REAL[tol],
+     &     CHF_BOX[box])
+
+      integer i,j
+
+      !sweeps along 0 directions
+#if (CH_SPACEDIM > 1)
+      do j = CHF_LBOUND[box;1],CHF_UBOUND[box;1]
+#endif
+         do i = CHF_LBOUND[box;0],CHF_UBOUND[box;0],1
+            if ((conn(CHF_IX[i;j;k]).gt.tol).and.(conn(CHF_IX[i-1;j;k]).gt.tol)) then
+               fab(CHF_IX[i;j;k]) = max(fab(CHF_IX[i;j;k]),fab(CHF_IX[i-1;j;k]) ) 
+            end if
+         end do
+
+         do i = CHF_UBOUND[box;0],CHF_LBOUND[box;0],-1
+            if ((conn(CHF_IX[i;j;k]).gt.tol).and.(conn(CHF_IX[i+1;j;k]).gt.tol)) then
+               fab(CHF_IX[i;j;k]) = max(fab(CHF_IX[i;j;k]),fab(CHF_IX[i+1;j;k]) )
+            end if
+         end do
+#if (CH_SPACEDIM > 1)
+      end do
+
+      !sweeps along 1 direction
+      do i = CHF_LBOUND[box;0],CHF_UBOUND[box;0]
+
+         do j = CHF_LBOUND[box;1],CHF_UBOUND[box;1],1
+            if ((conn(CHF_IX[i;j;k]).gt.tol).and.(conn(CHF_IX[i;j-1;k]).gt.tol)) then
+               fab(CHF_IX[i;j;k]) = max(fab(CHF_IX[i;j;k]),fab(CHF_IX[i;j-1;k])  )
+            end if
+         end do
+
+         do j = CHF_UBOUND[box;1],CHF_LBOUND[box;1],-1
+            if ((conn(CHF_IX[i;j;k]).gt.tol).and.(conn(CHF_IX[i;j+1;k]).gt.tol)) then
+               fab(CHF_IX[i;j;k]) = max(fab(CHF_IX[i;j;k]),fab(CHF_IX[i;j+1;k])  )
+            end if
+         end do
+
+      end do
+#endif
+      return 
+
+      end
+
 
 c----------------------------------------------------
 c sweep in all four directions dir \in {east,west,south,north)
