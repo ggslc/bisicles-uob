@@ -219,7 +219,7 @@ void NCIO::writeFAB(const std::string& a_file,
   defineCF(ncID, a_dd);
 
   int timeID;
-  rc = nc_def_var(ncID, "time", NC_DOUBLE, 0, 0, &timeID);
+  rc = nc_def_var(ncID, "time_of_array", NC_DOUBLE, 0, 0, &timeID);
   
   // fab data
   // dimensions
@@ -305,6 +305,10 @@ void NCIO::writeFAB(const std::string& a_file,
 
   //write time
   size_t zero(0), one(1);
+  if ( (rc = nc_inq_varid(ncID, "time_of_array", &timeID)) != NC_NOERR)
+    {
+      MayDay::Error("failed to find time variable id");
+    }
   if ( (rc = nc_put_vara_double(ncID, timeID, &zero, &one , &a_time)) != NC_NOERR)
     {
       MayDay::Error("failed to write time");

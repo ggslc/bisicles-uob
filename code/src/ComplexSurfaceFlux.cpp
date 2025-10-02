@@ -21,6 +21,7 @@
 #include "FineInterp.H"
 #include "CoarseAverage.H"
 #include "computeNorm.H"
+#include "computeSum.H"
 #include "BisiclesF_F.H"
 #include "ParmParse.H"
 #include "AmrIceBase.H"
@@ -76,7 +77,114 @@ ProductSurfaceFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
     }
 }
 
+//constructor
+ConservedSumIceShelfFlux::ConservedSumIceShelfFlux(
+	SurfaceFlux* a_flux, 
+	bool a_check_ocean_connected,
+	bool a_conserve_sum):
+	m_flux(a_flux), 
+	m_check_ocean_connected(a_check_ocean_connected),
+	m_conserve_sum(a_conserve_sum)
+{
+	CH_assert(a_flux);
+}
 
+SurfaceFlux* ConservedSumIceShelfFlux::new_surfaceFlux()
+{
+	SurfaceFlux* f = m_flux->new_surfaceFlux();
+	return static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(f, 
+				m_check_ocean_connected, m_conserve_sum));
+}
+
+
+void MaskLevelData(LevelData<FArrayBox>& a_data, 
+	           const LevelData<BaseFab<int> >& a_mask,
+		   int a_mask_val)
+{
+
+  for (DataIterator dit(a_data.dataIterator()); dit.ok(); ++dit)
+	{
+		Box box = a_mask[dit].box();
+	       	box &= a_data[dit].box();
+		FArrayBox t(box, 1); t.copy(a_data[dit]);
+		a_data[dit].setVal(0.0);
+		FORT_MASKEDREPLACE(CHF_FRA1(a_data[dit],0),
+			     CHF_CONST_FRA1(t,0),
+			     CHF_CONST_FIA1(a_mask[dit],0),
+			     CHF_CONST_INT(a_mask_val),
+			     CHF_BOX(box));
+	}
+}
+
+
+void ConservedSumIceShelfFlux::surfaceThicknessFlux
+	(LevelData<FArrayBox>& a_flux,
+	const AmrIceBase& a_amrIce, int a_level, Real a_dt)
+{
+
+  Real factor = 1.0;
+
+  if (m_conserve_sum)
+  {
+     // inefficient, because all levels are computed in to obtain just one level of data.
+     // alternatives are risky and/or involve caching or require SurfaceFlux interface changes...
+     // \todo - consider caching factor and adding a 'a_refresh_cache (default true)' option to the 
+     // surfaceThicknessFlux call - the major user is AmrIce::timestep
+     Vector<LevelData<FArrayBox>*>  tmpFlux;
+     for (int lev = 0; lev <= a_amrIce.finestLevel(); lev++)
+    	{
+      	  tmpFlux.push_back(new LevelData<FArrayBox>(a_amrIce.grids(lev), a_flux.nComp(), a_flux.ghostVect()));
+          m_flux->surfaceThicknessFlux(*tmpFlux[lev], a_amrIce, lev, a_dt );
+	}
+     Real raw_sum = computeSum(tmpFlux, a_amrIce.refRatios(), a_amrIce.dx(0)[0],  Interval(0,0));
+     for (int lev = 0; lev <= a_amrIce.finestLevel(); lev++)
+     {
+          MaskLevelData(*tmpFlux[lev], a_amrIce.geometry(lev)->getFloatingMask(), FLOATINGMASKVAL );
+	  if (m_check_ocean_connected)
+	  {
+ 		MaskLevelData(*tmpFlux[lev], a_amrIce.geometry(lev)->getOceanConnectedMask(), OCEANCONNECTED); 	
+	  }	
+     }
+     Real mask_sum = computeSum(tmpFlux, a_amrIce.refRatios(), a_amrIce.dx(0)[0],  Interval(0,0));
+     
+     for (int lev = 0; lev <= a_amrIce.finestLevel(); lev++)
+      {
+        if (tmpFlux[lev] != NULL)
+	{
+	  delete tmpFlux[lev]; tmpFlux[lev] = NULL;
+	}
+      }
+ 
+    Real factor_limit(4.0);
+    if (mask_sum * raw_sum < 0.0)
+    {
+	pout() << "conservedSumIceShelfFlux: masked flux * supplied flux < 0, setting amplification factor = 0.0" << std::endl;	
+	factor = 0.0;
+    }	    
+    else if (Abs(raw_sum) > factor_limit * Abs(mask_sum))
+    {
+	pout() << "conservedSumIceShelfFlux: |supplied flux| > * " << factor_limit << " * |masked flux|, setting amplication factor = 4.0" << std::endl;
+	factor = 4.0;
+    }
+    else
+    {
+        factor = raw_sum / mask_sum;
+    }
+
+  }
+ 
+  // (re-)evaluate the flux on the level requested, and amplify
+  m_flux->surfaceThicknessFlux(a_flux, a_amrIce, a_level, a_dt );
+  MaskLevelData(a_flux, a_amrIce.geometry(a_level)->getFloatingMask(), FLOATINGMASKVAL);
+  if (m_check_ocean_connected)
+  {
+  	MaskLevelData(a_flux, a_amrIce.geometry(a_level)->getOceanConnectedMask(), OCEANCONNECTED);
+  }  
+  for (DataIterator dit(a_flux.dataIterator()); dit.ok(); ++dit)
+  {
+	  a_flux[dit] *= factor;
+  }
+}
 
 
 /// constructor
@@ -104,15 +212,32 @@ SurfaceFlux* MaskedFlux::new_surfaceFlux()
   return static_cast<SurfaceFlux*>(new MaskedFlux(g,f,s,l,m_floating_check_ocean_connected));
 }
 
+void MaskedReplace(LevelData<FArrayBox>& a_dest,
+	       	   const LevelData<FArrayBox>& a_src,	
+	           const LevelData<BaseFab<int> >& a_mask,
+		   int a_mask_val)
+{
+
+  for (DataIterator dit(a_dest.dataIterator()); dit.ok(); ++dit)
+	{
+		Box box = a_mask[dit].box();
+	       	box &= a_dest[dit].box();
+		FORT_MASKEDREPLACE(CHF_FRA1(a_dest[dit],0),
+			     CHF_CONST_FRA1(a_src[dit],0),
+			     CHF_CONST_FIA1(a_mask[dit],0),
+			     CHF_CONST_INT(a_mask_val),
+			     CHF_BOX(box));
+	}
+}
+
+
 void MaskedFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 				      const AmrIceBase& a_amrIce, 
 				      int a_level, Real a_dt)
 {
 
   //somewhat ineffcient, because we compute all fluxes everywhere. 
-  //At some point, come back and only compute (say) grounded ice flux
-  //in boxes where at least some of the ice is grounded.
-
+  //
   //first, grounded ice values
   m_groundedIceFlux->surfaceThicknessFlux(a_flux,a_amrIce,a_level,a_dt);
 
@@ -126,33 +251,15 @@ void MaskedFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
   for (std::map<int,SurfaceFlux*>::iterator i = mask_flux.begin(); i != mask_flux.end(); ++i)
     {
       i->second->surfaceThicknessFlux(tmpFlux, a_amrIce,a_level,a_dt);
-      for (DataIterator dit(a_flux.dataIterator()); dit.ok(); ++dit)
-	{
-	  const BaseFab<int>& mask =  a_amrIce.geometry(a_level)->getFloatingMask()[dit];
+      int m = i->first;
+      if ((m_floating_check_ocean_connected) && 
+		      ((m == FLOATINGMASKVAL) || (m == OPENSEAMASKVAL)))
+	{		
+	MaskLevelData(tmpFlux, a_amrIce.geometry(a_level)->getOceanConnectedMask(), OCEANCONNECTED);
+  	} 
+      MaskedReplace(a_flux, tmpFlux,  a_amrIce.geometry(a_level)->getFloatingMask(), m);
       
-	  Box box = mask.box();
-	  box &= a_flux[dit].box();
-
-	  int m = i->first;
-	  FORT_MASKEDREPLACE(CHF_FRA1(a_flux[dit],0),
-			     CHF_CONST_FRA1(tmpFlux[dit],0),
-			     CHF_CONST_FIA1(mask,0),
-			     CHF_CONST_INT(m),
-			     CHF_BOX(box));
-
-	  //check ocean connection if required
-	  if ( m_floating_check_ocean_connected )
-	    {
-	      if (m == FLOATINGMASKVAL || m == OPENSEAMASKVAL)
-		{
-		  const FArrayBox& oceanConn =   a_amrIce.geometry(a_level)->getOceanConnected()[dit];
-		  a_flux[dit] *= oceanConn; // assuming 0 < oceanConn < 1, which it was originally.
-		} // end if (m == FLOATINGMASKVAL || m == OPENSEAMASKVAL)
-	    } // end if ( m_floating_check_ocean_connected )
-	  
-	}
     }
-
 }
 
 SurfaceFlux* AxbyFlux::new_surfaceFlux()

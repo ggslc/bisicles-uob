@@ -1,5 +1,7 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <title>BISICLES surface fluxes</title>
   <link href="bikedoc.css" rel="stylesheet" type="text/css"/>
 </head>
@@ -7,18 +9,18 @@
 
 
 <div id="head">
-<ul>
-<li><a href='index.html'>Index page<a/> </li>
-<li><a href='#top'>Top of page<a/> </li>
-</ul>
+	<ul>
+		<li><a href='index.html'>Index page</a> </li>
+		<li><a href='#top'>Top of page</a> </li>
+	</ul>
 
-<h1>Contents</h1>
+	<h1>Contents</h1>
 
-<ol>
-<li><a href='#whatflux'>Flux quantities</a></li>
-<li><a href='#simple'>Simple fluxes</a></li>
-<li><a href='#complex'>Complex fluxes</a></li>
-</ol>
+	<ol>
+		<li><a href='#whatflux'>Flux quantities</a></li>
+		<li><a href='#simple'>Simple fluxes</a></li>
+		<li><a href='#complex'>Complex fluxes</a></li>
+	</ol>
 </div>
 
 <div id="main">
@@ -165,7 +167,7 @@ surfaceFlux.offset = 1980
 which would see accfile1980.2d.hdf5 loaded at time t = 0. If
 you need accfile1980.2d.hdf5 to be used every year up till
 1980, and only then to start loading new data, add
-</pre>
+<pre>
 surfaceFlux.startTime = 1980
 </pre>
 
@@ -217,7 +219,38 @@ basalFlux.floating.type = constantFlux
 basalFlux.floating.flux_value = -100.0
 </pre> 
 gives zero flux everywhere except the shelf, where a melt rate of 100 m/a
-is applied. 
+is applied. Note the maskedFlux is <strong>non-conservative</strong> - it 
+restricts flux to the masked. For exmaple, if the supplied floating flux is
+a gridded outout from an ocean model, melt/freeze in regions outside of the BISICLES
+ice shelf will be discarded. There is a specific option, conservedSumIceShelfFlux, for 
+this case (see below).
+
+<h3>conservedSumIceShelfFlux</h3>
+
+Designed for use with ocean models that supply an ice shelf freeze/melt rate over a region
+that does not correspond exactly to the BISICLES ice shelf. The regions should be reasonably
+close, such that the distribution of flux within the BISICLES ice shelf is representative
+of the supplied flux. The flux computed will be restriced to fully-floating cells, but amplified 
+so that the total flux into the BISICLES ice shelf is equal to the total supplied flux. 
+There are some pathological cases that are expected if the supplied flux is reasonably well represented
+in the BISICLES ice shelf. We regularize these and warn in the log (pout.*) files.
+<ul>
+	<li>The amplication A &lt 0, for example if all of the melt is concentrated on BISICLES
+	grounded ice. We set A = 0 in this case, so no melt or freeze anywhere </li>
+	<li>Total supplied flux |F| is much larger than the total restricted to the BISICLES ice shelf |F'|. 
+		We set A = min(A, 4.0).  <li>
+</ul>
+<pre>
+basalFlux.type = conservedSumIceShelfFlux
+basalFlux.flux.type = LevelData # the supplied flux
+basalFlux.flux.n = 1
+basalFlux.flux.fileFormat = coarse_bmb.2d.hdf5 #output from an ocean model
+basalFlux.flux.name = bmb
+geometry.compute_ocean_connection_iter = 4 # set this > 0 to avoid ocean melt applied in (e.g) subglacial lakes
+basalFlux.check_ocean_conected = true # default true when geometry.compute_ocean_connection_iter > 0, else always false
+basalFlux.conserve_sum = true # default
+</pre>
+Note: if <tt>geometry.compute_ocean_connection_iter < 1</tt>, <tt>check_ocean_connected</tt> is always <tt>false</tt>.
 
 <h3>boxBoundedFlux</h3>
 

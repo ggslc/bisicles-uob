@@ -43,6 +43,37 @@
 
 class AmrIce;
 
+namespace MaskedIntegration
+{
+  void integrateScalarInside
+  (Real& a_integral, 
+   function<bool(Real h, Real f, int mask)> a_inside,
+   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coords,
+   const Vector<LevelData<FArrayBox>* >& a_integrand, 
+   const Vector<LevelData<FArrayBox>* >& a_topography,
+   const Vector<LevelData<FArrayBox>* >& a_thickness,
+   const Vector<LevelData<FArrayBox>* >& a_iceFrac,
+   const Vector<LevelData<FArrayBox>* >& a_sectorMaskFraction,
+   const Vector<Real>& a_dx, const Vector<int>& a_ratio,
+   int a_finestLevel, 
+   int a_maskNo, int a_maskComp);
+
+  void integrateDischargeInside
+  (Real& a_sumDischarge, Real& a_sumDivUH,
+   function<bool(Real h, Real f, int mask)> a_inside,
+   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coords,
+   const Vector<LevelData<FluxBox>* >& a_fluxOfIce,
+   const Vector<LevelData<FArrayBox>* >& a_topography,
+   const Vector<LevelData<FArrayBox>* >& a_thickness,
+   const Vector<LevelData<FArrayBox>* >& a_iceFrac,
+   const Vector<Real>& a_dx, const Vector<int>& a_ratio, 
+   const Vector<LevelData<FArrayBox>* >& a_sectorMaskFraction,
+   int a_finestLevel,  
+   int a_maskNo, int a_maskComp);
+  
+}
+
+
 #define HDF5_SUBGROUP_NAME "bisicles_domain_diagnostic_data"
 #define CFIO_DIAGNOSTIC_TIME_NAME "time"
 
@@ -113,103 +144,11 @@ private:
   DomainDiagnosticData& operator=(const DomainDiagnosticData&);
 public:
 
-/// diagnostic functions -- integrates variables over domain
-  Real computeTotalIce
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeVolumeAboveFlotation
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeTotalGroundedIce
-  (const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-    const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  void computeAreaFraction(LevelData<FArrayBox>& a_area,
-			   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-			   int a_maskVal,
-			   int a_level,
-			   int a_finestLevel) const;
-
-  Real computeArea
-  (int a_maskVal,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeGroundedArea
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeFloatingArea
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeFluxOverIce
-  (const Vector<LevelData<FArrayBox>* > a_flux,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeFluxOverMaskedIce
-  (int a_maskVal,
-   const Vector<LevelData<FArrayBox>* > a_flux,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeDeltaVolumeOverIce
-  (const Vector<LevelData<FArrayBox>* >& a_old_thickness,
-   const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   int a_finestLevel) const;
-
-  Real computeTotalFlux
-  (const Vector<LevelData<FArrayBox>* > a_flux,
-   const Vector<int>& a_refRatio, Real a_crseDx) const;
-
   void initDiagnostics(AmrIce& a_amrIce,
 		       const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
 		       const Vector<DisjointBoxLayout>& a_grids,
 		       const Vector<int>& a_refRatio, Real a_crseDx,
 		       Real a_time, int a_finestLevel);
-
-  void computeDischarge
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys, 
-   const Vector<LevelData<FluxBox>* >& a_vectFluxes,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<Real>& a_dx,
-   const Vector<int>& a_refRatio,
-   Real a_time, Real a_offsetTime,
-   int a_cur_step, int a_finestLevel, int a_verbosity);
-
-  void endTimestepDiagnostics
-  (const Vector<RefCountedPtr<LevelSigmaCS > >& a_coordSys,
-   const Vector<LevelData<FArrayBox>* > a_old_thickness,
-   const Vector<LevelData<FArrayBox>* > a_divThicknessFlux, 
-   const Vector<LevelData<FArrayBox>* > a_basalThicknessSource,
-   const Vector<LevelData<FArrayBox>* > a_surfaceThicknessSource,
-   const Vector<LevelData<FArrayBox>* > a_volumeThicknessSource,
-   const Vector<LevelData<FArrayBox>* > a_calvedIceThickness,
-   const Vector<LevelData<FArrayBox>* > a_addedIceThickness,
-   const Vector<LevelData<FArrayBox>* > a_removedIceThickness,
-   const Vector<DisjointBoxLayout>& a_grids,
-   const Vector<int>& a_refRatio, Real a_crseDx,
-   Real a_time, Real a_offsetTime, Real a_dt,
-   int a_cur_step, int a_finestLevel, int a_verbosity);
 
   /// record diagnostics given the current state of a_amrIce
   void record(AmrIce& a_amrIce);

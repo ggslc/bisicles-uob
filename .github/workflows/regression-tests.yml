@@ -1,0 +1,79 @@
+name: system regression test
+
+on:
+
+    workflow_dispatch:
+
+    push:
+        branches: [ "master", "ukesm-master" ]
+        
+    pull_request:
+        branches: [ "master", "ukesm-master" ]
+
+jobs:
+  build-then-test:
+
+    runs-on: ubuntu-22.04
+
+    steps:
+    - uses: actions/checkout@v4
+   
+    #Install hdf5 etc
+    - name: install dependencies
+      run: | 
+          sudo apt update
+          sudo apt install gfortran csh mpi-default-bin mpi-default-dev 
+          sudo apt install libhdf5-mpi-dev libhdf5-dev hdf5-tools 
+          sudo apt install libnetcdff-dev libnetcdf-dev netcdf-bin nco
+          sudo apt install python3 python3-dev libpython3-dev
+          sudo apt install libfftw3-dev  
+
+    #Retrieve cached chombo, or build
+    - name: cache chombo
+      id: cache-chombo
+      uses: actions/cache@v4
+      env:
+          cache-name: cache-chombo
+      with:
+          path: Chombo
+          key: ubuntu-22.04-chombo-${{ env.cache-name }}
+    
+    - if: ${{ steps.cache-chombo.outputs.cache-hit != 'true' }}
+      name: clone and build chombo
+      run: |
+            git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git Chombo
+            ls Chombo
+            cp .github/workflows/Make.defs.local.ubuntu-22.04 Chombo/lib/mk/Make.defs.local
+            cd Chombo/lib
+            cat mk/Make.defs.local
+            make lib OPT=TRUE MPI=TRUE -j4
+         
+    - name: build bisicles
+      run: |
+            cd $GITHUB_WORKSPACE/code/mk
+            ln -s Make.defs.ubuntu_22.4 Make.defs.`uname -n`
+            cat Make.defs.`uname -n`
+            cd $GITHUB_WORKSPACE/code/exec2D
+            CHOMBO_HOME=$PWD/../../Chombo/lib make all OPT=TRUE MPI=TRUE -j4
+
+    - name: twisty stream test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/twistyStream/
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          egrep 'HDF5|rank' pout.0
+
+
+    - name: plot-cf test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/plot-cf/
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          grep HDF5 pout.0
+
+
+    - name: ASE-Control test
+      run: | 
+          cd $GITHUB_WORKSPACE/code/regression/ASE-control/
+          mpirun ../../exec2D/driver2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex inputs.regression
+          grep HDF5 pout.0
+            
+

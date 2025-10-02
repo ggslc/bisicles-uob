@@ -1,0 +1,15 @@
+PRECISION     = DOUBLE  
+CXX           = g++
+FC            = gfortran
+MPICXX        = mpiCC
+USE_HDF       = TRUE
+HDFINCFLAGS   = -I/usr/include/hdf5/serial/
+HDFLIBFLAGS   = -L/usr/lib/x86_64-linux-gnu/hdf5/serial/ -lhdf5 -lz
+HDFMPIINCFLAGS= -I/usr/include/hdf5/openmpi/ 
+HDFMPILIBFLAGS= -L/usr/lib/x86_64-linux-gnu/hdf5/openmpi/ -lhdf5  -lz
+cxxdbgflags    = -g -fPIC 
+cxxoptflags    = -fPIC -O2
+fdbgflags     =  -g -fPIC 
+foptflags     = -fPIC -O3 -ffast-math -funroll-loops
+USE_FFTW=TRUE
+FFTWDIR=/usr

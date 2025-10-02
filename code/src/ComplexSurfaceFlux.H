@@ -145,7 +145,75 @@ private:
   }
 
 };
+
+/// Apply a surface flux in the ice shelf region only, conserving the integrated flux
+/**
+
+  Takes a generic surface flux and applies it to floating ice / ice shelf only.
+  The total *absolute* flux over the domain is maintained. The use case
+  is ocean model coupling, where the ocean model supplied melt rate
+  over a region greater than BISICLES ice shelf, typically due to lower
+  resolution, but also close to the GL, where our practice of masking
+  partly floating cells reduces the total melt rate.
+
+  Arguably, this could be more generic (e.g conserve sum over ice).
+
+  Run-time configuration is carried out in SurfaceFlux::parse. 
+  If the string `A.B.C.type = IceShelfFlux` is found, then the expected form is:
+   
+  - `A.B.C.flux = <valid SurfaceFlux type (optional, default ZeroFlux) >`
+  - `A.B.C.check_ocean_connected = <bool, default true>`
+  - `A.B.C.conserve_sum = <bool, default true>`
+
+*/
+
+class ConservedSumIceShelfFlux : public SurfaceFlux
+{
+
+public:	
+  ConservedSumIceShelfFlux(
+		  SurfaceFlux* a_flux, 
+		  bool a_check_ocean_connected = true,
+		  bool a_conserve_sum = true);
+
+  virtual ~ConservedSumIceShelfFlux(){};
+
+  virtual SurfaceFlux* new_surfaceFlux();
+
+  virtual void surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
+				    const AmrIceBase& a_amrIce, 
+				    int a_level, Real a_dt);
+
+
+protected:
+  SurfaceFlux* m_flux;
+  bool m_check_ocean_connected;
+  bool m_conserve_sum;
   
+private:
+  // Disallowed for all the usual reasons
+  void operator=(const ConservedSumIceShelfFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  // Disallowed for all the usual reasons
+  ConservedSumIceShelfFlux(const ConservedSumIceShelfFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  ConservedSumIceShelfFlux()
+  {
+    MayDay::Error("invalid operator");
+  }
+
+
+	  
+};
+
+
+
 /// Applies a different surface flux depending on the mask
 /**
    Applies a different surface fluxes for grounded and floating ice
