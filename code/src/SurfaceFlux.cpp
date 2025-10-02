@@ -267,6 +267,26 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       delete flux1Ptr;
       delete flux2Ptr;
     }
+  else if (type == "conservedSumIceShelfFlux")
+  {
+      std::string prefix(a_prefix);
+      prefix += ".flux";
+      SurfaceFlux* fptr = parse(prefix.c_str());
+      if (fptr == NULL)
+	{
+	  fptr = new zeroFlux;
+	}
+      
+      ParmParse ppg("geometry");
+      int iter(0);
+      ppg.query("compute_ocean_connection_iter", iter);
+      bool check_ocean_connected(false);
+      if (iter > 0) pp.query("check_ocean_connected", check_ocean_connected);
+      bool conserve_sum(true);
+      pp.query("conserve_sum",conserve_sum); 
+      ptr = static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(fptr, check_ocean_connected, conserve_sum));
+ 
+  }
   else if (type == "maskedFlux")
     {
       std::string groundedPrefix(a_prefix);

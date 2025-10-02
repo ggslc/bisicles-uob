@@ -21,6 +21,7 @@ jobs:
     #Install hdf5 etc
     - name: install dependencies
       run: | 
+          sudo apt update
           sudo apt install gfortran csh mpi-default-bin mpi-default-dev 
           sudo apt install libhdf5-mpi-dev libhdf5-dev hdf5-tools 
           sudo apt install libnetcdff-dev libnetcdf-dev netcdf-bin nco

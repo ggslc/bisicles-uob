@@ -1222,7 +1222,7 @@ protected:
   // MJT - 2022/08/03 - UKESM changes, this now takes more arguments.
   void setStableSources(FArrayBox& a_sts,FArrayBox& a_bts, 
 			const FArrayBox& a_divuh, const BaseFab<int>& a_mask,
-			const FArrayBox& a_stableSourcesMask, const FArrayBox& a_oceanConn,
+			const FArrayBox& a_stableSourcesMask, const BaseFab<int>& a_oceanConnMask,
 			const FArrayBox& a_oldH, const FArrayBox& a_topg, Real rhoi, Real rhow,
 			const Box& a_box) const;
   
