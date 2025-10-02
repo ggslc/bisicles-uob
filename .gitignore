@@ -25,3 +25,6 @@ p/
 #files that should generally be ignored
 code/libamrfile/libamrfile_python.png
 code/libamrfile/python/AMRFile/amrfile/__pycache__/
+
+#machine specific makefiles
+*Make.defs.none
