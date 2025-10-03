@@ -614,11 +614,14 @@ AmrIce::writeAMRPlotFile()
       
       if (m_write_thickness_sources)
 	{
-	  m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
-	  m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
+	 // note - these are not the actual sources - they are
+	 // the 'supplied' sources. The actual ('active') sources
+	 // are store in m_surface/basalThicknessSource and are *also* written.
+	 // Hence the need to recompute and dispose of these...
+	 m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
+	 m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
-
 
       // set these up here because calls to dragCoefficient may lead
       // to calls to things like CoarseAverage which contain dataIterator loops
@@ -2755,11 +2758,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_surfaceThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
-
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
 	     }
 	   return &a_buf;
 	} );
@@ -2803,12 +2801,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_basalThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
-
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	} );
@@ -2836,11 +2828,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	 } );
@@ -2867,11 +2854,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	 } );
