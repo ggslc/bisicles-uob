@@ -207,6 +207,9 @@ public:
 	       Vector<LevelData<FluxBox>* >& a_H_half,
 	       Real a_dt);
   
+  // void update thickness sources
+  void computeThicknessSources(Real a_dt);
+
   // compute face-centered half-time ice thickness using ppm
   void computeH_half(Vector<LevelData<FluxBox>* >& a_H_half,
 		     Vector<LevelData<FArrayBox> * >& a_H,
