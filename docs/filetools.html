@@ -30,8 +30,12 @@
     <a href='#flatten'>flatten</a>
   </li>
   <li>
-    <a href='#nctomar'>nctoamr</a>
+    <a href='#nctoamr'>nctoamr</a>
   </li>
+  <li>
+    <a href='#diagnostics'>diagnostics</a>
+  </li>
+  
 </ol>
 </div>
 
@@ -92,8 +96,9 @@ $BISICLES_HOME/BISICLES/code/filetools/pythonf2d.Linux.64.g++.gfortran.DEBUG.ex 
 </pre>
 
 <h2><a name='stats'>stats</a></h2>
-
 Compute summary statistics (e.g volume) from a plot file.
+This tool has been around for a long time, and we will not remove it, but
+you might prefer its more powerful alternative: <a href='#diagnostics'>diagnostics</a>
 <pre>
 usage: stats &lt;plot file&gt; &lt;ice_density&gt; &lt;water_density&gt; &lt;gravity&gt; [mask_file] [mask_no_start = 0] [mask_no_end = mask_no_start] 
 </pre>
@@ -164,5 +169,67 @@ $BISICLES_HOME/BISICLES/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.ex 
 <p>
 to obtain a file called data.2d.hdf5 that BISICLES can read as (say) thickness and topography data. 
 </p>
+
+<h2><a name='diagnostics'>diagnostics</a></h2>
+<p>
+  Compute summary statistics including discharge (e.g volume) from a plot file.
+  Each statistic is a quantity integrated over one of several regions
+  the entire (sub)domain, the grounded ice, the floating ice, all ice, and ice free regions.
+  It is possible to supply a mask file, that will allow the intergations to be
+  carried out over each of several subdomains (e.g drainage basins). 
+</p>
+<p>
+  This tool is a more powerful alternative to <a href='#stats'>stats</a>.
+  It uses keyword (name=value) arguments rather than positional arguments. It has
+  one mandatory argument (plot_file=???), the name of the plot file, e.g
+</p>
+<pre>
+  /path/to/diagnostics2d.Linux.64.g++.gfortran.DEBUG.OPT.ex plot_file=plot.camip_fullthule_expt34_tc2.063331.2d.hdf5
+</pre>
+<table>
+  <tr>
+    <th>name</th><th>default</th><th>purpose</th>
+  </tr>
+  <tr>
+    <td>out_file</td><td>out_file=&quot;&quot;</td><td>specify output to a file rather than pout/stdio</td>
+  </tr>
+  <tr>
+    <td>ice_density</td> <td>ice_density=918.0</td><td>ice density (kg / m^3) </td>
+    <td> </td><td> </td><td> </td>
+    <td> </td><td> </td><td> </td>
+    
+  </tr>
+</table>
+
+<p>
+  Output is to stdio / pout.X by defauly, and comprises multiple
+  lines of csv data. Each line includes one quantity,
+  integrated over one of the subdomains, at a given time.
+  The data in each line are
+</p>
+<ul class="indent";>
+  <li> the string csvheader or csvdata, to allow filtering </li>
+  <li> time : time in the plot file time unit (usually years) </li>
+  <li> maskNo : number of the masked sub-domain. 0 imples the whole domain </li>
+  <li> region: entire (sub)domain, grounded portion, floating portion etc</li>
+  <li> quantity: name of the quantity, e.g SMB (surface mass balance 1/2 timestep previous), discharge (computed from ice thickness and velocity, flxDivReconstr (flux divergence computed from ice thickness and velocity), flxDivFile (flux divergence in the file, if present - will differ from fluxDivReconstr because it is computed 1/2 timestep previous).</li>
+  <li>unit: unit of measurement</li>
+  <li>value: e.g SMB inegrated over the region</li>
+</ul>
+<pre>
+  csvheader,time,maskNo,region,quantity,unit,value
+  ...
+  csvdata,1.451000000000e+03,0,grounded,SMB,m3/a,2.661530348348e+11
+  csvdata,1.451000000000e+03,0,grounded,BMB,m3/a,0.000000000000e+00
+  csvdata,1.451000000000e+03,0,grounded,dhdt,m3/a,-4.574041539644e+10
+  csvdata,1.451000000000e+03,0,grounded,flxDivFile,m3/a,3.118848162762e+11
+  csvdata,1.451000000000e+03,0,grounded,calving,m3/a,8.633955017224e+06
+  csvdata,1.451000000000e+03,0,grounded,flxDivReconstr,m3/a,3.121113211384e+11
+  csvdata,1.451000000000e+03,0,grounded,discharge,m3/a,3.118966365235e+11
+  ...
+</pre>
+
+
+
 </body>
 </html>

@@ -63,42 +63,31 @@ produces (other programs can be put to use, but VisIt is by far the most conveni
   out. There are two source trees, Chombo, and BISICLES, and the rest of this guide assumes that you
   have a directory called $BISICLES_HOME which contains the two.</p>
 
-<p> To obtain the source trees, you first need an <a href='https://anag-repo.lbl.gov/'>ANAG repository account</a>.
-  Once that is sorted out, create a root directory for both source trees
+<p>Create a root directory for both source trees
 <pre>
   > export BISICLES_HOME=/wherever/you/like #assumes bash...
   > mkdir -p $BISICLES_HOME
   > cd $BISICLES_HOME
-  > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.2 Chombo
 </pre>
 <p>
-  Next, decide which BISICLES branch you want. 
-   users will
+Then obtain a Chombo source tree.
+</p>
+<pre>
+git clone https://github.com/applied-numerical-algorithms-group-lbnl/Chombo_3.2.git Chombo
+</pre>
+<p>
+  Next, decide which BISICLES branch you want. Users will
   want the main BISICLES development branch (trunk),which is fairly stable
   since experimental code is developed on other branches. In that case run
 </p>
 <pre>
-  > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/trunk BISICLES 
+  > git clone -b master https://github.com/ggslc/bisicles-uob BISICLES
 </pre>
 <p>
-The advantage of trunk is that bug fixes
-are published there first. There is also a development branch available on github
-</p>
-<pre>
-  > git clone https://github.com/ggslc/bisicles-uob BISICLES
-</pre>
-
-You may prefer the current release, which
-changes infrequently.
-</p>
-<pre>
-  > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/release/1.4 BISICLES
-</pre>
-<p>  
   You may want one of the other branches, especially if you are working with any of
   the BISICLES developers to introduce new features, but in that case you will
   probably know which one you need.
-
+</p>
 <p>
   Note
   that you do not need to layout your source directories as indicated above, or even

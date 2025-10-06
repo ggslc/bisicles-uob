@@ -282,6 +282,26 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       delete flux1Ptr;
       delete flux2Ptr;
     }
+  else if (type == "conservedSumIceShelfFlux")
+  {
+      std::string prefix(a_prefix);
+      prefix += ".flux";
+      SurfaceFlux* fptr = parse(prefix.c_str());
+      if (fptr == NULL)
+	{
+	  fptr = new zeroFlux;
+	}
+      
+      ParmParse ppg("geometry");
+      int iter(0);
+      ppg.query("compute_ocean_connection_iter", iter);
+      bool check_ocean_connected(false);
+      if (iter > 0) pp.query("check_ocean_connected", check_ocean_connected);
+      bool conserve_sum(true);
+      pp.query("conserve_sum",conserve_sum); 
+      ptr = static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(fptr, check_ocean_connected, conserve_sum));
+ 
+  }
   else if (type == "maskedFlux")
     {
       std::string groundedPrefix(a_prefix);
@@ -485,7 +505,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     {
       ptr = new ISMIP6OceanForcing(pp);
     }
-# ifdef BUELERGIA
+#if FFTW_3
   else if (type == "buelerGIA") {
     // Read and set material constants.
     ParmParse ppCon("constants");
@@ -623,6 +643,9 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     ptr = static_cast<SurfaceFlux*>(buelerFlux->new_surfaceFlux());
 
   }
+#else
+#warning ('buelerGIA flux not available')
+  
 #endif // BUELERGIA
 #ifdef HAVE_PYTHON
   else if (type == "pythonFlux") {
@@ -648,6 +671,8 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     ptr = static_cast<SurfaceFlux*>(pythonFlux.new_surfaceFlux());
 
   }
+#else
+  #warning ('pythonFlux not available')
 #endif
   else if (type == "")
     {
