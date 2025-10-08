@@ -111,20 +111,20 @@ control.gradMuCoefsqRegularization = 1.0e+2
 
 #some box constraints. 
 control.boundMethod = Projection
-control.lowerX0 = -5
-control.upperX0 = 5.0
-control.lowerX1 = -2.0
-control.upperX1 = 2.0
+control.lowerX0 = -3
+control.upperX0 = 3.0
+control.lowerX1 = -1.0
+control.upperX1 = 0.25
     
 control.writeInnerSteps = false
-control.CGmaxIter = 1
+control.CGmaxIter = 5
 
 control.minLevelForOptimization = 1
+control.CGsaveStateFileNameBase = ctrl.ase-cg-check
+control.CGsaveStateInterval = 2
 
-regression.result_hdf5 = ControlOuter01lev.000000000001.2d.hdf5
-regression.reference_hdf5 = ase-ctrl-reference.H5
-regression.tol = 1.0e-6
-regression.diff_hdf5 =  ase-ctrl-diff.2d.hdf5
+control.CGlineSearchMaxIter = 2
+
 
 #basal_friction.grounding_line_subdivision = 4
 #velocity_rhs.gl_correction = false

@@ -1,4 +1,5 @@
-
+#used to test checkpoint/restart with inverse problems 
+#run inputs.sequence_regression_resume next to complete the test
 geometry.problem_type = LevelData
 geometry.beta_type = LevelData
 
@@ -38,13 +39,13 @@ constants.ice_density=918
 #JFNK parameters
 JFNKSolver.vtopSafety = 0.95
 JFNKSolver.minPicardIterations = 3
-JFNKSolver.maxIter = 20
+JFNKSolver.maxIter = 2
 JFNKSolver.absTol = 1.0e-4
 JFNKSolver.relTol = 1.0e-8
 JFNKSolver.solverType = 0 #Relax solver
 JFNKSolver.RelaxRelTol = 1.0e-3
 JFNKSolver.RelaxHang = 0.25
-JFNKSolver.maxRelaxIter = 20
+JFNKSolver.maxRelaxIter = 4
 JFNKSolver.normType = 2
 JFNKSolver.verbosity = 5
 JFNKSolver.vtopRelaxTol = 0.005
@@ -121,10 +122,18 @@ control.CGmaxIter = 1
 
 control.minLevelForOptimization = 1
 
-regression.result_hdf5 = ControlOuter01lev.000000000001.2d.hdf5
-regression.reference_hdf5 = ase-ctrl-reference.H5
-regression.tol = 1.0e-6
-regression.diff_hdf5 =  ase-ctrl-diff.2d.hdf5
+amr.check_interval = 1
+amr.check_prefix = chk.ase-ctrl-seq.
+amr.check_overwrite = 0
+main.maxTime = 1  # maximum time to run to
+main.maxStep = 2   # maximum number of steps to runx
+amr.evolve_thickness = false
 
-#basal_friction.grounding_line_subdivision = 4
-#velocity_rhs.gl_correction = false
+
+control.initialLowerMuCoef = 1.0e-8
+control.initialUpperMuCoef = 1.0e+8
+control.initialLowerC = 1.0e-8
+control.initialUpperC = 1.0e+8
+control.CGsecantMaxIter = 5
+control.outerStepFileNameBase = outer.ase-ctrl-seq.
+amr.verbosity = 5
