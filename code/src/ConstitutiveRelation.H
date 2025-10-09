@@ -16,6 +16,7 @@
 #include "FluxBox.H"
 #include "LevelSigmaCS.H"
 #include "CellToEdge.H"
+#include "ParmParse.H"
 #include "NamespaceHeader.H"
 
 
@@ -301,7 +302,7 @@ class PatersonRateFactor : public RateFactor
 
 public:
 
-  PatersonRateFactor(Real a_seconds_per_unit_time);
+  PatersonRateFactor(Real a_seconds_per_unit_time, ParmParse& a_pp);
  
   void setDefaultParameters(Real a_seconds_per_unit_time);
  

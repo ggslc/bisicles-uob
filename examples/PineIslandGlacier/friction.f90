@@ -14,8 +14,8 @@ module ncdump
     end if
   end subroutine nccheck
 
- subroutine ncsavebike(x,y,thck,topg,beta, uvel, vvel, velc, &
-      divuh, divuhc, temp,bheatflux, bdiss, n,m,upn,file)
+ subroutine ncsavebike(x,y,thck,topg,beta_m1, beta_m3, beta_m3_u100, uvel, vvel, velc, &
+      divuh, divuhc,bheatflux, bdiss, n,m,upn,file)
     ! create a netcdf file on a bisicles grid
     ! given bisicles grid cell-centered data
     implicit none
@@ -23,10 +23,9 @@ module ncdump
     integer,intent(in) :: n,m,upn
     real(kind=8), dimension(1:n) ,intent(in):: x
     real(kind=8), dimension(1:m) ,intent(in):: y
-    real(kind=8), dimension(1:n,1:m) ,intent(in):: thck, topg, beta, uvel, vvel,&
+    real(kind=8), dimension(1:n,1:m) ,intent(in):: thck, topg,&
+         beta_m1, beta_m3, beta_m3_u100, uvel, vvel,&
          velc, divuh, divuhc, bheatflux, bdiss
-    real(kind=8), dimension(1:n,1:m,1:upn) ,intent(in):: temp
-    character(len=10) :: tempname
     real(kind=8) :: time;
     integer i,j,nc_id, var_id, cell_dim_id(2), cell_3dim_id(3)
     
@@ -50,18 +49,15 @@ module ncdump
     !cell centered array defintions
     call nccheck( nf90_def_var(nc_id, "thk", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "topg", nf90_real8, cell_dim_id, var_id) )
-    call nccheck( nf90_def_var(nc_id, "beta", nf90_real8, cell_dim_id, var_id) )
+    call nccheck( nf90_def_var(nc_id, "beta_m1", nf90_real8, cell_dim_id, var_id) )
+    call nccheck( nf90_def_var(nc_id, "beta_m3", nf90_real8, cell_dim_id, var_id) )
+    call nccheck( nf90_def_var(nc_id, "beta_m3_u100", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "xvel", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "yvel", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "velc", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "divuh", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "divuhc", nf90_real8, cell_dim_id, var_id) )
 
-    do i = 1,upn
-       write(tempname,'("temp",i6.6)') i-1
-       write(*,*) tempname
-       call nccheck( nf90_def_var(nc_id, tempname, nf90_real8, cell_dim_id, var_id) )
-    end do
 
     call nccheck( nf90_def_var(nc_id, "bheatflux", nf90_real8, cell_dim_id, var_id) )
     call nccheck( nf90_def_var(nc_id, "bdiss", nf90_real8, cell_dim_id, var_id) )
@@ -79,8 +75,12 @@ module ncdump
     call nccheck( nf90_put_var(nc_id, var_id , thck) )
     call nccheck( nf90_inq_varid(nc_id, "topg", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , topg) )
-    call nccheck( nf90_inq_varid(nc_id, "beta", var_id) )
-    call nccheck( nf90_put_var(nc_id, var_id , beta) )
+    call nccheck( nf90_inq_varid(nc_id, "beta_m1", var_id) )
+    call nccheck( nf90_put_var(nc_id, var_id , beta_m1) )
+    call nccheck( nf90_inq_varid(nc_id, "beta_m3", var_id) )
+    call nccheck( nf90_put_var(nc_id, var_id , beta_m3) )
+    call nccheck( nf90_inq_varid(nc_id, "beta_m3_u100", var_id) )
+    call nccheck( nf90_put_var(nc_id, var_id , beta_m3_u100) )
     call nccheck( nf90_inq_varid(nc_id, "xvel", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , uvel) )
     call nccheck( nf90_inq_varid(nc_id, "yvel", var_id) )
@@ -92,12 +92,6 @@ module ncdump
     call nccheck( nf90_inq_varid(nc_id, "divuhc", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , divuhc) )
     
-    do i = 1,upn
-       write(tempname,'("temp",i6.6)') i-1
-       call nccheck( nf90_inq_varid(nc_id, tempname, var_id) )
-       call nccheck( nf90_put_var(nc_id, var_id , temp(:,:,i) ) )
-    end do
-
     call nccheck( nf90_inq_varid(nc_id, "bheatflux", var_id) )
     call nccheck( nf90_put_var(nc_id, var_id , bheatflux) )
 
@@ -196,41 +190,6 @@ subroutine readdata(usrf,lsrf,topg,uvel,vvel,ewn,nsn)
 
 end subroutine readdata
 
-subroutine computeA(flwa,temp,thck,n,ewn,nsn,upn)
-  implicit none
-  integer :: ewn,nsn,upn
-!  real(kind=8), parameter :: Cgas = 0.16612d0, Q = 7.88d4, R=8.31d0, K=1.17d0, B0=2.207, &
-!       tR = 273.39d0, enhance=1.0d0
-  real(kind=8) :: Cgas, Q, R, K , B0, tR, enhance, rhog, icepmeltf
-  real(kind=8), dimension(1:ewn,1:nsn) :: thck
-  real(kind=8), dimension(1:upn) :: sigma
-  real(kind=8), dimension(1:ewn,1:nsn,1:upn) :: temp,flwa
-  real(kind=8) :: n, factor, theta, tmp, pmp, pfactor
-  integer i, j, up
-  
-  Cgas = 0.16612d0
-  Q = 7.88d4
-  R=8.31d0
-  K=1.17d0
-  B0=2.207
-  tR = 273.39d0
-  enhance=1.0d0
-  factor = enhance* ( (1.0d0/B0)**n )
-  pfactor = 9.81d0 * 918d0 * 9.7456d-8 
-  do i = 1,ewn
-     do j = 1,nsn
-        do up = 1,upn
-        theta = (temp(i,j,up)) * (1.0d0 + sigma(up) * thck(i,j) * pfactor)
-        pmp = 273.0
-        theta = (min(pmp,theta))
-
-        tmp = 3.0*Cgas/(tR - theta)**K - (Q/R) / theta
-        flwa(i,j,up) = factor * exp(tmp)
-     end do
-     end do
-  end do
-  return
-end subroutine computeA
 
 subroutine growbeta(beta,typ,ewn,nsn,niter,maxseabeta)
   implicit none
@@ -305,33 +264,6 @@ subroutine smooth(v,a,dx,ewn,nsn)
 
 end subroutine smooth
 
-subroutine inventtemp(temp,thck,sigma,ewn,nsn,upn)
-  
-  !make up a 3d temperature field
-  implicit none
-  integer :: ewn,nsn,upn,k,i,j
-  real(kind=8), dimension(1:upn) :: sigma
-  real(kind=8), dimension(1:ewn,1:nsn) :: thck
-  real(kind=8), dimension(1:ewn,1:nsn,1:upn) :: temp
-
-  real(kind=8), dimension(1:ewn,1:nsn) :: stemp
-  real(kind=8) :: ts,tb, dt
-
-  stemp = 268.0d0
-  dt = 0.0
-  temp = 268.0d0
-  !do i = 1,ewn
-  !!   do j = 1,nsn
-  !      ts = stemp(i,j)
-  !      tb = min(272.0, ts + dt)
-  !      do k = 1,upn     
-  !         temp(i,j,k) = (tb-ts)*sigma(k)**2 + ts
-  !      end do
-  !   end do
- ! end do
-
-end subroutine inventtemp
-
 
 program t
    use ncdump
@@ -345,9 +277,8 @@ program t
        glen_n = 3.0, maxseabeta = 100.0, lambda = 4.0e+3
   
   real (kind = 8), dimension(1:ewn,1:nsn) :: topg, lsrf, usrf, thck, uvel, vvel, velc,divuh, &
-       divuhc, beta, betar, dsx, dsy, umod, umodsia, bheatflux, bdiss, tmp
+       divuhc, beta_m1, beta_m3, beta_m3_u100, betar, dsx, dsy, umod, umodsia, bheatflux, bdiss, tmp
   
-  real (kind = 8), dimension(1:ewn,1:nsn,1:upn) :: temp, flwa
 
   character(len=64) :: filename
   
@@ -411,12 +342,6 @@ program t
      lsrf = 0.0
   end where
 
-
-  
-
-
-  call inventtemp(temp,thck,sigma,ewn,nsn,upn)
- 
   
 
   !assume same 1/ (s * sigma) everywhere
@@ -496,63 +421,72 @@ program t
           /(2.0d0 * dx)
   end where
 
-  
-  !A in Glen's law
-  call computeA(flwa,temp,thck,glen_n,ewn,nsn,upn)
-  flwa = 4.0e-17
+
   !basal traction coefficient
   where (typ.eq.typ_grounded)
      where (velc.gt.0.0)
-        umodsia = (2.0d0*flwa(1:ewn,1:nsn,5) *thck**(glen_n+1)) / (glen_n+1.0d0) * (rhoi* grav)**glen_n  & 
-             * sqrt(dsx**2 + dsy**2)**glen_n
-        beta = (1 + rhoi* grav * thck * sqrt(dsx**2 + dsy**2)) / ( max(1.0d-6,umod - umodsia))
-
-         !beta is the effective drag f(u) (Tb = f(u) * u), and wewant to run with Tb = beta * |u|^1/3
-        !beta = beta * umod**(2.0/3.0)
+        beta_m1 = (1 + rhoi* grav * thck * sqrt(dsx**2 + dsy**2)) / ( max(1.0d-6,umod))
         !beta
      elsewhere
-        beta = 100.0
+        beta_m1 = 100.0
      end where
   end where
 
-  beta = min(beta,maxbeta * 1.0e+4**(2.0/3.0))
-  beta = max(beta,minbeta)
+  beta_m1 = min(beta_m1,maxbeta)
+  beta_m1 = max(beta_m1,minbeta)
 
-  call growbeta(beta,typ,ewn,nsn,20,maxseabeta)
+  call growbeta(beta_m1,typ,ewn,nsn,20,maxseabeta)
   vlambda = 4.0e+3
   vdx = dx
-  beta = log(beta)
-  call smooth(beta,vlambda,vdx,ewn,nsn)
-  beta = exp(beta)
+  beta_m1 = log(beta_m1)
+  call smooth(beta_m1,vlambda,vdx,ewn,nsn)
+  beta_m1 = exp(beta_m1)
 
-!!$  where (typ.eq.typ_grounded)
-!!$     beta = 1000
-!!$  end where
-!!$
   where (typ.eq.typ_opensea)
-     beta = 100
+     beta_m1 = minbeta
   end where
 
   where (typ.eq.typ_iceshelf)
-     beta = minbeta
+     beta_m1 = minbeta
   end where
 
-  call growbeta(beta,typ,ewn,nsn,1,maxseabeta)
+  call growbeta(beta_m1,typ,ewn,nsn,1,maxseabeta)
 
- 
+  !beta_m1 is the effective drag f(u) (Tb = f(u) * u), and we may want to run with Tb = beta_m3 * |u|^1/3
+  where ((velc.gt.0.95).and.(umod.gt.10.0))
+     beta_m3 = beta_m1 * umod**(2.0/3.0) * 0.75
+  elsewhere
+     beta_m3 = beta_m1 * 10.0**(2.0/3.0)
+  end where
+
+  where (typ.eq.typ_iceshelf)
+     beta_m3 = minbeta
+  end where
+  
+  beta_m3 = min(beta_m3,maxbeta*10.d+0)
+  beta_m3 = max(beta_m3,minbeta)
+  
+  ! Joughin 2019 regularized law (need to work around the missing data at the GL)
+  where ((velc.gt.0.95))
+     beta_m3_u100 = beta_m3 * (umod/100.0 + 1.0)**(1.0/3.0)
+  elsewhere
+     beta_m3_u100 = beta_m3 * (3000/100.0 + 1.0)**(1.0/3.0)
+  end where
+
   
   !set basal heat flux to 100 mW m^2. Units requires are J a^-1 m^-2
   bheatflux = 100*1e-3 * 365 * 24 * 3600
 
   !set basal dissipation to beta * (umod - 100.0)**2
   where (typ.eq.typ_grounded)
-     bdiss = beta * (max(1.0d-6,umod - 100.0))**2
+     bdiss = beta_m1 * (max(1.0d-6,umod - 100.0))**2
   elsewhere
      bdiss = 0.0d0
   end where
 
   filename =  'pig-bisicles-1km.nc'
-  call ncsavebike(x,y,thck,topg,beta,uvel,vvel,velc,divuh,divuhc,temp,bheatflux,bdiss,ewn,nsn,upn,filename)
+  call ncsavebike(x,y,thck,topg,beta_m1,beta_m3,beta_m3_u100,uvel,vvel,velc,&
+       divuh,divuhc,bheatflux,bdiss,ewn,nsn,upn,filename)
 
   
 end program t 

@@ -13,7 +13,9 @@
  * Date: Jan 19, 2019
  *
  */
+
 #if FFTW_3
+
 #include "BuelerGIA.H"
 #include <fftw3.h>
 #include "BisiclesF_F.H"
@@ -45,7 +47,7 @@
 BuelerGIAFlux::BuelerGIAFlux( Real a_iceDensity, Real a_mantleDensity, Real a_gravity, Real a_waterDensity)
   : m_flex(1e23), m_visc(1e21), m_dt(0.), m_Nx(0), m_Ny(0), m_Lx(0), m_Ly(0), m_nlayers(0), m_pad(1), 
     m_isDomainSet(false), m_updatedTime(0.), m_verbosity(5), m_init(false),
-    m_iceDensity(a_iceDensity), m_mantleDensity(a_mantleDensity), m_gravity(a_gravity), m_waterDensity(a_waterDensity)
+    m_iceDensity(a_iceDensity), m_mantleDensity(a_mantleDensity), m_gravity(a_gravity), m_waterDensity(a_waterDensity), m_inside_box(true), m_gia_box_lox(-9999999), m_gia_box_hix(9999999), m_gia_box_loy(-9999999), m_gia_box_hiy(9999999)
 {
   // need to allocate pointers for LevelData
   RefCountedPtr<LevelData<FArrayBox> > betaTmpPtr(new LevelData<FArrayBox>());
@@ -126,6 +128,11 @@ BuelerGIAFlux::new_surfaceFlux()
   newPtr->m_Ly          = m_Ly;
   newPtr->m_isDomainSet = m_isDomainSet;
   newPtr->m_domainOffset= m_domainOffset;
+  newPtr->m_inside_box  = m_inside_box;
+  newPtr->m_gia_box_lox = m_gia_box_lox;
+  newPtr->m_gia_box_hix = m_gia_box_hix;
+  newPtr->m_gia_box_loy = m_gia_box_loy;
+  newPtr->m_gia_box_hiy = m_gia_box_hiy;
   newPtr->m_nlayers     = m_nlayers;
   newPtr->m_visc        = m_visc;
   newPtr->m_viscvec     = m_viscvec;
@@ -183,13 +190,21 @@ BuelerGIAFlux::~BuelerGIAFlux() {
 // Set domain size characteristics..
 void
 BuelerGIAFlux::setDomain( int a_Nx, int a_Ny, Real a_Lx, Real a_Ly, 
-                          IntVect& a_offset, int a_pad ) {
+                          IntVect& a_offset, int a_pad,
+                          bool a_inside_box,
+                          int a_gia_box_lox, int a_gia_box_hix,
+                          int a_gia_box_loy, int a_gia_box_hiy ) {
   m_Nx = a_Nx;
   m_Ny = a_Ny;
   m_Lx = a_Lx;
   m_Ly = a_Ly;
   m_domainOffset = a_offset;
   m_pad = a_pad;
+  m_inside_box = a_inside_box;
+  m_gia_box_lox = a_gia_box_lox;
+  m_gia_box_hix = a_gia_box_hix;
+  m_gia_box_loy = a_gia_box_loy;
+  m_gia_box_hiy = a_gia_box_hiy;
   m_isDomainSet = true;
   if (m_verbosity>1) {
     pout() << "BuelerGIAFlux domain set" << m_Nx << m_Ny << m_Lx << m_Ly << endl;
@@ -418,7 +433,7 @@ BuelerGIAFlux::precomputeGIAstep() {
       // The Bueler et al., 2007 fields.  
       m_betaFAB(iv,comp) = m_mantleDensity*m_gravity + m_flex*pow(kij,4);               // Pa/m
       if (m_includeElas) {
-        m_elasFAB(iv,comp) = -(1-pow(alpha_l,-1))*(1./m_lame2+1./(m_lame1+m_lame2))/(2*kij); // m/Pa
+        m_elasFAB(iv,comp) = -(1-pow(alpha_l,-1))*m_gravity*(1./m_lame2+1./(m_lame1+m_lame2))/(2*kij); // m/Pa
       }
 
       if (ix == 0 && iy == 0) {
@@ -508,20 +523,21 @@ void BuelerGIAFlux::setInitialVelocity( LevelData<FArrayBox>& a_udot0 )
 // and transform to FFT space.
 void BuelerGIAFlux::computeAndTransformTAF( const AmrIceBase& a_amrIce )
 {
-  //if (m_verbosity>1) {
+  if (m_verbosity>1) {
     pout() << "BuelerGIAFlux::computeAndTransformTAF()" << endl;
-  //}
+  }
   // extract height above flotation for each level,
   // flatten it to a single level and compute response.
   int n = a_amrIce.finestLevel() + 1;
   Vector<LevelData<FArrayBox>* > data(n);
   Vector<RealVect> amrDx(n);
-   
+
   // Thickness above flotation
   for (int lev=0; lev<n; lev++) {
     data[lev] = const_cast<LevelData<FArrayBox>* >(&(a_amrIce.geometry(lev)->getThicknessOverFlotation()));
     amrDx[lev] = a_amrIce.dx(lev);
   }
+  //pout() << "BuelerGIAFlux::computeAndTransformTAF() found TAF" << endl; 
   RealVect m_destDx = a_amrIce.dx(0);
   flattenCellData(*m_taf, m_destDx,data,amrDx,m_verbosity); 
 
@@ -560,19 +576,21 @@ void BuelerGIAFlux::computeAndTransformTAF( const AmrIceBase& a_amrIce )
     for (bit.begin(); bit.ok(); ++bit) {
       IntVect iv = bit();
       int comp = 0;
-      if (m_oceanLoad && (m_topoFAB(iv,comp) <= 0) && (m_tafFAB(iv,comp) <= 0)) { 
-      //if (m_oceanLoad && (m_topoFAB(iv,comp) <= 0)) { 
-      // Ocean-consistent load with no grounded (taf<=0) ice is water load (topo<0)
-        //m_loadFAB(iv, comp) = -m_waterDensity*m_topoFAB(iv,comp) + m_iceDensity*m_tafFAB(iv, comp);
-        m_loadFAB(iv, comp) = -m_waterDensity*m_topoFAB(iv,comp);
-      }
-      else if (m_oceanLoad && (m_tafFAB(iv,comp) > 0)) {
-      // Ocean-consstent load with grounded ice (taf>0) is total ice load (h)
-        m_loadFAB(iv, comp) = m_iceDensity*m_hFAB(iv,comp);
-      }
-      else {
-      // If not considering ocean load, using thickness above flotation.
-        m_loadFAB(iv, comp) = m_iceDensity*m_tafFAB(iv,comp);
+      bool inbox = (iv[0] > m_gia_box_lox) && (iv[0] < m_gia_box_hix) && (iv[1] > m_gia_box_loy) && (iv[1] < m_gia_box_hiy);
+      inbox = m_inside_box ? inbox : !inbox;
+      if ( inbox ) {
+        if (m_oceanLoad && (m_topoFAB(iv,comp) <= 0) && (m_tafFAB(iv,comp) <= 0)) { 
+        // Ocean-consistent load with no grounded ice (taf<=0) is water (topo<0)
+          m_loadFAB(iv, comp) = -m_waterDensity*m_topoFAB(iv,comp);
+        }
+        else if (m_oceanLoad && (m_tafFAB(iv,comp) > 0)) {
+        // Ocean-consstent load with grounded ice (taf>0) is total ice load (h)
+          m_loadFAB(iv, comp) = m_iceDensity*m_hFAB(iv,comp);
+        }
+        else {
+        // If not considering ocean load, using thickness above flotation.
+          m_loadFAB(iv, comp) = m_iceDensity*m_tafFAB(iv,comp);
+        }
       }
     //pout() << m_loadFAB(iv, comp) << endl;
     }
@@ -757,3 +775,4 @@ BuelerGIAFlux::fftinvcrop (LevelData<FArrayBox>& a_varinhat, LevelData<FArrayBox
 
 #include "NamespaceFooter.H"
 #endif /*FFTW_3*/
+

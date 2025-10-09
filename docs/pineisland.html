@@ -40,7 +40,7 @@
 	from a few sources, do a few simple calculations, and create  a single netCDF file that
 	contains just the data that BISICLES needs. Note however that we will <strong>not</strong> 
 	get an especially realistic velocity field using these inputs - for that we need to find our initial 
-	values of the basal friction coefficient (C, or beta) and the damage coefficient (phi, or muCoef)
+	values of the basal friction coefficient (beta) and the damage coefficient (phi, or muCoef)
 	by solving an <a href='pineislandinverse.html'>inverse problem</a>. 
       </li>
       <li> 
@@ -105,22 +105,15 @@ variables:
         double sigma(sigma) ;
         double thk(y, x) ;
         double topg(y, x) ;
-        double beta(y, x) ;
+        double beta_m1(y, x) ;
+        double beta_m3(y, x) ;
+        double beta_m3_u100(y, x) ;
         double xvel(y, x) ;
         double yvel(y, x) ;
         double velc(y, x) ;
         double divuh(y, x) ;
         double divuhc(y, x) ;
-        double temp000000(y, x) ;
-        double temp000001(y, x) ;
-        double temp000002(y, x) ;
-        double temp000003(y, x) ;
-        double temp000004(y, x) ;
-        double temp000005(y, x) ;
-        double temp000006(y, x) ;
-        double temp000007(y, x) ;
-        double temp000008(y, x) ;
-        double temp000009(y, x) ;
+
 data:
 
  x = 0, 1000, 2000, 3000, 4000, 5000, 6000, 7000, 8000, 9000, 10000, 11000, 
@@ -154,7 +147,7 @@ data:
   BISICLES cannot (yet) read  netCDF data directly, instead we must use the nctoamr tool to 
   convert it into a Chombo AMR hierarchy stored in an .hdf5 file. Run
   <pre>
-    $BISICLES_HOME/BISICLES/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.ex pig-bisicles-1km.nc pig-bisicles-1km.2d.hdf5 thk topg beta temp000000 temp000001 temp000002 temp000003 temp000004 temp000005 temp000006 temp000007 temp000008 temp000009  xvel yvel velc divuh divuhc
+    $BISICLES_HOME/BISICLES/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.ex pig-bisicles-1km.nc pig-bisicles-1km.2d.hdf5 thk topg beta_m1 beta_m3 beta_m3_u100 xvel yvel velc divuh divuhc
   </pre>
   and you should end up with a file called pig-bisicles-1km.2d.hdf5 that has the same data as pig-bisicles-1km.nc.
   You can inspect the contents of this file with the h5ls and h5dump programs, but it won't be pretty. Instead,
@@ -232,7 +225,7 @@ inputLevelData.frictionFile = pig-bisicles-1km.2d.hdf5
 inputLevelData.temperatureFile = pig-bisicles-1km.2d.hdf5
 inputLevelData.thicknessName = thk
 inputLevelData.topographyName = topg
-inputLevelData.frictionName = beta
+inputLevelData.frictionName = beta_m3
 inputLevelData.temperatureName = temp000000
 </pre>
 we have chosen to load all our data from one file, though it is possible
