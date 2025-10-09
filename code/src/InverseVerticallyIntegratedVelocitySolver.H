@@ -206,12 +206,6 @@ public:
     enum VelocityMisfitType {speed, velocity, log_speed, MAX_VELOCITY_MISFIT_TYPE};
     /// Type of velocity misfit : speed, velocity, or log_speed. Set with <prefix>.vel_misfit_type, default speed
     VelocityMisfitType m_velMisfitType;
-	
-	bool m_WeightVelocityMisfitCoefficient;
-	Real m_VelocityMisfitCoefficientLo;
-	Real m_VelocityMisfitCoefficientHi;
-	Real m_VelocityObservedLo;
-	Real m_VelocityObservedHi;
 
     /// attempt to optimize w.r.t X0?
     bool m_optimizeX0;
@@ -247,21 +241,12 @@ public:
     /// Coefficient of \f$\int _\Omega \alpha (u - u_0) d \Omega \f$ in \f$J\f$. Set with <prefix>.velMisfitCoefficient, default 1.0
     Real m_velMisfitCoefficient;
 
-    /// Coefficient of \f$\int _\Omega \beta (\nabla \cdot. (uh) - a^{\prime} ) d \Omega \f$ in \f$J\f$. Set with <prefix>.divuhMisfitCoefficient default 1.0
-    Real m_divuhMisfitCoefficient;
-
-    /// If \f$> 0\f$, smooth \f$(\nabla \cdot. (uh) - a^{\prime} )\f$. Set with <prefix>.divuhMisfitSmooth, default 0.0
-    Real m_divuhMisfitSmooth;
-
     /// Coefficient of \f$\int _\Omega (\nabla C )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradCsqRegularization
     Real m_gradCsqRegularization; 
 
     /// Coefficient of \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradMuCoefsqRegularization
     Real m_gradMuCoefsqRegularization; 
 
-    
-
-    
     /// Coefficient of \f$\int _\Omega (\nabla X_0 )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradX0sqRegularization
     Real m_gradX0sqRegularization; 
 
@@ -350,12 +335,6 @@ public:
     /// base of filename for 'outer' plots
     std::string m_outerStepFileNameBase;
 
-    /// observed flux divergence data coefficient
-    SurfaceData* m_divuhObs_c;
-
-    /// observed flux divergence data
-    SurfaceData* m_divuhObs_a;    
-
     /// used to amplify (damp) the gradient non-uniformly
     SurfaceData* m_gradientFactor;
 
@@ -429,9 +408,6 @@ private:
    const Vector<LevelData<FArrayBox>* >& a_x,
    const Vector<LevelData<FArrayBox>* >& a_g) const;
 
-
-  ///compute cell-centered div(UH) 
-  void computeDivUH();
 
   //calculate the rhs to the adjoint equation, and the misfits
   void computeAdjointRhs();
@@ -564,33 +540,15 @@ private:
   ///local velocity observation confidence (1/sigma^2) on AMR hierarchy
   Vector<LevelData<FArrayBox>*> m_velCoef;
 
-  ///flux divergence observations on AMR hierarchy
-  Vector<LevelData<FArrayBox>*> m_divuhObs;
-
-  ///flux divergence observation confidence (1/sigma^2) on AMR hierarchy
-  Vector<LevelData<FArrayBox>*> m_divuhCoef;
-
   ///velocity (at base of ice)
   Vector<LevelData<FArrayBox>*> m_velb;
 
   ///velocity (at surface of ice)
   Vector<LevelData<FArrayBox>*> m_vels;
-
-  ///flux divergence
-  Vector<LevelData<FArrayBox>*> m_divuh;
   
   /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_velocityMisfit;
   
-  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
-  Vector<LevelData<FArrayBox>*> m_velocityRelativeMisfit;
-  
-  /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
-  Vector<LevelData<FArrayBox>*> m_realVelocityMisfit;
-  
-  /// misfit term \f$|| g(\nabla \cdot ( u h)  , \nabla \cdot ( u_o h_o) ) ||^2_2\f$
-  Vector<LevelData<FArrayBox>*> m_divuhMisfit;
-
   //physics pointers
   BasalFrictionRelation* m_basalFrictionRelation;
   ConstitutiveRelation* m_constitutiveRelation;

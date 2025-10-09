@@ -43,8 +43,6 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::Configuration()
 #if CH_SPACEDIM > 1
    m_velObs_y(NULL), 
 #endif
-   m_divuhObs_c(NULL),
-   m_divuhObs_a(NULL),
    m_gradientFactor(NULL)
 {
 
@@ -96,12 +94,7 @@ InverseVerticallyIntegratedVelocitySolver::~InverseVerticallyIntegratedVelocityS
   free(m_velObs);
   free(m_velCoef);
   free(m_velb);
-  //free(m_vels);
-  free(m_divuh);
   free(m_velocityMisfit);
-  free(m_velocityRelativeMisfit);
-  free(m_realVelocityMisfit);
-  free(m_divuhMisfit);
 }
 
 void
@@ -177,18 +170,6 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
       }
   }
   
-  m_WeightVelocityMisfitCoefficient = false;
-  pp.query("WeightVelocityMisfitCoefficient", m_WeightVelocityMisfitCoefficient );
-  m_VelocityMisfitCoefficientLo = 1.0;
-  pp.query("VelocityMisfitCoefficientLo", m_VelocityMisfitCoefficientLo );
-  m_VelocityMisfitCoefficientHi = 10.0;
-  pp.query("VelocityMisfitCoefficientHi", m_VelocityMisfitCoefficientHi );
-  m_VelocityObservedLo = 10.0;
-  pp.query("VelocityObservedLo", m_VelocityObservedLo );
-  m_VelocityObservedHi = 1000.0;
-  pp.query("VelocityObservedHi", m_VelocityObservedHi );
-  
-
   // specify observed data
   m_velObs_c = SurfaceData::parse("control.velCoef");
   CH_assert(m_velObs_c != NULL);
@@ -201,19 +182,6 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
       m_velObs_y = new ZeroData;
     }
 #endif
-
-  m_divuhMisfitCoefficient = 0.0;
-  pp.query("massImbalanceCoefficient",m_divuhMisfitCoefficient); //backward compatibility
-  pp.query("divuhMisfitCoefficient",m_divuhMisfitCoefficient);
-  
-  m_divuhMisfitSmooth = 0.0;
-  pp.query("divuhMisfitSmooth",  m_divuhMisfitSmooth);
-
-
-  m_divuhObs_c = SurfaceData::parse("control.divuhCoef");
-  m_divuhObs_a = SurfaceData::parse("control.divuh");
-
-
   m_gradientFactor = SurfaceData::parse("control.gradientFactor");
   if (m_gradientFactor == NULL)
     {
@@ -399,18 +367,9 @@ InverseVerticallyIntegratedVelocitySolver::define
   create(m_velObs,SpaceDim,IntVect::Unit);
   create(m_velCoef,1,IntVect::Unit);
   create(m_velocityMisfit,1,IntVect::Unit);
-  create(m_velocityRelativeMisfit,1,IntVect::Unit);
-  create(m_realVelocityMisfit,1,IntVect::Unit);
 
   create(m_velb,SpaceDim,IntVect::Unit);
   create(m_adjVel,SpaceDim,IntVect::Unit);
-
-  create(m_divuhObs,1,IntVect::Unit);
-  create(m_divuhCoef,1,IntVect::Unit);
-  create(m_divuhMisfit,1,IntVect::Unit);
-  create(m_divuh,1,IntVect::Unit);
-  
-  //create(m_rhs,SpaceDim,IntVect::Unit);
   create(m_adjRhs,SpaceDim,IntVect::Unit);
 
 }
@@ -514,27 +473,6 @@ int InverseVerticallyIntegratedVelocitySolver::solve
   setToZero(X);
 
   //update observations
-  for (int lev = 0; lev < m_velObs.size(); lev++)
-    {
-      if (m_config.m_divuhObs_a)
-	{
-	  m_config.m_divuhObs_a->evaluate( *m_divuhObs[lev], *m_amrIce, lev, 0.0);
-	}
-      else
-	{
-	  setToZero(m_divuhObs);
-	}
-      if (m_config.m_divuhObs_c)
-	{
-	  m_config.m_divuhObs_c->evaluate( *m_divuhCoef[lev], *m_amrIce, lev, 0.0);
-	}
-      else
-	{
-	  setToZero(m_divuhCoef);
-	  plus(m_divuhCoef,1.0);
-	} 
-    }
-
   for (int lev = 0; lev < m_velObs.size(); lev++)
     {
       LevelData<FArrayBox> u;
@@ -1009,9 +947,6 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 
   //compute objective function 
   Real vobj = computeSum(m_velocityMisfit, m_refRatio, m_dx[0][0]);
-  Real vobjrel = computeSum(m_velocityRelativeMisfit, m_refRatio, m_dx[0][0]);
-  Real vobjreal = computeSum(m_realVelocityMisfit, m_refRatio, m_dx[0][0]);
-  Real hobj = computeSum(m_divuhMisfit, m_refRatio, m_dx[0][0]); 
   Real sumGradCSq = computeSum(m_gradCSq,m_refRatio, m_dx[0][0]);
   Real sumGradMuSq = computeSum(m_gradMuCoefSq,m_refRatio, m_dx[0][0]);
   Real sumGradX0Sq =  computeSum(m_gradXSq,m_refRatio, m_dx[0][0], Interval(0,0));
@@ -1019,10 +954,7 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   Real normX0 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(0,0));
   Real normX1 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(1,1));
   
-  
-  //const FArrayBox& uo = (*m_velObs[lev])[dit];			// MJT
-
-  a_fm = vobj + hobj;
+  a_fm = vobj ;
   a_fp =  m_config.m_gradCsqRegularization * sumGradCSq
     + m_config.m_gradMuCoefsqRegularization * sumGradMuSq
     + m_config.m_gradX0sqRegularization * sumGradX0Sq
@@ -1031,9 +963,6 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     + X1Regularization() * normX1*normX1;
   
   pout() << ((a_inner)?"inner: ":"outer: ") << " ||velocity misfit||^2 = " << vobj 
-	 << " ||relative misfit||^2 = " << vobjrel
-	 << " ||actual misfit||^2 = " << vobjreal
-	 << " ||divuh misfit||^2 = " << hobj
 	 << " || grad C ||^2 = " << sumGradCSq
 	 << " || grad muCoef ||^2 = " << sumGradMuSq
 	 << " || grad X0 ||^2 = " << sumGradX0Sq
@@ -1119,134 +1048,6 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     }
 }
 
-
-///compute cell-centered div(UH) 
-void 
-InverseVerticallyIntegratedVelocitySolver::computeDivUH()
-{
- 
-  //bit of a mess, at least some of this functionality is duplicated in AmrIce
-
-  Vector<LevelData<FluxBox>* > faceU;
-  create(faceU, 1, IntVect::Unit);
-  Vector<LevelData<FluxBox>* > faceH;
-  create(faceH, 1, IntVect::Zero);
-  Vector<LevelData<FluxBox>* > faceUH;
-  create(faceUH, 1, IntVect::Unit);
-  
-  //1. compute the face centered velocity
-  {
-    LevelData<FArrayBox>* cellDiffusivity = NULL;
-    for (int lev = 0; lev <= m_finest_level; lev++)
-      {
-
-	// a few pointers to coarse level data
-	LevelData<FArrayBox>* crseVelPtr = (lev > 0)?m_velb[lev-1]:NULL;
-	int nRefCrse = (lev > 0)?m_refRatio[lev-1]:1;
-	LevelData<FArrayBox>* crseCellDiffusivityPtr = (lev > 0)?cellDiffusivity:NULL;
-	cellDiffusivity = new LevelData<FArrayBox>(m_grids[lev],1,IntVect::Unit);
-      
-	//temporaries...
-	LevelData<FluxBox> faceVelAdvection(m_grids[lev],1,IntVect::Unit);
-	LevelData<FluxBox> faceDiffusivity(m_grids[lev],1,IntVect::Zero);
-	int nLayer = m_A[0]->nComp();
-	LevelData<FluxBox> layerXYFaceXYVel(m_grids[lev],nLayer,IntVect::Zero);
-	LevelData<FArrayBox> layerSFaceXYVel(m_grids[lev],SpaceDim*(nLayer + 1),IntVect::Zero);
-      
-	bool additionalVelocity = false;
-
-	IceUtility::computeFaceVelocity
-	  (faceVelAdvection, *faceU[lev], faceDiffusivity,
-	   *cellDiffusivity, layerXYFaceXYVel , layerSFaceXYVel ,
-	   *m_velb[lev],*m_coordSys[lev], m_thicknessIBC, 
-	   *m_A[lev], *m_A[lev], *m_A[lev], 
-	   crseVelPtr,crseCellDiffusivityPtr, nRefCrse, 
-	   m_constitutiveRelation, additionalVelocity, false);
-
-	if (crseCellDiffusivityPtr != NULL)
-	  delete crseCellDiffusivityPtr;
-
-      }
-    if (cellDiffusivity != NULL) delete cellDiffusivity;
-  }
-
-  //2. compute face thickness (PPM...)
-  for (int lev = 0; lev <= m_finest_level; lev++)
-    {
-      PatchGodunov pg; 
-      int normalPredOrder = 2;
-      bool useFourthOrderSlopes = false;
-      bool usePrimLimiting = false;
-      bool useCharLimiting = false;
-      bool useFlattening = false;
-      bool useArtificialViscosity = false;
-      Real artificialViscosity = 0.0;
-      AdvectPhysics ap;
-      ap.setPhysIBC(m_thicknessIBC);
-      pg.define(m_domain[lev], m_dx[lev][0], &ap,  normalPredOrder,
-		useFourthOrderSlopes,usePrimLimiting,useCharLimiting,useFlattening,
-		useArtificialViscosity,artificialViscosity);
-      pg.setCurrentTime(0.0);
-      
-      //can't just use ap, bacause pg used the factory method....
-      AdvectPhysics* advectPhysPtr = dynamic_cast<AdvectPhysics*>(pg.getGodunovPhysicsPtr());
-      CH_assert(advectPhysPtr != NULL); // that really should not happen
-      for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
-	{
-	  const Box& box = m_grids[lev][dit];
-	  pg.setCurrentBox(box);
-	  advectPhysPtr->setVelocities( & (*m_velb[lev])[dit], & (*faceU[lev])[dit]  );
-	  const FArrayBox& h = m_coordSys[lev]->getH()[dit];
-	  FArrayBox src(box,1); src.setVal(0.0);
-	  pg.computeWHalf( (*faceH[lev])[dit], h , src, 0.0, box);  
-	} 
-    }
-  
-
-  //3. compute face flux
-  for (int lev = 0; lev <= m_finest_level; lev++)
-    {
-      for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
-	{
-	  for (int dir=0; dir<SpaceDim; dir++)
-            {
-	      (*faceUH[lev])[dit][dir].copy((*faceU[lev])[dit][dir]);
-	      (*faceUH[lev])[dit][dir].mult((*faceH[lev])[dit][dir]);
-	    }
-	}
-    }
-  for (int lev=m_finest_level; lev>0; lev--)
-    {
-      CoarseAverageFace faceAverager(m_grids[lev], 1, m_refRatio[lev-1]);
-      faceAverager.averageToCoarse(*faceUH[lev-1], *faceUH[lev]);
-    }
-
-  //4. divergence
-  for (int lev = 0; lev <= m_finest_level; lev++)
-    {
-      for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
-	{
-	  FArrayBox& div = (*m_divuh[lev])[dit];
-	  div.setVal(0.0);
-	  for (int dir=0; dir<SpaceDim; dir++)
-	    {
-	      FORT_DIVERGENCE(CHF_CONST_FRA( (*faceUH[lev])[dit][dir]),
-                              CHF_FRA(div),
-                              CHF_BOX(m_grids[lev][dit]),
-                              CHF_CONST_REAL(m_dx[lev][dir]),
-                              CHF_INT(dir));
-	      //CH_assert( div.min() > -1.0e+6 &&  div.max() < 1.0e+6);
-	    }
-	}
-    }
-  
-  free(faceU);
-  free(faceH);
-  free(faceUH);
-
-}
-
-
 /// compute adjoint eqn rhs, plus related quantities (e.g misfits)
 void 
 InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
@@ -1263,8 +1064,6 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	{
 	  FArrayBox& adjRhs = (*m_adjRhs[lev])[dit];
 	  FArrayBox& misfit = (*m_velocityMisfit[lev])[dit];
-	  FArrayBox& misfitreal = (*m_realVelocityMisfit[lev])[dit];
-	  FArrayBox& relmisfit = (*m_velocityRelativeMisfit[lev])[dit];
 	  const FArrayBox& um = (*m_vels[lev])[dit];
 	  const FArrayBox& uo = (*m_velObs[lev])[dit];
 	  const FArrayBox& h = m_coordSys[lev]->getH()[dit];
@@ -1275,8 +1074,6 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	    {
 	      FORT_ADJRHSSPEEDCTRL(CHF_FRA1(adjRhs,0), CHF_FRA1(adjRhs,1),
 				   CHF_FRA1(misfit,0),
-				   CHF_FRA1(relmisfit,0),
-				   CHF_FRA1(misfitreal,0),
 				   CHF_CONST_FRA1(um,0), CHF_CONST_FRA1(um,1),
 				   CHF_CONST_FRA1(uo,0), CHF_CONST_FRA1(uo,1),
 				   CHF_BOX(box));
@@ -1302,30 +1099,6 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	      CH_assert(m_config.m_velMisfitType < Configuration::MAX_VELOCITY_MISFIT_TYPE);
 	    }
 
-	  // delete later, just for testing
-	  // And get rid of m_realVelocityMisfit
-	  for (BoxIterator bit(box);bit.ok();++bit)
-	    {
-	      const IntVect& iv = bit();
-	      if (uc(iv) < 0.975) uc(iv) = 0.0; 
-	      if (uc(iv) > 1.0) uc(iv) = 1.0; 			
-	      if (h(iv) < m_config.m_thicknessThreshold) uc(iv) = 0.0;
-	    }
-		 
-	  misfitreal *= uc;
-		
-	  // Modify the velcoef weighting according to observed velocity
-	  if (m_config.m_WeightVelocityMisfitCoefficient)
-	    {
-	      FORT_WEIGHTVELC(CHF_FRA1(uc,0),
-			      CHF_CONST_FRA1(uo,0), CHF_CONST_FRA1(uo,1),
-			      CHF_CONST_REAL(m_config.m_VelocityMisfitCoefficientLo),
-			      CHF_CONST_REAL(m_config.m_VelocityMisfitCoefficientHi),
-			      CHF_CONST_REAL(m_config.m_VelocityObservedLo),
-			      CHF_CONST_REAL(m_config.m_VelocityObservedHi),
-			      CHF_BOX(box));
-	    }
-
 	  for (BoxIterator bit(box);bit.ok();++bit)
 	    {
 	      const IntVect& iv = bit();
@@ -1338,55 +1111,13 @@ InverseVerticallyIntegratedVelocitySolver::computeAdjointRhs()
 	      adjRhs.mult(uc,0,dir);
 	    }
 	  misfit *= uc;
-	  relmisfit *= uc;
 	   
 	  adjRhs *= m_config.m_velMisfitCoefficient;
 	  misfit *= m_config.m_velMisfitCoefficient;
 
 	}
     }
-  //computeDivUH();
   // rhs contribution due to velocity mismatch
-  setToZero(m_divuhMisfit); // needs to be initialized in all cases
-  //if (m_config.m_divuhMisfitCoefficient > TINY_NORM) // avoid longish calculation of not needed
-    {
-      //need div(uh)
-      computeDivUH();
-      for (int lev=0; lev <= m_finest_level ;lev++)
-	{
-	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	    {  
-	      FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
-	      misfit.copy ( (*m_divuh[lev])[dit] );
-	      misfit.minus( (*m_divuhObs[lev])[dit] );
-	      misfit.mult ( (*m_divuhCoef[lev])[dit] );
-	    }
-	}
-      
-      // compute rhs & misfit
-      for (int lev=0; lev <= m_finest_level ;lev++)
-	{
-	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	    {
-	      FArrayBox& adjRhs = (*m_adjRhs[lev])[dit];
-	      FArrayBox& misfit = (*m_divuhMisfit[lev])[dit];
-	      FArrayBox trhs(adjRhs.box(), SpaceDim);
-	      const FArrayBox& h = m_coordSys[lev]->getH()[dit];
-	      Box box = m_grids[lev][dit];
-	      //box.grow(-1); // can't work out second derivatives at box edges for now.
-	      trhs.setVal(0.0);
-	      FORT_ADJRHSMASSCTRL(CHF_FRA(trhs),
-				  CHF_FRA1(misfit,0),
-				  CHF_CONST_FRA1(h,0),
-				  CHF_CONST_REAL(m_dx[lev][0]),
-				  CHF_BOX(box));
-	      
-	      adjRhs.plus(trhs, m_config.m_divuhMisfitCoefficient);
-	      misfit *= misfit;
-	      misfit *=  m_config.m_divuhMisfitCoefficient;
-	    }
-	}
-    }
 }
  
 
@@ -1901,8 +1632,6 @@ void InverseVerticallyIntegratedVelocitySolver::writeState
   names.push_back("yVels");
   names.push_back("xVelo");
   names.push_back("yVelo");
-  names.push_back("divuh");
-  names.push_back("divuho");
   names.push_back("xAdjVel");
   names.push_back("yAdjVel");
   names.push_back("xAdjRhs");
@@ -1910,7 +1639,6 @@ void InverseVerticallyIntegratedVelocitySolver::writeState
   names.push_back("gradJC");
   names.push_back("gradJMuCoef");
   names.push_back("velc");
-  names.push_back("divuhc");
   names.push_back("thickness");
   names.push_back("Z_base");
   names.push_back("Z_surface");
@@ -1928,19 +1656,14 @@ void InverseVerticallyIntegratedVelocitySolver::writeState
       m_velb[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
       m_vels[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
       m_velObs[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
-      m_divuh[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
-      m_divuhObs[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
       m_adjVel[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
       m_adjRhs[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
       a_g[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
       a_g[lev]->copyTo(Interval(1,1),data,Interval(j,j));j++;
       m_velCoef[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
-      //  m_thkCoef[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
-      m_divuhCoef[lev]->copyTo(Interval(0,0),data,Interval(j,j));j++;
       m_coordSys[lev]->getH().copyTo(Interval(0,0),data,Interval(j,j));j++;
       m_coordSys[lev]->getTopography().copyTo(Interval(0,0),data,Interval(j,j));j++;
       m_coordSys[lev]->getSurfaceHeight().copyTo(Interval(0,0),data,Interval(j,j));j++;
-      //m_pointThicknessData[lev]->copyTo(Interval(0,1),data,Interval(j,j+1));j+=2;
     
     }
   const Real dt = 1.0;

@@ -19,8 +19,6 @@ c it doesn't matter what lives in these
 c---------------------------------------------------
       subroutine adjrhsspeedctrl( CHF_FRA1[rhsx],CHF_FRA1[rhsy], 
      &     CHF_FRA1[misfit],
-     &     CHF_FRA1[relmisfit],
-     &     CHF_FRA1[misfitreal],
      &     CHF_CONST_FRA1[umx],CHF_CONST_FRA1[umy],
      &     CHF_CONST_FRA1[uox],CHF_CONST_FRA1[uoy],
      &     CHF_BOX[box] )
@@ -33,9 +31,6 @@ c---------------------------------------------------
       um = (umx(CHF_AUTOIX[i])**two+umy(CHF_AUTOIX[i])**two)**half
       
       misfit(CHF_AUTOIX[i]) = (uo-um)**two
-      misfitreal(CHF_AUTOIX[i]) = (uo-um)**two
-      relmisfit(CHF_AUTOIX[i]) = (misfit(CHF_AUTOIX[i])/(TINY_NORM + uo)**two)
-c      misfit(CHF_AUTOIX[i]) = (uo-um)
       t = (uo/(TINY_NORM + um)-one)
       rhsx(CHF_AUTOIX[i]) = t * umx(CHF_AUTOIX[i])
       rhsy(CHF_AUTOIX[i]) = t * umy(CHF_AUTOIX[i])
