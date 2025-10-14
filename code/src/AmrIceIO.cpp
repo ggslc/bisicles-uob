@@ -3404,7 +3404,7 @@ void AmrIce::flushCFData()
   char* iter_str = new char[m_plot_prefix.size() + 64 + fs.size()];
   sprintf(iter_str, fs.c_str(), m_plot_prefix.c_str(), outputNumbering() , SpaceDim );
   string filename(iter_str);
-  delete iter_str;
+  delete[] iter_str;
 
   
   const DisjointBoxLayout& dbl = m_uniform_cf_data.disjointBoxLayout();

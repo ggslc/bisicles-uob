@@ -42,7 +42,8 @@ ProductSurfaceFlux::ProductSurfaceFlux  (SurfaceFlux* a_flux1, SurfaceFlux* a_fl
 /// destructor
 ProductSurfaceFlux::~ProductSurfaceFlux()
 {
-  // I think we should be deleting m_flux1 and m_flux2 here
+  if (m_flux1) delete m_flux1;
+  if (m_flux2) delete m_flux2;
 }
 
 /// factory method

@@ -3748,15 +3748,7 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
       //allow calving model to modify geometry 
       applyCalvingCriterion(CalvingModel::PostVelocitySolve);
 	
-      for (int lev=0; lev<=m_finest_level; lev++)
-	{
-	  if (vectC0[lev] != NULL)
-	    {
-	      delete vectC0[lev]; vectC0[lev] = NULL;
-	    }
-	}
-  
-      /// This is probably the most useful notification, as a velocity 
+           /// This is probably the most useful notification, as a velocity 
       /// solve is carried out at the end of every major stage
       notifyObservers(Observer::PostVelocitySolve);
 	
@@ -3774,7 +3766,15 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
   updateViscousTensor();
   //calculate the face centred (flux) velocity and diffusion coefficients
   computeFaceVelocity(m_faceVelAdvection,m_faceVelTotal,m_diffusivity,m_layerXYFaceXYVel, m_layerSFaceXYVel);
-
+ 
+  //clean up
+  for (int lev=0; lev<=m_finest_level; lev++)
+	{
+	  if (vectC0[lev] != NULL)
+	    {
+	      delete vectC0[lev]; vectC0[lev] = NULL;
+	    }
+	}
 }
   
 	

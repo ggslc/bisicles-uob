@@ -118,6 +118,17 @@ Real HDF5NormTest(std::string a_result, std::string a_ref, std::string a_diff=""
       
     }
 
+  // clean up
+  for (int i = 0; i < refSoln.size(); i++)
+  {
+	  if (refSoln[i]) delete refSoln[i];
+  }
+  for (int i = 0; i < resultSoln.size(); i++)
+  {
+	  if (resultSoln[i]) delete resultSoln[i];
+  }
+
+
   return maxnorm;
 
 }

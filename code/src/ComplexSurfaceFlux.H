@@ -176,7 +176,10 @@ public:
 		  bool a_check_ocean_connected = true,
 		  bool a_conserve_sum = true);
 
-  virtual ~ConservedSumIceShelfFlux(){};
+  virtual ~ConservedSumIceShelfFlux()
+  {
+	  if (m_flux) delete m_flux;
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
@@ -244,7 +247,13 @@ public:
 	     SurfaceFlux* a_openSeaFlux, SurfaceFlux* a_openLandFlux,
 	     bool a_floating_check_ocean_connected);
 
-  virtual ~MaskedFlux(){};
+  virtual ~MaskedFlux()
+  {
+  	if (m_groundedIceFlux) delete (m_groundedIceFlux);
+	if (m_floatingIceFlux) delete (m_floatingIceFlux);
+	if (m_openSeaFlux) delete (m_openSeaFlux);
+	if (m_openLandFlux) delete (m_openLandFlux);
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
@@ -318,7 +327,9 @@ public:
   
 
    /// destructor
-  virtual ~BoxBoundedFlux(){};
+  virtual ~BoxBoundedFlux(){
+  if (m_fluxPtr) delete m_fluxPtr;
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
