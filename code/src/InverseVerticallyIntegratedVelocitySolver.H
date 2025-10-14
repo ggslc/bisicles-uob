@@ -213,7 +213,9 @@ public:
     bool m_optimizeX1;
     /// evaluate unregluarized gradient of objective with respect to mucoef (or rather, X1) in the shelf only?
     bool m_gradMuCoefShelfOnly;
-    
+    /// use data to inform temporal regularization of X1?
+    bool m_fracInformedX1TimeReg;
+
     /// Lower bound on \f$X_0 = \ln C - \ln C_0\f$. Set with with <prefix>.lowerX0
     Real m_lowerX0;
 
@@ -244,8 +246,21 @@ public:
     /// Coefficient of \f$\int _\Omega (\nabla C )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradCsqRegularization
     Real m_gradCsqRegularization; 
 
+    /// Regularize mu with \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ term or \f$\int _\Omega (1 - \phi )^2\beta(x,y) d \Omega \f$ term? 1 for first option, 2 for second or sum of the two terms.
+    int m_muRegularizationType;
+
     /// Coefficient of \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradMuCoefsqRegularization
     Real m_gradMuCoefsqRegularization; 
+
+
+    /// Divide -C * lambda * u by (u/fastSlidingSpeed+1)**2. 0 for no, 1 for yes.
+    int m_regularizeCGradient; 
+
+    /// Coefficient of \f$\int _\Omega (1 - \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.oneMinusMuSqRegularization
+    Real m_oneMinusMuSqRegularization;
+
+    /// Filename for l-curve analysis parameters
+    std::string m_l_curve_param_filename;
 
     /// Coefficient of \f$\int _\Omega (\nabla X_0 )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradX0sqRegularization
     Real m_gradX0sqRegularization; 
@@ -308,7 +323,13 @@ public:
    
     ///observed velocity data coefficient
     SurfaceData* m_velObs_c;
-    
+
+    ///creating pointer to SurfaceData instance for observed damage coefficient
+    SurfaceData* m_damRegCoef_c;
+
+    ///pointer to SurfaceData instance for X1 time regularization weights
+    SurfaceData* m_X1TimeRegCoef_c;
+
     ///observed x-velocity data
     SurfaceData* m_velObs_x;
     
@@ -408,6 +429,11 @@ private:
    const Vector<LevelData<FArrayBox>* >& a_x,
    const Vector<LevelData<FArrayBox>* >& a_g) const;
 
+  ///declaring function to write l-curve parameters to file after each CG iteration
+  void writeLCurveParams
+  (const Real& vobj, const Real& hobj, const Real& sumGradSq,
+   const Real& sumGradMuSq, const Real& normx0, const Real& normx1,
+   const Real& sumOneMinusMuSqBeta) const;
 
   //calculate the rhs to the adjoint equation, and the misfits
   void computeAdjointRhs();
@@ -466,7 +492,6 @@ private:
   {
     return m_config.m_X1Regularization +  m_config.m_X1TimeRegularization * XnTimeCoef();
   }
-
   int m_innerCounter, m_outerCounter;
   
   bool m_velocityInitialised;
@@ -539,6 +564,17 @@ private:
 
   ///local velocity observation confidence (1/sigma^2) on AMR hierarchy
   Vector<LevelData<FArrayBox>*> m_velCoef;
+
+  ///damage regularisation weight field
+  Vector<LevelData<FArrayBox>*> m_damRegCoef;
+  ///also need another vector for use in the cost function
+  Vector<LevelData<FArrayBox>*> m_oneMinusMuSqBeta;
+  /// needed for fracture informed time regularization
+  Vector<LevelData<FArrayBox>*> m_scaledX1Norm;
+
+
+  ///field for weights for X1 time regularization
+  Vector<LevelData<FArrayBox>*> m_X1TimeRegCoef;
 
   ///velocity (at base of ice)
   Vector<LevelData<FArrayBox>*> m_velb;

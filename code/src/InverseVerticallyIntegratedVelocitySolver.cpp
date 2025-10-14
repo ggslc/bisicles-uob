@@ -29,6 +29,9 @@
 #include "AmrIceBase.H"
 #include "NamespaceHeader.H"
 
+// for writing l-curve params to csv file
+#include <iostream>
+#include <fstream>
 #include <vector>
 
 #define CCOMP 0
@@ -40,6 +43,8 @@
 InverseVerticallyIntegratedVelocitySolver::Configuration::Configuration()
   :m_velObs_c(NULL),
    m_velObs_x(NULL),
+   m_damRegCoef_c(NULL),
+   m_X1TimeRegCoef_c(NULL),
 #if CH_SPACEDIM > 1
    m_velObs_y(NULL), 
 #endif
@@ -65,7 +70,16 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::~Configuration()
     {
       delete m_velObs_c; m_velObs_c = NULL;
     }
+    
+    if (m_damRegCoef_c != NULL)
+    {
+      delete m_damRegCoef_c; m_damRegCoef_c = NULL;
+    }
 
+    if (m_X1TimeRegCoef_c != NULL)
+    {
+      delete m_X1TimeRegCoef_c; m_X1TimeRegCoef_c = NULL;
+    }
 
 }
 
@@ -85,8 +99,12 @@ InverseVerticallyIntegratedVelocitySolver::~InverseVerticallyIntegratedVelocityS
   free(m_bestC);
   free(m_muCoef);
   free(m_muCoefOrigin);
+  free(m_damRegCoef);
+  free(m_oneMinusMuSqBeta);
+  free(m_X1TimeRegCoef);
+  free(m_scaledX1Norm);
   free(m_lapC);
-  free( m_gradCSq);
+  free(m_gradCSq);
   free(m_lapMuCoef);
   free(m_gradMuCoefSq);
   free(m_lapX);
@@ -175,6 +193,8 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   CH_assert(m_velObs_c != NULL);
   m_velObs_x = SurfaceData::parse("control.xVel");
   CH_assert(m_velObs_x != NULL);
+  m_damRegCoef_c = SurfaceData::parse("control.damRegCoef");
+  m_X1TimeRegCoef_c = SurfaceData::parse("control.X1TimeRegCoef");
 #if CH_SPACEDIM > 1
   m_velObs_y = SurfaceData::parse("control.yVel");
   if ((m_velObs_y == NULL) && (m_velMisfitType == speed))
@@ -195,6 +215,9 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   pp.query("optimizeX1", m_optimizeX1 );
   CH_assert(m_optimizeX0 || m_optimizeX1); // at least one of these should be true
 
+  m_fracInformedX1TimeReg = false;
+  pp.query("fracInformedX1TimeReg", m_fracInformedX1TimeReg);
+
   // evaluate *unregluarized* gradient of J with respect to mucoef (or rather, X1) in the shelf only?
   m_gradMuCoefShelfOnly = false;
   pp.query("gradMuCoefShelfOnly", m_gradMuCoefShelfOnly); 
@@ -205,13 +228,25 @@ InverseVerticallyIntegratedVelocitySolver::Configuration::parse(const char* a_pr
   m_gradMuCoefsqRegularization = m_gradCsqRegularization;
   pp.query("gradMuCoefsqRegularization",m_gradMuCoefsqRegularization);
 
+  m_oneMinusMuSqRegularization = 0.0;
+  pp.query("oneMinusMuSqRegularization",m_oneMinusMuSqRegularization);
+  pout() << "oneMinusMuSqRegularization:" << m_oneMinusMuSqRegularization << std::endl;
+
+  m_l_curve_param_filename = "l_curve_params.csv";
+  pp.query("l_curve_param_filename",m_l_curve_param_filename);
+
+  m_muRegularizationType = 1;
+  pp.query("muRegularizationType", m_muRegularizationType );
+
   m_X0Regularization = 0.0;
   pp.query("X0Regularization",m_X0Regularization);
 
   m_X1Regularization = 0.0;
   pp.query("X1Regularization",m_X1Regularization);
-
   
+  m_regularizeCGradient = 0;
+  pp.query("regularizeCGradient", m_regularizeCGradient);
+
   m_X0TimeRegularization = 0.0;
   pp.query("X0TimeRegularization",m_X0TimeRegularization);
 
@@ -368,6 +403,12 @@ InverseVerticallyIntegratedVelocitySolver::define
   create(m_velCoef,1,IntVect::Unit);
   create(m_velocityMisfit,1,IntVect::Unit);
 
+  create(m_damRegCoef,1,IntVect::Unit);
+  create(m_oneMinusMuSqBeta,1,IntVect::Zero);
+
+  create(m_X1TimeRegCoef,1,IntVect::Unit);
+  create(m_scaledX1Norm,1,IntVect::Zero);
+
   create(m_velb,SpaceDim,IntVect::Unit);
   create(m_adjVel,SpaceDim,IntVect::Unit);
   create(m_adjRhs,SpaceDim,IntVect::Unit);
@@ -490,13 +531,25 @@ int InverseVerticallyIntegratedVelocitySolver::solve
 	       },
 	     // D_TERM needs a 3D entry, which is nothing here.
              )
+
 	if (m_config.m_velObs_c)
 	  {
 	    m_config.m_velObs_c->evaluate( *m_velCoef[lev], *m_amrIce, lev, 0.0);
 	  }
+      
+      
+      if (m_config.m_damRegCoef_c)
+	{
+	  m_config.m_damRegCoef_c->evaluate( *m_damRegCoef[lev], *m_amrIce, lev, 0.0);
+	}
+      
+      if (m_config.m_X1TimeRegCoef_c)
+	{
+	  m_config.m_X1TimeRegCoef_c->evaluate( *m_X1TimeRegCoef[lev], *m_amrIce, lev, 0.0);
+	}
+      
     }
-
- 
+  
   if (X.size()  < m_config.m_minLevelForOptimization + 1)
     {
       // Avoid wasting time by not optimizing until the mesh has been
@@ -954,22 +1007,86 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
   Real normX0 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(0,0));
   Real normX1 = computeNorm(a_x,m_refRatio, m_dx[0][0], Interval(1,1));
   
+  Real sumOneMinusMuSqBeta = 0.0;
+  if ( m_config.m_muRegularizationType == 2 )
+    {
+      pout() << "COMPUTING MU ONE MINUS MU SQUARED BETA" << std::endl;
+      
+      for (int lev = 0; lev <= m_finest_level; lev++)
+	{
+	  LevelData<FArrayBox>& oneMinusMuSqBeta = (*m_oneMinusMuSqBeta[lev]);
+	  for (DataIterator dit(m_grids[lev]); dit.ok(); ++dit)
+	    {
+	      
+	      oneMinusMuSqBeta[dit].setVal(1.0);
+	      
+	      const FArrayBox& muCoef = (*m_muCoef[lev])[dit];
+	      const FArrayBox& drc = (*m_damRegCoef[lev])[dit];
+	      
+	      for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
+		const IntVect& iv = bit();
+		oneMinusMuSqBeta[dit](iv)-= muCoef(iv);
+		oneMinusMuSqBeta[dit](iv)*= oneMinusMuSqBeta[dit](iv);
+		oneMinusMuSqBeta[dit](iv)*= drc(iv);
+	      }
+	    }
+	}
+      sumOneMinusMuSqBeta = computeSum(m_oneMinusMuSqBeta, m_refRatio, m_dx[0][0]);
+    }
+  
+
+  Real sumScaledX1Norm = 0;
+  if ( m_config.m_fracInformedX1TimeReg )
+    {
+    pout() << "ADDING SCALED X1 NORM TO PENALTY TERM" << std::endl;
+    for (int lev = 0; lev <= m_finest_level; lev++)
+      {
+      LevelData<FArrayBox>& scaledX1Norm = (*m_scaledX1Norm[lev]);
+      for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+        {
+        scaledX1Norm[dit].setVal(0.0);
+        const FArrayBox& X = (*a_x[lev])[dit];
+        const FArrayBox& X1trc = (*m_X1TimeRegCoef[lev])[dit];
+
+        for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
+          const IntVect& iv = bit();
+          scaledX1Norm[dit](iv)+= X1trc(iv);
+          scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
+          scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
+        }
+      }
+    }
+    sumScaledX1Norm += computeSum(m_scaledX1Norm, m_refRatio, m_dx[0][0]);
+  }
+
+
   a_fm = vobj ;
   a_fp =  m_config.m_gradCsqRegularization * sumGradCSq
     + m_config.m_gradMuCoefsqRegularization * sumGradMuSq
     + m_config.m_gradX0sqRegularization * sumGradX0Sq
     + m_config.m_gradX1sqRegularization * sumGradX1Sq
     + X0Regularization() * normX0*normX0
-    + X1Regularization() * normX1*normX1;
-  
+    + m_config.m_oneMinusMuSqRegularization * sumOneMinusMuSqBeta
+    ;
+  if (m_config.m_fracInformedX1TimeReg)
+    {
+      a_fp+= X1Regularization() * sumScaledX1Norm;
+    }
+  else
+    {
+      a_fp+= X1Regularization() * normX1*normX1;
+    }
+ 
   pout() << ((a_inner)?"inner: ":"outer: ") << " ||velocity misfit||^2 = " << vobj 
 	 << " || grad C ||^2 = " << sumGradCSq
 	 << " || grad muCoef ||^2 = " << sumGradMuSq
-	 << " || grad X0 ||^2 = " << sumGradX0Sq
-	 << " || grad X1 ||^2 = " << sumGradX1Sq
 	 << " || X0 ||^2 = " << normX0*normX0
-	 << " || X1 ||^2 = " << normX1*normX1
-	 << std::endl;
+	 << " || X1 ||^2 = " << X1Regularization() * sumScaledX1Norm;
+	if ( m_config.m_muRegularizationType == 2 ){
+		pout() << " || 1-Phi ||^2 * beta(x,y) = " << sumOneMinusMuSqBeta;
+	}
+  pout() << std::endl;
+  
 
   if ( a_fm < m_bestMisfit && (!a_inner) )
     {
@@ -1046,6 +1163,7 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
 	}
       //m_outerCounter++;
     }
+  
 }
 
 /// compute adjoint eqn rhs, plus related quantities (e.g misfits)
@@ -1131,37 +1249,38 @@ void InverseVerticallyIntegratedVelocitySolver::computeGradient
   pout() << " InverseVerticallyIntegratedVelocitySolver::computeGradient" << std::endl;
   
   if (m_config.m_optimizeX0)
-    {
-      // grad w.r.t x_0 (basal friction)  = - adjVel * vel * C 
-      for (int lev = 0; lev <= m_finest_level; lev++)
-	{
-	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-	    {
-	      
-	      FArrayBox& G = (*a_g[lev])[dit];
-	      const FArrayBox& C = (*m_Cmasked[lev])[dit];
-	      const FArrayBox& u = (*m_velb[lev])[dit];
-	      const FArrayBox& lambda = (*m_adjVel[lev])[dit];
-	      FArrayBox alpha(u.box(), 1);
-
-	      Real scale = 1.0 ; // check!
-	      m_basalFrictionRelation->computeAlpha(alpha, u, C, scale,
-						    *m_coordSys[lev],
-						    dit, lev, alpha.box());
-						    
-	      
-	      FArrayBox t(G.box(),1);
-	      FORT_CADOTBCTRL(CHF_FRA1(t,0),
-			      CHF_CONST_FRA1(alpha,0),
-			      CHF_CONST_FRA(u),
-			      CHF_CONST_FRA(lambda),
-			      CHF_BOX(t.box()));
-	      t *= -1.0;
-	      G.plus(t,0,CCOMP);
-	    }
-	}
-    } // end if m_optimizeX1
-
+      {
+	// grad w.r.t x_0 (basal friction)  = - adjVel * vel * C 
+	for (int lev = 0; lev <= m_finest_level; lev++)
+	  {
+	    for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+	      {
+		
+		FArrayBox& G = (*a_g[lev])[dit];
+		const FArrayBox& C = (*m_Cmasked[lev])[dit];
+		const FArrayBox& u = (*m_velb[lev])[dit];
+		const FArrayBox& lambda = (*m_adjVel[lev])[dit];
+		FArrayBox alpha(u.box(), 1);
+		
+		Real scale = 1.0 ; // check!
+		m_basalFrictionRelation->computeAlpha(alpha, u, C, scale,
+						      *m_coordSys[lev],
+						      dit, lev, alpha.box());
+		
+		
+		FArrayBox t(G.box(),1);
+		FORT_CADOTBCTRL(CHF_FRA1(t,0),
+				CHF_CONST_FRA1(alpha,0),
+				CHF_CONST_FRA(u),
+				CHF_CONST_FRA(lambda),
+				CHF_BOX(t.box()));
+		t *= -1.0;
+		G.plus(t,0,CCOMP);
+	      }
+	    
+	  }
+      } // end if m_optimizeX1
+  
   if (m_config.m_optimizeX1)
     {
       // grad w.r.t x_1 (mu coef)  
@@ -1414,6 +1533,8 @@ void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
 	  const FArrayBox& C = (*m_C[lev])[dit];
 	  const FArrayBox& lapMuCoef = (*m_lapMuCoef[lev])[dit];
 	  const FArrayBox& muCoef = (*m_muCoef[lev])[dit];
+      const FArrayBox& drc = (*m_damRegCoef[lev])[dit];
+      const FArrayBox& X1trc = (*m_X1TimeRegCoef[lev])[dit];
 	  
 	  FArrayBox t(m_grids[lev][dit],1);
 	  // terms arising from (grad C)^2 penalty
@@ -1429,6 +1550,29 @@ void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
 	      t.copy(lapMuCoef);t*= muCoef; t*= -m_config.m_gradMuCoefsqRegularization;
 	      G.plus(t,0,MUCOMP);
 	    }
+      // terms arising from damRegCoef*(1-\phi)^2 penalty
+      if ( (m_config.m_muRegularizationType == 2) && (m_config.m_oneMinusMuSqRegularization > 0.0) && m_config.m_optimizeX1 )
+        {
+          FArrayBox minusOneMinusMuCoef(m_grids[lev][dit],1);
+          minusOneMinusMuCoef.setVal(-1.0);
+          minusOneMinusMuCoef+= muCoef;
+
+          t.copy(muCoef); t*= minusOneMinusMuCoef; t*= drc; t*= m_config.m_oneMinusMuSqRegularization;
+          G.plus(t,0,MUCOMP);
+
+          if ( m_config.m_gradMuCoefsqRegularization > 0.0 )
+            {
+              // and adding the Tik term back in where we have fractures:
+              FArrayBox invDRC(m_grids[lev][dit],1);
+              invDRC.setVal(1.0);
+              invDRC-=drc;
+
+              if ( m_config.m_gradMuCoefsqRegularization > 0.0 ){
+                  t.copy(lapMuCoef); t*= muCoef; t*= -m_config.m_gradMuCoefsqRegularization; t*=invDRC;
+                  G.plus(t,0,MUCOMP);
+              }
+            }
+        }
 
 	  // terms arising from (X0)^2 penalty
 	  if ( (X0Regularization() > 0.0) && m_config.m_optimizeX0)
@@ -1439,12 +1583,17 @@ void InverseVerticallyIntegratedVelocitySolver::regularizeGradient
 	    }
 
 	  // terms arising from (X1)^2 penalty
-	  if ( (X1Regularization() > 0.0) && m_config.m_optimizeX1)
-	    {
-	      t.copy(X,MUCOMP,0);
-	      t *= X1Regularization();
-	      G.plus(t,0,MUCOMP);
-	    }
+      if ( (X1Regularization() > 0.0) && m_config.m_optimizeX1)
+        {
+          t.copy(X,MUCOMP,0);
+          t *= X1Regularization();
+          pout() << X1Regularization() << std::endl;
+          if ( m_config.m_fracInformedX1TimeReg )
+            {
+              t *= X1trc;
+            }
+          G.plus(t,0,MUCOMP);
+        }
 
 	  // terms arising from (grad X0)^2 penalty
 	  if ((m_config.m_gradX0sqRegularization > 0.0) && m_config.m_optimizeX0)
@@ -1737,9 +1886,5 @@ std::string InverseVerticallyIntegratedVelocitySolver::innerStateFile() const
 
   return ss.str(); 
 }
-
-
-
-
 
 #include "NamespaceFooter.H"
