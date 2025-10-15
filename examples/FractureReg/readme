@@ -1,0 +1,31 @@
+1. Create synthetic data (inputs.1_generate_data)
+
+> bisicles inputs.1_generate_data
+
+2. Extract synthetic data from plot file
+
+> flatten plot.ideal_shelf plot.ideal_shelf_synthetic_data.000000.2d.hdf5 plot.ideal_shelf_synthetic_data.000000.nc 
+> python process_synthetic_obs.py
+> nctoamr synthetic_observations.500m.nc synthetic_observations.500m.2d.hdf5
+
+3. Inverse problem for basal friction coefficient only (btrc)
+   (L-curve)
+
+> bike inputs.
+
+4. Choose Tikhonov coefficient for btrc, eyeball L-curve
+
+5. Extract btrc from inverse problem output
+
+6. Tikhonov inverse problem for mucoef (L-curve)
+
+> bike inputs.
+
+7. Choose Tikhnonov coeffient for mucoef, eyeball L-curve
+
+8. TSS inverse problem for mucoef (L-curve)
+
+> bike inputs.
+
+9. Choose Tikhonov coefficient for TSS problem, eyeball L-curve
+

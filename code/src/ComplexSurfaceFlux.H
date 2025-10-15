@@ -176,7 +176,10 @@ public:
 		  bool a_check_ocean_connected = true,
 		  bool a_conserve_sum = true);
 
-  virtual ~ConservedSumIceShelfFlux(){};
+  virtual ~ConservedSumIceShelfFlux()
+  {
+	  if (m_flux) delete m_flux;
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
@@ -244,7 +247,13 @@ public:
 	     SurfaceFlux* a_openSeaFlux, SurfaceFlux* a_openLandFlux,
 	     bool a_floating_check_ocean_connected);
 
-  virtual ~MaskedFlux(){};
+  virtual ~MaskedFlux()
+  {
+  	if (m_groundedIceFlux) delete (m_groundedIceFlux);
+	if (m_floatingIceFlux) delete (m_floatingIceFlux);
+	if (m_openSeaFlux) delete (m_openSeaFlux);
+	if (m_openLandFlux) delete (m_openLandFlux);
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
@@ -318,7 +327,9 @@ public:
   
 
    /// destructor
-  virtual ~BoxBoundedFlux(){};
+  virtual ~BoxBoundedFlux(){
+  if (m_fluxPtr) delete m_fluxPtr;
+  };
 
   virtual SurfaceFlux* new_surfaceFlux();
 
@@ -418,10 +429,10 @@ private:
  */
 class CompositeFlux : public SurfaceFlux
 {
-  
+ public: 
   Vector<SurfaceFlux*> m_fluxes;
 
-public:
+
   CompositeFlux(const Vector<SurfaceFlux*>& a_fluxes);
 
   virtual ~CompositeFlux();
@@ -432,6 +443,22 @@ public:
 				    const AmrIceBase& a_amrIce, 
 				    int a_level, Real a_dt);
   
+  
+  virtual void init ( const AmrIceBase& a_amrIce );
+
+  /// number of plotfile components when included in plotfiles -- default is 1
+  virtual int num_plot_components() const;
+
+  /// names of plot components. Default is to simply return the root
+  virtual void plot_names(const string& a_root, 
+                          Vector<string>& a_plot_names) const;
+
+
+  // fill plot data
+  virtual void plot_data(LevelData<FArrayBox>& a_data,
+                         const AmrIceBase& a_amrIce, 
+                         int a_level, Real a_dt);
+
 private:
   // Disallowed for all the usual reasons
   void operator=(const CompositeFlux& a_input)
@@ -517,6 +544,63 @@ private:
   }
 
   PiecewiseLinearFlux()
+  {
+    MayDay::Error("invalid operator");
+  }
+
+};
+
+/// SurfaceFlux which has a power law dependence on depth
+/**
+
+   Usually used in conjunction with MaskedFlux to impose a depth 
+   dependent ice shelf melt rate. The surface flux is computed as
+   
+   \f$ f = coef * depth ^ power \f$  
+*/
+class DepthPowerFlux : public SurfaceFlux
+{
+public:
+  /// 
+  /**
+     @param a_power the power to raise the depth to in the function \f$h_i\f$
+     @param a_coef the coefficient \f$f_i\f$
+     @param a_minWaterDepth set flux to zero in sub-shelf cavities thinner than a_minWaterDepth
+   */
+  DepthPowerFlux(const Real a_power, 
+		      const Real a_coef,
+		      const Real a_minWaterDepth = -1.0,
+		      const Real a_thermoclineDepth = 0.0);
+
+  ~DepthPowerFlux(){};
+
+  virtual SurfaceFlux* new_surfaceFlux();
+
+  virtual void surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
+				    const AmrIceBase& a_amrIce, 
+				    int a_level, Real a_dt);
+  
+
+protected:
+  Real m_power;
+  Real m_coef;
+  Real m_minWaterDepth;
+  Real m_thermoclineDepth;
+
+private:
+   // Disallowed for all the usual reasons
+  void operator=(const DepthPowerFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  // Disallowed for all the usual reasons
+  DepthPowerFlux(const DepthPowerFlux& a_input)
+  {
+    MayDay::Error("invalid operator");
+  }
+
+  DepthPowerFlux()
   {
     MayDay::Error("invalid operator");
   }

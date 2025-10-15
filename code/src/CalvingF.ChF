@@ -24,3 +24,53 @@ c--------------------------------------------------------------
       CHF_ENDDO
       return
       end
+
+
+c--------------------------------------------------------------
+c compute von Mises Stress
+c--------------------------------------------------------------
+
+
+      subroutine vonmises(CHF_FRA1[vm],
+     &     CHF_CONST_FRA[T],
+     &     CHF_CONST_FRA1[h],
+     &     CHF_INT[xxComp],
+     &     CHF_INT[xyComp],
+     &     CHF_INT[yxComp],
+     &     CHF_Int[yyComp],
+     &     CHF_CONST_REAL[eps],
+     &     CHF_BOX[box])
+
+       integer CHF_AUTOIX[i]
+       REAL_T txx, txy, tyx, tyy, tvm
+       REAL_T dxx, dxy, dyy
+
+       CHF_AUTOMULTIDO[box; i]
+#if (CH_SPACEDIM == 1)
+
+       ! Divide by h to convert from viscous tensor to stress
+       vm(CHF_AUTOIX[i]) = T(CHF_AUTOIX[i],0)/(h(CHF_AUTOIX[i])+eps)
+
+#elif (CH_SPACEDIM == 2)
+
+       txx = T(CHF_AUTOIX[i], xxComp)
+       tyy = T(CHF_AUTOIX[i], yyComp)
+       txy = T(CHF_AUTOIX[i], xyComp)
+       tyx = T(CHF_AUTOIX[i], yxComp)
+
+       ! Convert from resistive stress to deviatoric stress
+
+       dxx = (2*txx - tyy)/3
+       dyy = (2*tyy - txx)/3
+       dxy = 0.5*(txy+tyx)
+
+       tvm = (dxx**2 + dyy**2 - dxx*dyy + 3*(dxy)**2)**half
+
+       ! Divide by h to convert from viscous tensor to stress
+       vm(CHF_AUTOIX[i]) = tvm/(h(CHF_AUTOIX[i])+eps);
+
+#endif
+
+       CHF_ENDDO
+       return
+       end

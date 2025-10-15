@@ -611,6 +611,63 @@ public:
 
 };
 
+/// A Calving model that provides a rate with a part proportional to speed and effective (Von Mises) stress and a part independent of speed and stress
+/**
+   The rate is either a cell-centred vector (opposed to ice velocity)
+   or a cell-centered scalar
+
+   The rate is r = a u/|u| + sig_vm/sig_max u
+
+   sig_vm is the Von Mises Stress
+   The constants a and sig_max may be specified by SurfaceData.
+
+ */
+
+class VonMisesCalvingModel : public CalvingModel
+{
+
+  Real m_startTime, m_endTime;
+  DomainEdgeCalvingModel* m_domainEdgeCalvingModel;
+  SurfaceFlux* m_independent; // a 
+  SurfaceFlux* m_scale; // sig_max**-1
+  bool m_vector; // face-centred vector or cell-centred scalar?
+
+public:
+
+  virtual void applyCriterion(LevelData<FArrayBox>& a_thickness, 
+ 			      LevelData<FArrayBox>& a_calvedIce,
+			      LevelData<FArrayBox>& a_addedIce,
+			      LevelData<FArrayBox>& a_removedIce,
+			      LevelData<FArrayBox>& a_iceFrac, 
+			      const AmrIce& a_amrIce,
+			      int a_level,
+			      Stage a_stage);
+  
+  VonMisesCalvingModel (ParmParse& a_pp);
+
+  virtual ~VonMisesCalvingModel();
+  
+  virtual CalvingModel* new_CalvingModel();
+
+  ///face-frontal ablation vector.
+  virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
+			      const LevelData<FluxBox>& a_faceIceVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
+
+  ///cell centred frontal ablation vector
+  virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level);
+
+  
+  virtual void getCalvingRate(LevelData<FArrayBox>& a_calvingRate, 
+			      const AmrIce& a_amrIce,int a_level);
+
+};
+
 
 #include "NamespaceFooter.H"
 

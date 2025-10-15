@@ -1,11 +1,6 @@
 """
 
-produce coarser resolution versions of 
-
-bisicles_bedmachine_500m.nc
-
-(1km, 2km, 4km, 8km)
-
+produce coarser resolution versions of netcdf files
 for convenience
 
 """
@@ -38,10 +33,44 @@ def coarsen_2D(u):
 
     return uc
 
-def coarsenc(name, fine_name):
+def add_projection_attr_greenland(ncout, xv, yv):
+    """
+
+    Add projections data to a greenland netcdf (assuming EPGS 3143)
+
+    Parameters
+    ----------
+    ncout : Dataset object 
+    xv : x  variable in ncout
+    yv : y variable in ncout
+
+    Returns
+    -------
+    None.
+
+    """
+    crsv =  ncout.createVariable('crs','int')
+    EPSG = 3143
+
+    ncout.setncattr('Conventions','CF-1.7') 
+    crsv.setncattr('EPSG',int(EPSG))
+    crsv.setncattr('grid_mapping_name','polar_stereographic')
+    crsv.setncattr('latitude_of_projection_origin', 90.0)
+    crsv.setncattr('straight_vertical_longitude_from_pole', -45.0)
+    crsv.setncattr('scale_factor',1.0)
+    crsv.setncattr('standard_parallel',70.0)
+    crsv.setncattr('false_easting',0.0)
+    crsv.setncattr('false_northing',0.0)
+    xv.setncattr('standard_name','projection_x_coordinate')
+    xv.setncattr('units','meter')
+    yv.setncattr('standard_name','projection_y_coordinate')
+    yv.setncattr('units','meter')
+
+    
+def coarsenc(name, fine_name, add_projection_f):
 
 
-    v_names = ['thk','topg','umod','btrc','umodc']
+    v_names = ['thk','topg','uo','uc','btrc']
     fine_nc = Dataset(fine_name,'r')
     coarse_nc = Dataset(name, 'w')
     
@@ -64,4 +93,5 @@ def coarsenc(name, fine_name):
         vv[:,:] = coarsen_2D(fine_nc.variables[v][:,:])
     
 
-    
+    add_projection_f(coarse_nc, xv, yv)
+    coarse_nc.close()

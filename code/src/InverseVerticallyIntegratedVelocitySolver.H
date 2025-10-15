@@ -150,7 +150,10 @@ public:
    its directional derivatives with respect to X_0 and X_1. This function also
    writes the current state of the problem to hdf5 files, either every 'outer' CG iteration, 
    or even more frequently, on every call, which will correspond to CG's 'inner' (secant) 
-   iterations
+   iterations. 
+
+   Calls to saveCGState can also write a CG state to be read later to allow CG to continue (this requires
+   some CG specific vectors beyond those we would care about in general).
    
    Uses JFNKSolver to solve a number of internal problems. 
 */
@@ -210,7 +213,9 @@ public:
     bool m_optimizeX1;
     /// evaluate unregluarized gradient of objective with respect to mucoef (or rather, X1) in the shelf only?
     bool m_gradMuCoefShelfOnly;
-    
+    /// use data to inform temporal regularization of X1?
+    bool m_fracInformedX1TimeReg;
+
     /// Lower bound on \f$X_0 = \ln C - \ln C_0\f$. Set with with <prefix>.lowerX0
     Real m_lowerX0;
 
@@ -238,21 +243,25 @@ public:
     /// Coefficient of \f$\int _\Omega \alpha (u - u_0) d \Omega \f$ in \f$J\f$. Set with <prefix>.velMisfitCoefficient, default 1.0
     Real m_velMisfitCoefficient;
 
-    /// Coefficient of \f$\int _\Omega \beta (\nabla \cdot. (uh) - a^{\prime} ) d \Omega \f$ in \f$J\f$. Set with <prefix>.divuhMisfitCoefficient default 1.0
-    Real m_divuhMisfitCoefficient;
-
-    /// If \f$> 0\f$, smooth \f$(\nabla \cdot. (uh) - a^{\prime} )\f$. Set with <prefix>.divuhMisfitSmooth, default 0.0
-    Real m_divuhMisfitSmooth;
-
     /// Coefficient of \f$\int _\Omega (\nabla C )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradCsqRegularization
     Real m_gradCsqRegularization; 
+
+    /// Regularize mu with \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ term or \f$\int _\Omega (1 - \phi )^2\beta(x,y) d \Omega \f$ term? 1 for first option, 2 for second or sum of the two terms.
+    int m_muRegularizationType;
 
     /// Coefficient of \f$\int _\Omega (\nabla \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradMuCoefsqRegularization
     Real m_gradMuCoefsqRegularization; 
 
-    
 
-    
+    /// Divide -C * lambda * u by (u/fastSlidingSpeed+1)**2. 0 for no, 1 for yes.
+    int m_regularizeCGradient; 
+
+    /// Coefficient of \f$\int _\Omega (1 - \phi )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.oneMinusMuSqRegularization
+    Real m_oneMinusMuSqRegularization;
+
+    /// Filename for l-curve analysis parameters
+    std::string m_l_curve_param_filename;
+
     /// Coefficient of \f$\int _\Omega (\nabla X_0 )^2 d \Omega \f$ in \f$J\f$. Set with <prefix>.gradX0sqRegularization
     Real m_gradX0sqRegularization; 
 
@@ -276,31 +285,51 @@ public:
 
     /// Maximum number of 'outer' nonlinear conjugate gradient iterations. Set with <prefix>.CGmaxIter, default 16
     Real m_CGmaxIter;
-
+  
     /// Tolerance for the 'outer' nonlinear conjugate gradient method. Set with <prefix>.CGtol, default 1.0e-3
     Real m_CGtol;
 
-    /// Size of the initial 'inner' secant step. Set with <prefix>.CGsecantParameter, default 1.0e-7
-    Real m_CGsecantParameter;
+    /// choice of line search method. Currently 0 (secant, the default), 1 (bisection)
+     Real m_CGlineSearchMethod;
+    
+    /// Size of the initial 'inner' secant step. Set with <prefix>.CGlineSearch, default 1.0e-7
+    Real m_CGlineSearchInitialStep;
 
-    /// \f$a\f$ such that secant step \f$n+1\f$ has a maximum length \f$l_{n+1} \leq a l_{n}\f$. Set with <prefix>.CGsecantStepMaxGrow, default 2.0
-    Real m_CGsecantStepMaxGrow;
+    /// \f$a\f$ such that secant step \f$n+1\f$ has a maximum length \f$l_{n+1} \leq a l_{n}\f$. Set with <prefix>.CGlineSearchStepMaxGrow, default 2.0
+    Real m_CGlineSearchStepMaxGrow;
 
-    /// Maximum number of 'outer' secant iterations. Set with <prefix>.CGsecantMaxIter, default 20
-    int m_CGsecantMaxIter;
+    /// Maximum number of 'outer' secant iterations. Set with <prefix>.CGlineSearchMaxIter, default 20
+    int m_CGlineSearchMaxIter;
 
-    /// Tolerance for the 'inner' secant method. Set with <prefix>.CGsecantTol, default 1.0e-1
-    Real m_CGsecantTol;
+    /// Tolerance for the 'inner' line search method. Set with <prefix>.CGlineSearchTol, default 1.0e-1
+    Real m_CGlineSearchTol;
 
     /// Give up when succesive CG steps don't progress quickly enough . Set with <prefix>.CGhang, default 0.999
     Real m_CGhang;
-
+	
     /// Restart CG at a fixed interval. Set with <prefix>.CGrestartInterval, default 9999
     Real m_CGrestartInterval;
 
+    /// Save the CG state every n iterations. 
+    int m_CGsaveStateInterval;
+
+    /// base of filename for saved states which can be read to continue CG (not restart!)
+    std::string m_CGsaveStateFileNameBase;
+
+    /// continue CG from the state saved in a file
+    std::string m_CGreadStateFile;
+    int m_CGreadStateIter;
+    bool m_CGfreshStart; // re-initialize CG rather than continuing
+   
     ///observed velocity data coefficient
     SurfaceData* m_velObs_c;
-    
+
+    ///creating pointer to SurfaceData instance for observed damage coefficient
+    SurfaceData* m_damRegCoef_c;
+
+    ///pointer to SurfaceData instance for X1 time regularization weights
+    SurfaceData* m_X1TimeRegCoef_c;
+
     ///observed x-velocity data
     SurfaceData* m_velObs_x;
     
@@ -309,8 +338,17 @@ public:
     SurfaceData* m_velObs_y;
 #endif
 
+    /** 
+	use the red-black rank redution scheme?
+	where x0 (basal traction coef) and x1 (viscosity coef)
+	have 2 dx resolution on each grid level, 
+	and sit on alternate cells
+     */
+    bool m_rankRedBlack;
+    
     /// write inner (secant) steps to plot files
     bool m_writeInnerSteps;
+	
 
     /// base of filename for 'inner' plots
     std::string m_innerStepFileNameBase;
@@ -318,18 +356,14 @@ public:
     /// base of filename for 'outer' plots
     std::string m_outerStepFileNameBase;
 
-    /// observed flux divergence data coefficient
-    SurfaceData* m_divuhObs_c;
-
-    /// observed flux divergence data
-    SurfaceData* m_divuhObs_a;    
-
     /// used to amplify (damp) the gradient non-uniformly
     SurfaceData* m_gradientFactor;
 
     int m_outerCounter;
-
-    
+        
+    bool m_writeSelectOuterSteps;
+    int m_outerStepsNum;
+    std::vector<int> m_outerSteps; 
 
   };
 
@@ -373,17 +407,33 @@ private:
   // set a_x = 0.0
   void setToZero(Vector<LevelData<FArrayBox>* >& a_a);
 
-
   void  mapX(const Vector<LevelData<FArrayBox>* >& a_x);
 
+  void saveCGState
+  ( int iter,
+    const Vector<LevelData<FArrayBox>* >& x,
+    const Vector<LevelData<FArrayBox>* >& r,
+    const Vector<LevelData<FArrayBox>* >& s,
+    const Vector<LevelData<FArrayBox>* >& d);
+  
+  bool readCGState
+  ( int& iter,
+    bool& fresh_start,
+    Vector<LevelData<FArrayBox>* >& x,
+    Vector<LevelData<FArrayBox>* >& r,
+    Vector<LevelData<FArrayBox>* >& s,
+    Vector<LevelData<FArrayBox>* >& d);
+  
   void writeState
   (const std::string& a_file, int a_counter,
    const Vector<LevelData<FArrayBox>* >& a_x,
    const Vector<LevelData<FArrayBox>* >& a_g) const;
 
-
-  ///compute cell-centered div(UH) 
-  void computeDivUH();
+  ///declaring function to write l-curve parameters to file after each CG iteration
+  void writeLCurveParams
+  (const Real& vobj, const Real& hobj, const Real& sumGradSq,
+   const Real& sumGradMuSq, const Real& normx0, const Real& normx1,
+   const Real& sumOneMinusMuSqBeta) const;
 
   //calculate the rhs to the adjoint equation, and the misfits
   void computeAdjointRhs();
@@ -396,6 +446,17 @@ private:
   void regularizeGradient(Vector<LevelData<FArrayBox>* >& a_g, 
 			  const  Vector<LevelData<FArrayBox>* >& a_x);
 
+  ///
+  void updateInvalid(const Vector<LevelData<FArrayBox>* >& a_x);
+
+  /// modify the solution vector according to the red-black scheme
+  void rankRedBlackSolution
+  (const Vector<LevelData<FArrayBox>* >& a_x);
+  
+  /// modify the gradient vector according to the red-black scheme
+  void rankRedBlackGradient
+  (const Vector<LevelData<FArrayBox>* >& a_g);
+  
   /// modify a_g at constraint boundaries
   void applyProjection(Vector<LevelData<FArrayBox>* >& a_g, 
 		       const  Vector<LevelData<FArrayBox>* >& a_x);
@@ -431,7 +492,6 @@ private:
   {
     return m_config.m_X1Regularization +  m_config.m_X1TimeRegularization * XnTimeCoef();
   }
-
   int m_innerCounter, m_outerCounter;
   
   bool m_velocityInitialised;
@@ -457,6 +517,10 @@ private:
   /// write state to innerStateFile() on 'inner' iterations
   std::string innerStateFile() const;
 
+  /// write state to CGStateFile()
+  std::string CGstateFile(int a_iter) const;
+
+  
   /// co-ordinate system, stores thickness, topography, surfaces, mask
   Vector<RefCountedPtr<LevelSigmaCS > > m_coordSys;
   
@@ -501,27 +565,26 @@ private:
   ///local velocity observation confidence (1/sigma^2) on AMR hierarchy
   Vector<LevelData<FArrayBox>*> m_velCoef;
 
-  ///flux divergence observations on AMR hierarchy
-  Vector<LevelData<FArrayBox>*> m_divuhObs;
+  ///damage regularisation weight field
+  Vector<LevelData<FArrayBox>*> m_damRegCoef;
+  ///also need another vector for use in the cost function
+  Vector<LevelData<FArrayBox>*> m_oneMinusMuSqBeta;
+  /// needed for fracture informed time regularization
+  Vector<LevelData<FArrayBox>*> m_scaledX1Norm;
 
-  ///flux divergence observation confidence (1/sigma^2) on AMR hierarchy
-  Vector<LevelData<FArrayBox>*> m_divuhCoef;
+
+  ///field for weights for X1 time regularization
+  Vector<LevelData<FArrayBox>*> m_X1TimeRegCoef;
 
   ///velocity (at base of ice)
   Vector<LevelData<FArrayBox>*> m_velb;
 
   ///velocity (at surface of ice)
   Vector<LevelData<FArrayBox>*> m_vels;
-
-  ///flux divergence
-  Vector<LevelData<FArrayBox>*> m_divuh;
   
   /// misfit term  \f$|| f(u,u_o) ||^2_2\f$
   Vector<LevelData<FArrayBox>*> m_velocityMisfit;
   
-  /// misfit term \f$|| g(\nabla \cdot ( u h)  , \nabla \cdot ( u_o h_o) ) ||^2_2\f$
-  Vector<LevelData<FArrayBox>*> m_divuhMisfit;
-
   //physics pointers
   BasalFrictionRelation* m_basalFrictionRelation;
   ConstitutiveRelation* m_constitutiveRelation;
@@ -595,7 +658,7 @@ public:
   (Real& a_fm, Real& a_fp,
    Vector<LevelData<FArrayBox>* >& a_g, 
    const  Vector<LevelData<FArrayBox>* >& a_x, 
-   bool a_inner);
+   int a_iter, bool a_inner);
   
   void restart(){;}
 
@@ -627,6 +690,11 @@ public:
   // set a_y = a_y + a_s * a_x
   void incr(Vector<LevelData<FArrayBox>* >& y, 
 	    const Vector<LevelData<FArrayBox>* >& x, Real s);
+
+
+  // set a_y = a_y + a_s * a_x subject to bounds 
+  void incrState(Vector<LevelData<FArrayBox>* >& y, 
+		 const Vector<LevelData<FArrayBox>* >& x, Real s);
   
   // return a_y.a_x
   Real dotProduct(Vector<LevelData<FArrayBox>* >& a_y, 

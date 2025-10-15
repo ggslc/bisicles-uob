@@ -31,8 +31,7 @@ c---------------------------------------------------
       um = (umx(CHF_AUTOIX[i])**two+umy(CHF_AUTOIX[i])**two)**half
       
       misfit(CHF_AUTOIX[i]) = (uo-um)**two
-c      misfit(CHF_AUTOIX[i]) = (uo-um)
-      t = (uo/(TINY_NORM + um)-1.0)
+      t = (uo/(TINY_NORM + um)-one)
       rhsx(CHF_AUTOIX[i]) = t * umx(CHF_AUTOIX[i])
       rhsy(CHF_AUTOIX[i]) = t * umy(CHF_AUTOIX[i])
  
@@ -106,8 +105,8 @@ c---------------------------------------------------
       uo = (uox(CHF_AUTOIX[i])**two+uoy(CHF_AUTOIX[i])**two)**half
       um = (umx(CHF_AUTOIX[i])**two+umy(CHF_AUTOIX[i])**two)**half
 
-      uo = uo + 10.0
-      um = um + 10.0
+      uo = uo + 10.0d0
+      um = um + 10.0d0
       r = um/uo
       t = log(r)
       s = t *  uo / um**2
@@ -116,6 +115,36 @@ c---------------------------------------------------
       rhsy(CHF_AUTOIX[i]) = s*uoy(CHF_AUTOIX[i])
       
       misfit(CHF_AUTOIX[i]) = half * t**2 
+
+      CHF_ENDDO
+
+      return
+      end
+      
+c---------------------------------------------------
+c subroutine to modify velcoef according to the observed velocity
+c velc is higher for low velocities and vice versa
+c velc varies smoothly in log(velo) between some limits 
+c---------------------------------------------------
+      subroutine weightvelc( CHF_FRA1[uc],
+     &     CHF_CONST_FRA1[uox],CHF_CONST_FRA1[uoy],
+     &     CHF_CONST_REAL[uclo],CHF_CONST_REAL[uchi],
+     &     CHF_CONST_REAL[uolo],CHF_CONST_REAL[uohi],
+     &     CHF_BOX[box] )
+
+      integer CHF_AUTODECL[i]
+      REAL_T uo,dydx,y0
+
+      CHF_AUTOMULTIDO[box; i]
+
+      uo = (uox(CHF_AUTOIX[i])**two+uoy(CHF_AUTOIX[i])**two)**half
+      if (uc(CHF_AUTOIX[i]).gt.TINY_NORM) then
+          dydx = (uclo-uchi)/(log10(uohi)-log10(uolo))
+          y0 = uchi-log10(uolo)*dydx
+          uc(CHF_AUTOIX[i]) = y0 + dydx*log10(uo)
+          uc(CHF_AUTOIX[i]) = min(uc(CHF_AUTOIX[i]),uchi)
+          uc(CHF_AUTOIX[i]) = max(uc(CHF_AUTOIX[i]),uclo) 
+      end if
 
       CHF_ENDDO
 
@@ -286,11 +315,13 @@ c-------------------------------------
       end
 
 c--------------------------------------
-c modify a gradient (fab) to point downhill into
-c the interior of [lb,ub]
+c     modify a gradient (fab) so that the steepest
+c     descent direction has no compenent direction
+c     to the exterior of [lb,ub]
+c      
 c        { fab    :      lb < x < ub
-c fab <- { min(0, fab) :  x <= lb 
-c        { max(0, fab) :  z => ub
+c fab <- { min(-steep, fab) :  x <= lb 
+c        { max( steep , fab) :  z => ub
 c-------------------------------------
       subroutine hardpointinctrl(CHF_FRA1[fab],
      &     CHF_CONST_FRA1[x],

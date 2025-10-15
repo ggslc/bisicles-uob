@@ -207,6 +207,9 @@ public:
 	       Vector<LevelData<FluxBox>* >& a_H_half,
 	       Real a_dt);
   
+  // void update thickness sources
+  void computeThicknessSources(Real a_dt);
+
   // compute face-centered half-time ice thickness using ppm
   void computeH_half(Vector<LevelData<FluxBox>* >& a_H_half,
 		     Vector<LevelData<FArrayBox> * >& a_H,
@@ -890,6 +893,8 @@ protected:
   
   /// sets topography flux (which raises/lowers bedrock)
   SurfaceFlux* m_topographyFluxPtr;
+  // For branching a GIA run from a non-GIA checkpoint
+  bool m_force_gia_init;
   /// stores the accumulated bedrock difference. This is needed because when 
   /// m_interpolate_zb == false, the regrid() function re-reads the bedrock, which
   /// in many cases is a DEM (e.g, bedmap2), so that the evolution of topography would be obliterated
@@ -1054,6 +1059,32 @@ protected:
   
   /// tag all cells for refinement (refine entire domain)
   bool m_tagEntireDomain;
+
+  /// specify minimum resolution for specified regions
+  /** 
+      If true, read a set of rectangular regions and minumum resolutions
+      from a file, then tag to satisfy that requirement.  
+      set via amr.tag_in_regions in inputs file.
+      Filename specified via amr.tag_regions_file in inputs file, and should 
+      have the format:
+      Number of regions
+      and then for each region (defined in "real" space, not index space):
+      xlo ylo xhi yhi resolution
+      (ensuring that the region defined by (xlo,ylo)(xhi,yhi) will be 
+      refined so that the mesh spacing is "resolution" or finer.  
+      If "resolution" is finer than the resolution of the finest allowable 
+      level (as defined via either max_level or tags_cap), then that region 
+      will simply be refined to the finest level.
+  */
+  bool m_tagInRegions;
+
+  /// loVects for tagging regions
+  Vector<RealVect> m_tag_regions_lo;
+  /// hiVects for tagging regions  
+  Vector<RealVect> m_tag_regions_hi;
+  /// resolutions for tagging regions  
+  Vector<Real> m_tag_regions_resolution;
+  
 
 
   //attempt to eliminate floating ice that is unconnected to grounded ice 
@@ -1331,6 +1362,9 @@ protected:
   // if true, include (cell-averaged) viscous tensor components in plotfiles
   bool m_write_viscousTensor;
 
+  // if true, include (cell-averaged) von Mises stress in plotfiles
+  bool m_write_vonmisesStress;
+
   // if true, include base velocity in plotfiles
   bool m_write_baseVel;
 
@@ -1342,6 +1376,9 @@ protected:
 
   //if true, include thickness source terms in plot files
   bool m_write_thickness_sources;
+
+  // if true, include topography flux terms in plot files
+  bool m_write_topography_sources;
 
   //if true, include fields required for ISMIP6 in plot files
   bool m_write_ismip6;
@@ -1385,6 +1422,8 @@ protected:
   Real m_stable_sources_mask_dx;
   bool m_grounding_line_stable;
   
+  Real m_CriticalHeightAboveFlotation;
+    
   
 
   /** if true, scale thickness sources (surface flux and basal flux) by 

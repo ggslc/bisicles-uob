@@ -106,12 +106,13 @@ def remove_islands(thk,mask):
     
     return thk
 
-def preprocess(output_nc, bedmachine_nc, measures_nc):
+def preprocess(output_nc, bedmachine_nc, measures_nc, add_projection_f ):
 
 
-    C_MAX = 1.0e+4 # maximum value for C
+    C_MAX = 3.0e+4 # maximum value for C
     C_MIN = 1.0e+1 # minimum value for C
-
+    C_EMPTY_MARINE = 1.0e+2 # C in submarine ice free regions
+    
     #desired dimensions
     NX = 6144*2
     NY = 6144*2
@@ -131,9 +132,7 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     usrf_bm =  np.flipud(ncbm.variables["surface"][:,:])
     mask = np.flipud(ncbm.variables["mask"][:,:])
 
-    #raise lake vostok (and set mask to grounded ice)
-
-    
+    #raise lake vostok (and set mask to grounded ice)    
     topg = np.where(mask == MASK_VOSTOCK, usrf_bm - thk, topg)
     mask = np.where(mask == MASK_VOSTOCK, MASK_GROUNDED, mask)
     
@@ -174,21 +173,6 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     
     grounded = np.logical_and( thk > eps, sg + eps > sf)
     usrf = np.where( grounded, sg, sf )
-
-    #surface check
-    #psx = slice(0,int(nx/2))
-    #psy = slice(int(ny/4),int(3*ny/4))
-    #plot(x[psx],y[psy],(usrf-usrf_bm)[psy,psx],-10,10,'surface_discrepancy',step=1)
-    #mask check
-    
-    #my_mask = np.where(thk > eps,
-    #                   np.where(grounded, MASK_GROUNDED, MASK_FLOATING),
-    #                   np.where(topg > 0, MASK_OPENLAND, MASK_OCEAN))
-    #print(' mask discrepancy in {} cells '.format(np.sum(np.where(mask != my_mask,1,0))))
-    #plot(x[psx],y[psy],(mask-my_mask)[psy,psx],-3,3,'mask_discrepancy',step=1)
-    #plot(x[psx],y[psy],(mask)[psy,psx],0,4,'mask_morli',step=1)
-    #plot(x[psx],y[psy],(my_mask)[psy,psx],0,4,'mask_bike',step=1)                
-    #raise ValueError('enough for now')           
     
     print ('umod c ...')
     #umodc is the weight w(x,y) in the misfit f_m(x,y) =  w (|u_model| - |u_obs|)^2
@@ -196,10 +180,9 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     umodc = np.where(thk > 10.0, umodc, 0.0)
 
 
-
     #surface gradient
     print ('grad s ...')
-    usrf = ndimage.gaussian_filter(usrf, 4) # smooth
+    usrf = ndimage.median_filter(usrf, 4) # smooth
     grads = zeros_2D(x,y)
     grads[1:ny-1,1:nx-1] = 0.5 / dx *  np.sqrt(
         (usrf[1:ny-1,0:nx-2] - usrf[1:ny-1,2:nx])**2 + 
@@ -207,18 +190,19 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
  
     #initial guess for C
     print ('btrc...')
-    btrc = rhoi * 9.81 * grads * thk / (umod + 1.0)
-    btrc = np.where(umod > 1, btrc, C_MAX)
+    btrc = rhoi * 9.81 * grads * thk / (umod + 1.0e-10)
+    btrc = np.where(umod > 1, btrc , C_MAX)
     btrc = np.where(btrc < C_MAX, btrc, C_MAX)
     btrc = np.where(btrc > C_MIN, btrc, C_MIN)
     #smooth with slippy bias
-    print ('    ...filtering')
-    btrcs = ndimage.minimum_filter(btrc, 8)
-    btrcs = ndimage.gaussian_filter(btrcs, 32)
-    btrc = np.where(btrc < btrcs, btrc, btrcs) # retain slippy spots
+    #print ('    ...minium filtering')
+    # btrcs = ndimage.minimum_filter(btrc, 4)
+    #print ('    ...median filtering')
+    #btrcs = ndimage.median_filter(btrcs, 16)
+    #btrc = np.where(btrc < btrcs, btrc, btrcs) # retain slippy spots
     
     #no ice value for C
-    btrc = np.where(thk > 0, btrc, 100.0)
+    btrc = np.where(np.logical_and(thk < 0.01, topg < 0), C_EMPTY_MARINE, btrc)
     
     #ouput netcdf
     print ('writing ...')
@@ -226,43 +210,11 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     #dimensions
     xdim = ncout.createDimension('x',size=NX)
     ydim = ncout.createDimension('y',size=NY)
+
     #var defs
-
-
-    crsv =  ncout.createVariable('crs','int')
-    #projection information. too lazy to read from files :)
-    #        char mapping ;
-    #                mapping:grid_mapping_name = "polar_stereographic" ;
-    #                mapping:latitude_of_projection_origin = -90. ;
-    #                mapping:standard_parallel = -71. ;
-    #               mapping:straight_vertical_longitude_from_pole = 0. ;
-    #                mapping:semi_major_axis = 6378273. ;
-    #                mapping:inverse_flattening = 298.27940504282 ;
-    #                mapping:false_easting = 0. ;
-    EPSG = 3031
-    crs = osr.SpatialReference()
-    crs.ImportFromEPSG(EPSG)
-    crs_wkt = crs.ExportToWkt()
-    ncout.setncattr('spatial_ref',crs_wkt)
-    ncout.setncattr('Conventions','CF-1.7') 
-    crsv.setncattr('EPSG',int(EPSG))
-    crsv.setncattr('crs_wkt',crs_wkt)
-    crsv.setncattr('grid_mapping_name','polar_stereographic')
-    crsv.setncattr('latitude_of_projection_origin', -90.0)
-    crsv.setncattr('straight_vertical_longitude_from_pole', 0.0)
-    crsv.setncattr('scale_factor',1.0)
-    crsv.setncattr('standard_parallel',-71.0)
-    crsv.setncattr('false_easting',0.0)
-    crsv.setncattr('false_northing',0.0)
-    
-    
     xv = ncout.createVariable('x','f8',('x'))
-    xv.setncattr('standard_name','projection_x_coordinate')
-    xv.setncattr('units','meter')
-    
     yv = ncout.createVariable('y','f8',('y'))
-    yv.setncattr('standard_name','projection_y_coordinate')
-    yv.setncattr('units','meter')
+
     
     def create2D(name):
         v = ncout.createVariable(name,'f8',('y','x'))
@@ -271,8 +223,8 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
 
     topgv = create2D('topg')
     thkv = create2D('thk')
-    umodv = create2D('umod')
-    umodcv = create2D('umodc')
+    umodv = create2D('uo')
+    umodcv = create2D('uc')
     btrcv = create2D('btrc')
     
     #data
@@ -283,7 +235,9 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     umodv[:,:] = umod
     umodcv[:,:] = umodc
     btrcv[:,:] = btrc
-
+    
+    add_projection_f(ncout, xv, yv)
+    
     ncout.close()
 
     dx = x[1] - x[0]

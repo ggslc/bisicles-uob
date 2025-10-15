@@ -124,7 +124,7 @@ control.minLevelForOptimization = 1
 regression.result_hdf5 = ControlOuter01lev.000000000001.2d.hdf5
 regression.reference_hdf5 = ase-ctrl-reference.H5
 regression.tol = 1.0e-6
-
+regression.diff_hdf5 =  ase-ctrl-diff.2d.hdf5
 
 #basal_friction.grounding_line_subdivision = 4
 #velocity_rhs.gl_correction = false

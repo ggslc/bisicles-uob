@@ -240,6 +240,20 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       PiecewiseLinearFlux* pptr = new PiecewiseLinearFlux(vabs,vord,dmin);
       ptr = static_cast<SurfaceFlux*>(pptr);
     }
+  else if (type == "depthPowerFlux")
+    {
+      Real power = 1;  
+      pp.query("power",power);      
+      Real coef = 0.0;
+      pp.query("coefficient",coef);
+      Real dmin = -1.0;
+      pp.query("minWaterDepth",dmin);
+      Real dtc = 0.0;
+      pp.query("thermoclineDepth",dtc);
+      
+      DepthPowerFlux* pptr = new DepthPowerFlux(power,coef,dmin,dtc);
+      ptr = static_cast<SurfaceFlux*>(pptr);
+    }
   else if (type == "productFlux")
     {
       std::string flux1Prefix(a_prefix);
@@ -247,6 +261,7 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       SurfaceFlux* flux1Ptr = parse(flux1Prefix.c_str());
       if (flux1Ptr == NULL)
 	{
+      pout() << flux1Prefix << "has undefined flux1" << std::endl;
 	  MayDay::Error("undefined flux1 in productFlux");
 	}
 
@@ -528,8 +543,20 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
     Ly = domsize[1];
     int pad;
     pp.get("pad", pad);
-
-    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad);
+    bool m_inside_box = true;
+    pp.query("inside_box", m_inside_box);
+    int m_gia_box_lox = -9999999;
+    pp.query("box_lox", m_gia_box_lox);
+    int m_gia_box_hix = 9999999;
+    pp.query("box_hix", m_gia_box_hix);
+    int m_gia_box_loy = -9999999;
+    pp.query("box_loy", m_gia_box_loy);
+    int m_gia_box_hiy = 9999999;
+    pp.query("box_hiy", m_gia_box_hiy);
+    buelerFlux->setDomain(Nx, Ny, Lx, Ly, domainOffset, pad,
+                          m_inside_box,
+                          m_gia_box_lox, m_gia_box_hix,
+                          m_gia_box_loy, m_gia_box_hiy); 
 
     Real t = 0.;
     ppAmr.query("offsetTime", t);
@@ -661,6 +688,24 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
   
 }
 
+
+// default implementation -- in most cases this will return a Vector 
+// of length 1, with a_root as the name
+void SurfaceFlux::plot_names(const string& a_root, 
+                             Vector<string>& a_plot_names) const
+{
+  int num_comps = num_plot_components();
+  a_plot_names.resize(num_comps, a_root);
+}
+
+// default implementation simply calls evaluate function
+void
+SurfaceFlux::plot_data(LevelData<FArrayBox>& a_data,
+                       const AmrIceBase& a_amrIce, 
+                       int a_level, Real a_dt)
+{
+  evaluate(a_data, a_amrIce, a_level,a_dt);
+}
 
 
 

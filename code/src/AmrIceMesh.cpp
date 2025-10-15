@@ -1028,6 +1028,46 @@ AmrIce::tagCellsLevel(IntVectSet& a_tags, int a_level)
     } // end if tag entire domain
 
 
+  // tag in specific regions
+  if (m_tagInRegions)
+    {
+      Real levelDx = m_amrDx[a_level];
+      RealVect dxVect = levelDx*RealVect::Unit;
+      // loop over tag regions
+      for (int i=0; i<m_tag_regions_resolution.size(); i++)
+        {
+          // is this even relevant on this level?
+          if (m_tag_regions_resolution[i] < levelDx)
+            {
+              // define box on this level corresponding to this region
+              int ilo,jlo,ihi, jhi;
+              ilo = (m_tag_regions_lo[i])[0]/levelDx;
+              jlo = (m_tag_regions_lo[i])[1]/levelDx;
+
+              // increment by one because this is the high side
+              ihi = (m_tag_regions_hi[i])[0]/levelDx+1;
+              jhi = (m_tag_regions_hi[i])[1]/levelDx+1;
+
+              IntVect boxLo(ilo,jlo);
+              IntVect boxHi(ihi,jhi);
+              Box thisRegion(boxLo,boxHi);
+              
+              for (dit.begin(); dit.ok(); ++dit)
+                {
+                  Box intersectBox = levelGrids[dit];
+                  intersectBox &= thisRegion;
+
+                  if (!intersectBox.isEmpty())
+                    {
+                      local_tags |= intersectBox;
+                    } // end if there is an intersection
+                  
+                } // end loop over boxes
+            } // end if need to do this region at this level
+        } // end loop over regions
+    } // end if tag in specific regions
+
+
 
 #ifdef HAVE_PYTHON
   if (m_tagPython)

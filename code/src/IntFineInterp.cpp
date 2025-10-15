@@ -83,6 +83,13 @@ IntFineInterp::define(const DisjointBoxLayout& a_fine_domain,
   m_coarsened_fine_data.define ( coarsened_fine_domain,
                                  a_numcomps,
                                  crseGhost);
+
+  // initialize here to avoid valgrind Conditional jump or move depends on uninitialised value'
+  for (DataIterator dit(coarsened_fine_domain); dit.ok(); ++dit)
+  {	
+	m_coarsened_fine_data[dit].setVal(1234678);
+  }
+
   is_defined = true;
 }
 

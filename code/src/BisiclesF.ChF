@@ -102,6 +102,25 @@ c--------------------------------------------------
       CHF_ENDDO
       return
       end
+
+c--------------------------------------------------
+c     depth = -1*(ursf - thk)
+c--------------------------------------------------
+      subroutine shelfdepth(CHF_FRA1[depth],
+     &     CHF_CONST_FRA1[thk],
+     &     CHF_CONST_FRA1[usrf],
+     &     CHF_BOX[box])
+
+      integer CHF_AUTODECL[i]
+      CHF_AUTOMULTIDO[box; i]
+
+      depth(CHF_AUTOIX[i]) = ((zero - one)*(
+     &     usrf(CHF_AUTOIX[i])
+     &     -thk(CHF_AUTOIX[i])))
+      
+      CHF_ENDDO
+      return
+      end
       
 c--------------------------------------------------
 c     fab = 0.0 if infab < tol
@@ -157,6 +176,32 @@ c--------------------------------------------------
             end if
          end do
       end if
+      CHF_ENDDO
+
+
+      return
+      end
+
+c--------------------------------------------------
+c depth power law melt:
+c melt = c * d^p
+c workspaces 
+c--------------------------------------------------
+      subroutine powerlaw(CHF_FRA1[a],
+     &     CHF_CONST_FRA1[d],
+     &     CHF_CONST_REAL[pow],
+     &     CHF_CONST_REAL[coef],
+     &     CHF_CONST_REAL[dtherm],
+     &     CHF_BOX[box])
+
+      integer CHF_AUTODECL[i]
+      Real_T di
+
+      CHF_AUTOMULTIDO[box; i]
+c di = d(CHF_AUTOIX[i])
+      di = max(d(CHF_AUTOIX[i])-dtherm,0.0)
+      a(CHF_AUTOIX[i]) = (zero - one) * coef * di**(pow+1.0d-10)
+      
       CHF_ENDDO
 
 

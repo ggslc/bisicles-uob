@@ -56,6 +56,7 @@ using std::string;
 #include "ExtrapBCF_F.H"
 #include "amrIceF_F.H"
 #include "BisiclesF_F.H"
+#include "CalvingF_F.H"
 #include "IceThermodynamics.H"
 #include "JFNKSolver.H"
 #include "InverseVerticallyIntegratedVelocitySolver.H"
@@ -77,6 +78,7 @@ using std::string;
 
 
 #include "BuelerGIA.H"
+#include "ComplexSurfaceFlux.H"
 
 #include "NamespaceHeader.H"
 
@@ -96,10 +98,12 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   m_write_dHDt = true;
   m_write_fluxVel = true;
   m_write_viscousTensor = false;
+  m_write_vonmisesStress = false;
   m_write_baseVel = true;
   m_write_internal_energy = false;
   m_write_map_file = false;
   m_write_thickness_sources = false;
+  m_write_topography_sources = false;
   m_write_ismip6 = false;
   m_write_layer_velocities = false;
   m_write_mask = false;
@@ -122,9 +126,11 @@ void AmrIce::setOutputOptions(ParmParse& a_pp)
   a_pp.query("plot_style_amr", m_plot_style_amr);
   a_pp.query("write_flux_velocities", m_write_fluxVel);
   a_pp.query("write_viscous_tensor", m_write_viscousTensor);
+  a_pp.query("write_vonmises_stress", m_write_vonmisesStress);
   a_pp.query("write_base_velocities", m_write_baseVel);
   a_pp.query("write_internal_energy", m_write_internal_energy);
   a_pp.query("write_thickness_sources", m_write_thickness_sources);
+  a_pp.query("write_topography_sources", m_write_topography_sources);
   a_pp.query("write_ismip6", m_write_ismip6);
   a_pp.query("write_layer_velocities", m_write_layer_velocities);
   a_pp.query("write_map_file", m_write_map_file);
@@ -285,6 +291,12 @@ AmrIce::writeAMRPlotFile()
 	}
     }
   
+  if (m_write_vonmisesStress)
+    {
+      // effective drag and viscosity coefficients
+      numPlotComps += 1; 
+    }
+
   if (m_write_thickness_sources)
     {
       numPlotComps += 2;  // active surface and basal sources
@@ -293,7 +305,15 @@ AmrIce::writeAMRPlotFile()
 	  numPlotComps += 4; // divThicknessFlux, supplied surface and basal sources, calving flux
 	}
     }
+    
+    if (m_write_topography_sources)
+    {
+      if (m_topographyFluxPtr != NULL)
+        {
+          numPlotComps += m_topographyFluxPtr->num_plot_components(); 
+	    }
 
+    }
 
 #endif
   // generate data names
@@ -341,6 +361,7 @@ AmrIce::writeAMRPlotFile()
   string zxVTname("zxViscousTensor");
   string zyVTname("zyViscousTensor");
   string zzVTname("zzViscousTensor");
+  string vmSname("VonMisesStress");
   string viscosityCoefName("viscosityCoef");
   //string yViscosityCoefName("yViscosityCoef");
   //string zViscosityCoefName("zViscosityCoef");
@@ -529,6 +550,11 @@ AmrIce::writeAMRPlotFile()
 	}
     }
 
+  if (m_write_vonmisesStress)
+    {
+      vectName[comp] = vmSname; comp++; 
+    }
+
   if (m_write_thickness_sources)
     {
       vectName[comp] = activeBasalThicknessSourceName; comp++;
@@ -542,6 +568,22 @@ AmrIce::writeAMRPlotFile()
 	  vectName[comp] = calvingFluxName; comp++;
 	}
     }
+
+  if (m_write_topography_sources)
+    {
+      if (m_topographyFluxPtr != NULL)
+        {
+          Vector<string> topoNames;
+          string GIAroot("topographyFlux");
+          m_topographyFluxPtr->plot_names(GIAroot, topoNames);
+          for (int i=0; i<topoNames.size(); i++)
+            {
+              vectName[comp] = topoNames[i];
+              comp++;
+            } 
+        }                
+    }
+  
 
   if (m_write_ismip6)
     {      
@@ -610,14 +652,32 @@ AmrIce::writeAMRPlotFile()
       levelCS.getSurfaceHeight(levelZsurf);
       LevelData<FArrayBox> levelSTS (m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelBTS (m_amrGrids[lev], 1, ghostVect);
+      LevelData<FArrayBox> levelGIA;
+      LevelData<FArrayBox> levelCalvingRate(m_amrGrids[lev], 1, ghostVect);
       LevelData<FArrayBox> levelWaterDepth(m_amrGrids[lev], 1, ghostVect);
       
       if (m_write_thickness_sources)
 	{
-	  m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
-	  m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
+	 // note - these are not the actual sources - they are
+	 // the 'supplied' sources. The actual ('active') sources
+	 // are store in m_surface/basalThicknessSource and are *also* written.
+	 // Hence the need to recompute and dispose of these...
+	 m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
+	 m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
+
+    if (m_write_topography_sources)
+        {
+          if (m_topographyFluxPtr != NULL)
+            {
+              int numTopoData = m_topographyFluxPtr->num_plot_components();
+              levelGIA.define(m_amrGrids[lev], numTopoData, ghostVect);
+              // set dt to zero for the plotfile data evaluation
+              Real tempDt = 0;
+              m_topographyFluxPtr->plot_data(levelGIA, *this, lev, tempDt);
+            }
+        }
 
 
       // set these up here because calls to dragCoefficient may lead
@@ -626,12 +686,25 @@ AmrIce::writeAMRPlotFile()
       LevelData<FArrayBox>* viscosityCoefficientPtr = NULL;
       LevelData<FArrayBox>* viscousTensorPtr = NULL;
       
-      if (m_write_viscousTensor)      
+      if (m_write_viscousTensor || m_write_vonmisesStress)      
         {
           dragCoefficientPtr = const_cast<LevelData<FArrayBox>* >(dragCoefficient(lev));
           viscosityCoefficientPtr = const_cast<LevelData<FArrayBox>*>(viscosityCoefficient(lev));
           viscousTensorPtr = const_cast<LevelData<FArrayBox>*>(viscousTensor(lev));
         }
+
+      //if (m_write_vonmisesStress)
+      //  {
+          LevelData<FArrayBox> vonmises(m_amrGrids[lev], 1, 2*IntVect::Unit);
+          // locate specific components of the viscous tensor the multicomponent arrays.
+          // the derivComponent function is in LevelMappedDerivatives.
+          int xxComp = derivComponent(0,0);
+          int xyComp = derivComponent(1,0);
+          int yxComp = derivComponent(0,1);
+          int yyComp = derivComponent(1,1);
+
+          Real eps = 1.0e-10;
+      //  }
       
       DataIterator dit = m_amrGrids[lev].dataIterator();
       for (dit.begin(); dit.ok(); ++dit)
@@ -852,6 +925,22 @@ AmrIce::writeAMRPlotFile()
 		  comp += SpaceDim * SpaceDim;
 		}
 	    }
+
+      if (m_write_vonmisesStress)
+        {
+          // Compute the Von Mises Stress (cell-centered)
+          FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
+                CHF_CONST_FRA((*viscousTensorPtr)[dit]),
+                CHF_CONST_FRA1(thisH,0),
+                CHF_INT(xxComp),
+                CHF_INT(xyComp),
+                CHF_INT(yxComp),
+                CHF_INT(yyComp),
+                CHF_CONST_REAL(eps),
+                CHF_BOX(gridBox));
+	      thisPlotData.copy( vonmises[dit],0,comp);
+	      comp++;
+        }
 	 
 	  if (m_write_thickness_sources)
 	    {
@@ -900,6 +989,18 @@ AmrIce::writeAMRPlotFile()
 		}
 	    }
 
+
+          if (m_write_topography_sources)
+            {
+              if (m_topographyFluxPtr != NULL)
+                {
+                  int numTopoData = m_topographyFluxPtr->num_plot_components();
+		          thisPlotData.copy(levelGIA[dit], 0, comp, numTopoData);
+                  comp += numTopoData; 
+
+                }
+            }
+          
 	  if (m_write_ismip6)
 	    {      
 	      thisPlotData.copy( (*m_sTemperature[lev])[dit],0,comp);
@@ -1329,7 +1430,42 @@ AmrIce::writeCheckpointFile(const string& a_file)
       nComp++;
       header.m_real["giaUpdatedTime"] = giaFluxPtr->getUpdatedTime();
     } // end if we have a BuelerGIAFlux
-#endif
+
+
+  // now use dynamic casting to see if we're looking at a CompositeFlux
+
+    CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+    if (giaCompositeFluxPtr != NULL)
+    {
+      int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+      for (int i = 0; i<nfluxes; i++)
+      {
+        giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);  
+        if (giaFluxPtr != NULL)
+        {
+          // we were able to cast to a BuelerGIAFlux pointer
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "thicknessAboveFlotation0";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "thicknessAboveFlotationOld";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "upliftData";
+          header.m_string[compStr] = compName;
+          nComp++;
+          sprintf(compStr, "component_%04d", nComp);
+          compName = "udotData";
+          header.m_string[compStr] = compName;
+          nComp++;
+          header.m_real["giaUpdatedTime"] = giaFluxPtr->getUpdatedTime();
+        } // end if we have a BuelerGIAFlux within the CompositeFlux
+      } // end loop over CompositeFlux fluxes
+    } // end if we have a CompositeFlux
+
+#endif // BUELERGIA
     // do any generic TopographyFlux sorts of things
   } // end if there is a topographyFlux
 
@@ -1433,7 +1569,42 @@ AmrIce::writeCheckpointFile(const string& a_file)
         write(handle, *tmp, "udotData",
           tmp->ghostVect());
       } // end if we have a BuelerGIAFlux
-#endif
+
+      // now use dynamic casting to see if we're looking at a CompositeFlux
+      CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+      if (giaCompositeFluxPtr != NULL)
+      {
+        int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+        for (int i = 0; i<nfluxes; i++)
+          {
+            giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);
+
+            if (giaFluxPtr != NULL)
+            {
+            // we were able to cast to a BuelerGIAFlux pointer   
+            if (s_verbosity >= 3) {
+              pout() << "Writing Composite GIA checkpoint" << endl;
+            }
+            RefCountedPtr<LevelData<FArrayBox>> tmp;
+            tmp = giaFluxPtr->getTAF0();
+            write(handle, *tmp, "thicknessAboveFlotation0",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getTAFold();
+            write(handle, *tmp, "thicknessAboveFlotationOld",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getUn();
+            write(handle, *tmp, "upliftData",
+              tmp->ghostVect());
+            tmp = giaFluxPtr->getUdot();
+            write(handle, *tmp, "udotData",
+              tmp->ghostVect());
+          } // end if we have a BuelerGIAFlux within the Composite FLux
+        } // end loop over CompositeFlux fluxes
+      } // end if we have a CompositeFlux
+
+
+
+#endif //BUELERGIA
       // do any generic TopographyFlux sorts of things
     } // end if there is a topographyFlux 
 
@@ -2090,6 +2261,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	      m_observers[i]->readCheckData(a_handle, header,  lev, levelDBL);
 	    }
       // Check if topographyFlux initialized and checkpoint Uplift and initial TOF.
+     
       // First check to see if the pointer is NULL
       if (m_topographyFluxPtr != NULL && lev == 0)
       {
@@ -2107,6 +2279,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUpdatedTime(header.m_real["giaUpdatedTime"]); 
           } 
           // try to read initial thickness above flotation
@@ -2124,6 +2297,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setTAF0(tafpadhat0);
           }
           // try to read previous thickness above flotation
@@ -2141,6 +2315,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setTAFold(tafpadhatold);
           }   
           // try to read fft uplift
@@ -2158,6 +2333,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUn(upadhat);
           }
 
@@ -2176,10 +2352,111 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
           }
           else
           {
+
             giaFluxPtr->setUdot(udot);
           }
 
         } // end if we have a BuelerGIAFlux
+
+      // now use dynamic casting to see if we're looking at a CompositeFlux
+        CompositeFlux* giaCompositeFluxPtr = dynamic_cast<CompositeFlux*>(m_topographyFluxPtr);
+        if (giaCompositeFluxPtr != NULL)
+        {
+          int nfluxes = (giaCompositeFluxPtr->m_fluxes).size();
+          for (int i = 0; i<nfluxes; i++)
+          {
+            giaFluxPtr = dynamic_cast<BuelerGIAFlux*>(giaCompositeFluxPtr->m_fluxes[i]);
+            if (giaFluxPtr != NULL) {
+              pout() << "Checkpoint Composite GIA read-in." << endl;
+              // we were able to cast to a BuelerGIAFlux pointer
+              // set the time of the GIA object.
+              if (header.m_real.find("giaUpdatedTime") == header.m_real.end())
+              {
+                MayDay::Warning("checkpoint file does not contain GIA updated time, but not restarting, setting to 0");
+              }
+              else
+              {
+
+                giaFluxPtr->setUpdatedTime(header.m_real["giaUpdatedTime"]); 
+              } 
+              // try to read initial thickness above flotation
+              DisjointBoxLayout giaDBL = (giaFluxPtr->m_tafpadhat0)->disjointBoxLayout(); 
+              LevelData<FArrayBox> tafpadhat0;
+              tafpadhat0.define(giaDBL,1);
+    	      int dataStatus = read<FArrayBox>(a_handle,
+    	        			   tafpadhat0,
+    	        			   "thicknessAboveFlotation0",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain initial ice thickness above flotation -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setTAF0(tafpadhat0);
+              }
+              // try to read previous thickness above flotation
+              DisjointBoxLayout giaDBLold = (giaFluxPtr->m_tafpadhatold)->disjointBoxLayout(); 
+              LevelData<FArrayBox> tafpadhatold;
+              tafpadhat0.define(giaDBLold,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   tafpadhatold,
+    	        			   "thicknessAboveFlotationOld",
+    	        		       giaDBLold);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain initial ice thickness above flotation -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setTAFold(tafpadhatold);
+              }   
+              // try to read fft uplift
+              LevelData<FArrayBox> upadhat;
+              giaDBL = (giaFluxPtr->m_upadhat)->disjointBoxLayout();
+              upadhat.define(giaDBL,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   upadhat,
+    	        			   "upliftData",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain uplift data -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setUn(upadhat);
+              }
+
+              // try to read initial thickness above flotation
+              LevelData<FArrayBox> udot;
+              giaDBL = (giaFluxPtr->m_udot)->disjointBoxLayout();
+              udot.define(giaDBL,1);
+    	      dataStatus = read<FArrayBox>(a_handle,
+    	        			   udot,
+    	        			   "udotData",
+    	        		       giaDBL);
+    	      /// note that although this check appears to work, it makes a mess of a_handle and the next lot of data are not read...
+      	      if (dataStatus != 0)
+              {
+    	        MayDay::Warning("checkpoint file does not contain uplift data -- initializing to zero"); 
+              }
+              else
+              {
+
+                giaFluxPtr->setUdot(udot);
+              }
+            } // end if we have a BuelerGIAFlux within the CompositeFlux
+          } // end loop over CompositeFlux fluxes
+        } // end if we have a CompositeFlux
+
+
 #endif // BUELERGIA	
         // do any generic TopographyFlux sorts of things
       } // end if there is a topographyFlux
@@ -2228,6 +2505,11 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
     }
   solveVelocityField();
   m_doInitialVelSolve = true;
+
+  if (m_force_gia_init && m_topographyFluxPtr != NULL) 
+    {
+      m_topographyFluxPtr->init(*this);
+    }
 
 #endif
   
@@ -2755,11 +3037,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_surfaceThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
-
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
 	     }
 	   return &a_buf;
 	} );
@@ -2803,12 +3080,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit].copy((*m_basalThicknessSource[a_lev])[dit]);
 	       a_buf[dit] *= rhoi;
-
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	} );
@@ -2836,11 +3107,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	 } );
@@ -2867,11 +3133,6 @@ void AmrIce::initCFData()
 	     {
 	       a_buf[dit] *= b[dit];
 	       a_buf[dit] *= rhoi;
-	       if (m_frac_sources)
-	       {
-		a_buf[dit] *= (*m_iceFrac[a_lev])[dit];
-	       }
-
 	     }
 	   return &a_buf;
 	 } );
@@ -3143,7 +3404,7 @@ void AmrIce::flushCFData()
   char* iter_str = new char[m_plot_prefix.size() + 64 + fs.size()];
   sprintf(iter_str, fs.c_str(), m_plot_prefix.c_str(), outputNumbering() , SpaceDim );
   string filename(iter_str);
-  delete iter_str;
+  delete[] iter_str;
 
   
   const DisjointBoxLayout& dbl = m_uniform_cf_data.disjointBoxLayout();

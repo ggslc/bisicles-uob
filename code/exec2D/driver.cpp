@@ -162,8 +162,8 @@ int main(int argc, char* argv[]) {
       }
     else if (rateFactorType == "patersonRate")
       {
-	PatersonRateFactor rateFactor(seconds_per_unit_time);
-	ParmParse arPP("PatersonRate");
+	ParmParse arPP("patersonRate");
+	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
 	amrObject.setRateFactor(&rateFactor);
       }
     else if (rateFactorType == "zwingerRate")
@@ -187,7 +187,8 @@ int main(int argc, char* argv[]) {
     
     if (basalRateFactorType == "patersonRate")
       {
-	PatersonRateFactor rateFactor(seconds_per_unit_time);
+	ParmParse arPP("basalPatersonRate");
+	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
 	rateFactor.setA0(1.0);
 	amrObject.setBasalRateFactor(&rateFactor);
       }
@@ -1025,9 +1026,12 @@ int main(int argc, char* argv[]) {
 	  std::string reference_hdf5;
 	  ppr.get("reference_hdf5", reference_hdf5);
 
+	  std::string diff_hdf5;
+	  ppr.query("diff_hdf5", diff_hdf5);
+	  
 	  Real tol = 1.0e-10;
 	  ppr.query("tol",tol);
-          Real norm = HDF5NormTest(result_hdf5, reference_hdf5);
+          Real norm = HDF5NormTest(result_hdf5, reference_hdf5, diff_hdf5);
       	  if (tol < norm)
 	    {
 	      ierr = 1;

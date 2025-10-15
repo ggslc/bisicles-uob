@@ -84,7 +84,7 @@ public:
   
   void restart(){}
 
-  void computeObjectiveAndGradient(Real& f, Real& r, RealVector& g, const  RealVector& x, bool a_inner)
+  void computeObjectiveAndGradient(Real& f, Real& r, RealVector& g, const  RealVector& x, int iter, bool a_inner)
   {
     f = 0.0;
     r = 0.0;
@@ -134,7 +134,17 @@ public:
     return x.n();
   }
 
- 
+   /// (don't) save a state that would allow CG to resume from iteration iter.
+  virtual void saveCGState(int iter, const RealVector& x, const RealVector& r, const RealVector& s, const RealVector& d)
+  {
+
+  }
+   /// (never) read a state allowing CG to resume. Should return true if a state was read
+  virtual bool readCGState(int& iter,  bool& fresh_start,
+			   RealVector& x,  RealVector& r, RealVector& s, RealVector& d)
+  {
+    return false;
+  }
 };
 
 
@@ -167,7 +177,9 @@ int main(int argc, char* argv[])
 
   pout() << "initial F(x) = " << F(x) << std::endl;
 
-  CGOptimize(F,x,100,1.0e-10,0.999,1.0e-3,-1.0,100,1.0e-10);
+
+  
+  CGOptimize(F,x,100,1.0e-10,0.999,20,1.0e-3,-1.0,100,1.0e-10);
 
   Real final = F(x);
 

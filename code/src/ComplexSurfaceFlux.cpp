@@ -42,7 +42,8 @@ ProductSurfaceFlux::ProductSurfaceFlux  (SurfaceFlux* a_flux1, SurfaceFlux* a_fl
 /// destructor
 ProductSurfaceFlux::~ProductSurfaceFlux()
 {
-  // I think we should be deleting m_flux1 and m_flux2 here
+  if (m_flux1) delete m_flux1;
+  if (m_flux2) delete m_flux2;
 }
 
 /// factory method
@@ -342,6 +343,15 @@ CompositeFlux::~CompositeFlux()
     }
 }
 
+void CompositeFlux::init ( const AmrIceBase& a_amrIce )
+{ 
+  for (int i=0; i<m_fluxes.size(); i++)
+    {
+      m_fluxes[i]->init( a_amrIce );
+    }
+}
+
+
 void CompositeFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 					  const AmrIceBase& a_amrIce, 
 					  int a_level, Real a_dt)
@@ -359,6 +369,84 @@ void CompositeFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 	}
     }
 
+}
+
+/// number of plotfile components when included in plotfiles -- default is 1
+int
+CompositeFlux::num_plot_components() const
+{
+  // one component for the total flux, then query componenents
+  int numFluxes = 1;
+  for (int i=0; i<m_fluxes.size(); i++)
+    {
+      numFluxes += m_fluxes[i]->num_plot_components();
+    }
+  
+  return numFluxes;
+}
+
+/// names of plot components. Default is to simply return the root
+void
+CompositeFlux::plot_names(const string& a_root, 
+                          Vector<string>& a_plot_names) const
+{
+  int numFluxes = num_plot_components();
+  a_plot_names.resize(1, a_root);
+
+  // now just append each component
+  for (int i=0; i<m_fluxes.size(); i++)
+    {
+      char* iter_str = new char[a_root.size() + 11];
+      sprintf(iter_str, "%s-component%02d", a_root.c_str(), i );
+      string component_root(iter_str);
+      Vector<string> component_names;
+      m_fluxes[i]->plot_names(component_root, component_names);
+      a_plot_names.append(component_names);
+    }
+
+  // reality check
+  CH_assert(a_plot_names.size() == numFluxes);
+  
+}
+
+
+// fill plot data
+void
+CompositeFlux::plot_data(LevelData<FArrayBox>& a_data,
+                         const AmrIceBase& a_amrIce, 
+                         int a_level, Real a_dt)
+{
+  // do this the quick and dirty way for now. Assume that a_data has already
+  // been declared and dimensioned for this object
+
+  // first compute composite flux
+  int current_comp = 0;
+  const DisjointBoxLayout& levelGrids = a_data.getBoxes();
+  LevelData<FArrayBox> composite_flux(levelGrids, 1, a_data.ghostVect());
+  evaluate(composite_flux, a_amrIce, a_level, a_dt);
+  DataIterator dit = levelGrids.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      a_data[dit].copy(composite_flux[dit], 0, current_comp, 1);
+    }
+
+  ++current_comp;
+
+  for (int i=0; i< m_fluxes.size(); i++)
+    {
+      int num_component_fluxes = m_fluxes[i]->num_plot_components();
+      LevelData<FArrayBox> componentData(levelGrids, num_component_fluxes,
+                                         a_data.ghostVect());
+      m_fluxes[i]->evaluate(componentData, a_amrIce, a_level, a_dt);
+      for (dit.begin(); dit.ok(); ++dit)
+        {
+          a_data[dit].copy(componentData[dit], 0, current_comp, 
+                           num_component_fluxes);
+        }
+      current_comp += num_component_fluxes;
+      
+    }
+  
 }
 
 
@@ -637,6 +725,69 @@ void PiecewiseLinearFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 		   CHF_CONST_VR(m_abscissae),
 		   CHF_CONST_VR(m_ordinates),
 		   CHF_VR(dx),CHF_VR(db),
+		   CHF_BOX(a_flux[dit].box()));
+       
+      if (m_minWaterDepth > 0.0)
+	{
+	  
+	  FArrayBox D(a_flux[dit].box(),1);
+	  FORT_WATERDEPTH(CHF_FRA1(D,0),
+			  CHF_CONST_FRA1(levelH[dit],0),
+			  CHF_CONST_FRA1(levelS[dit],0),
+			  CHF_CONST_FRA1(levelR[dit],0),
+			  CHF_BOX(a_flux[dit].box()));
+  
+	  
+	  FORT_ZEROIFLESS(CHF_FRA1(a_flux[dit],0),
+			  CHF_CONST_FRA1(D,0),
+			  CHF_CONST_REAL(m_minWaterDepth),
+			  CHF_BOX(a_flux[dit].box()));
+
+	}
+
+    }
+}
+
+
+// DepthPowerFlux
+
+DepthPowerFlux::DepthPowerFlux(const Real a_power, 
+					 const Real a_coef, 
+					 Real a_minWaterDepth, 
+					 Real a_thermoclineDepth)
+  :m_power(a_power),m_coef(a_coef),
+   m_minWaterDepth(a_minWaterDepth),
+   m_thermoclineDepth(a_thermoclineDepth)
+{
+}
+
+SurfaceFlux* DepthPowerFlux::new_surfaceFlux()
+{
+  return static_cast<SurfaceFlux*>(new DepthPowerFlux(m_power,m_coef,m_minWaterDepth,m_thermoclineDepth));
+}
+
+void DepthPowerFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
+					       const AmrIceBase& a_amrIce, 
+					       int a_level, Real a_dt)
+{
+  const LevelData<FArrayBox>& levelH = a_amrIce.geometry(a_level)->getH();
+  const LevelData<FArrayBox>& levelS = a_amrIce.geometry(a_level)->getSurfaceHeight();
+  const LevelData<FArrayBox>& levelR = a_amrIce.geometry(a_level)->getTopography();
+  
+  for (DataIterator dit(a_flux.dataIterator()); dit.ok(); ++dit)
+    {
+	  
+	  FArrayBox Depth(a_flux[dit].box(),1);
+	  FORT_SHELFDEPTH(CHF_FRA1(Depth,0),
+			  CHF_CONST_FRA1(levelH[dit],0),
+			  CHF_CONST_FRA1(levelS[dit],0),
+			  CHF_BOX(a_flux[dit].box()));
+
+      FORT_POWERLAW(CHF_FRA1(a_flux[dit],0),
+		   CHF_CONST_FRA1(Depth,0),
+		   CHF_CONST_REAL(m_power),
+		   CHF_CONST_REAL(m_coef),
+		   CHF_CONST_REAL(m_thermoclineDepth),
 		   CHF_BOX(a_flux[dit].box()));
        
       if (m_minWaterDepth > 0.0)
