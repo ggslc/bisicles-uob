@@ -1,7 +1,8 @@
 # -*- Mode: Makefile -*- 
 ### This makefile produces an executable for each 
 ### name in the `ebase' variable
-ebase :=  nctoamr amrtotxt amrtoplot flatten extract merge addbox amrtocf stats glfaces faces rescale sum pythonf diagnostics gia-stats glfacesNew
+### removed glfaces, faces, and glfacesNew  due to new compile errors related to PatersonRate() argumnet changes
+ebase :=  nctoamr amrtotxt amrtoplot flatten extract merge addbox amrtocf stats rescale sum pythonf diagnostics gia-stats
 src_dirs = src
 all:  clean libbike 
 
