@@ -162,8 +162,8 @@ int main(int argc, char* argv[]) {
       }
     else if (rateFactorType == "patersonRate")
       {
-	ParmParse arPP("patersonRate");
-	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
+	ParmParse arPP("PatersonRate");
+	PatersonRateFactor rateFactor(seconds_per_unit_time, arPP);
 	amrObject.setRateFactor(&rateFactor);
       }
     else if (rateFactorType == "zwingerRate")
