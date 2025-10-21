@@ -233,8 +233,8 @@ int main(int argc, char* argv[]) {
       }
     else if (rateFactorType == "patersonRate")
       {
-	PatersonRateFactor* prf =  new PatersonRateFactor(seconds_per_unit_time);
-	ParmParse arPP("PatersonRate");
+  ParmParse arPP("PatersonRate");
+  PatersonRateFactor* prf =  new PatersonRateFactor(seconds_per_unit_time, arPP);
 	rateFactorPtr = static_cast<RateFactor*>(prf);
       }
     else if (rateFactorType == "zwingerRate")
