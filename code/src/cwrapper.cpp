@@ -391,67 +391,33 @@ void init_bisicles_instance(BisiclesWrapper& a_wrapper)
   Vector<Real> domSize(SpaceDim);
   pp2.getarr("domain_size", domSize, 0, SpaceDim);
   domainSize = RealVect(D_DECL(domSize[0], domSize[1], domSize[2]));
-
- 
-  Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
-  {
-    ParmParse ppc("constants");
-    ppc.query("seconds_per_unit_time",seconds_per_unit_time);
-  }
-   
   
 
   // ---------------------------------------------
   // set constitutive relation & rate factor
   // ---------------------------------------------
-  std::string rateFactorType = "constRate";
-  pp2.query("rateFactor", rateFactorType);
-  if (rateFactorType == "constRate")
+   
+  RateFactor* rateFactorPtr = RateFactor::parse("main");
+
+  if (rateFactorPtr == NULL)
     {
-      ParmParse crPP("constRate");
-      Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
-      crPP.query("A", A);
-      ConstantRateFactor rateFactor(A);
-      amrObject.setRateFactor(&rateFactor);
+      MayDay::Error("undefined rateFactor in inputs");
     }
-  else if (rateFactorType == "arrheniusRate")
-    {
-      ArrheniusRateFactor rateFactor(seconds_per_unit_time);
-      ParmParse arPP("ArrheniusRate");
-      amrObject.setRateFactor(&rateFactor);
-    }
-  else if (rateFactorType == "patersonRate")
-    {
-      ParmParse arPP("patersonRate");
-      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
-      amrObject.setRateFactor(&rateFactor);
-    }
-  else if (rateFactorType == "zwingerRate")
-      {
-	ZwingerRateFactor rateFactor(seconds_per_unit_time);
-	ParmParse arPP("ZwingerRate");
-	amrObject.setRateFactor(&rateFactor);
-      }
-  
+
+  amrObject.setRateFactor(rateFactorPtr);
+
   ConstitutiveRelation* constRelPtr = ConstitutiveRelation::parse("main");
 
   if (constRelPtr == NULL)
     {
-      MayDay::Error("undefined constitutiveRelation in inputs");
+	    MayDay::Error("undefined constitutiveRelation in inputs");
     }
-  
+
   amrObject.setConstitutiveRelation(constRelPtr);
+
+  RateFactor* basalRateFactorPtr = RateFactor::parse("main", true);
   
-  std::string basalRateFactorType = "";
-  pp2.query("basalRateFactor", basalRateFactorType);
-  
-  if (basalRateFactorType == "patersonRate")
-    {
-	  ParmParse arPP("basalPatersonRate");
-      PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
-      rateFactor.setA0(1.0);
-      amrObject.setBasalRateFactor(&rateFactor);
-    }
+  amrObject.setBasalRateFactor(basalRateFactorPtr);
  
   // -------------------------------------------------
   // set surface flux.

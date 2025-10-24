@@ -173,9 +173,9 @@ public:
 
   virtual RateFactor* getNewRateFactor() const = 0;
 
-  static RateFactor* parse(const char* a_prefix);
-
-  static RateFactor* parseBasal(const char* a_prefix);  
+  // a_basal indicates whether we are parsing for a basal rate factor (true) 
+  // or rate factor for the bulk ice sheet (false)
+  static RateFactor* parse(const char* a_prefix, bool a_basal = false);
 
 } ;
 

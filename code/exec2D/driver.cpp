@@ -134,20 +134,17 @@ int main(int argc, char* argv[]) {
 
 
     AmrIce amrObject;
-    
+
     // ---------------------------------------------
     // set constitutive relation & rate factor
     // ---------------------------------------------
 
     RateFactor* rateFactorPtr = RateFactor::parse("main");
 
-    /// Don't think we have to have a rate factor, so commenting this out for now...
-    /*
     if (rateFactorPtr == NULL)
       {
         MayDay::Error("undefined rateFactor in inputs");
       }
-    */
 
     amrObject.setRateFactor(rateFactorPtr);
 
@@ -160,7 +157,7 @@ int main(int argc, char* argv[]) {
 
     amrObject.setConstitutiveRelation(constRelPtr);
 
-    RateFactor* basalRateFactorPtr = RateFactor::parseBasal("main");
+    RateFactor* basalRateFactorPtr = RateFactor::parse("main", true);
 
     amrObject.setBasalRateFactor(basalRateFactorPtr);
 

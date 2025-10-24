@@ -937,22 +937,23 @@ ConstitutiveRelation* ConstitutiveRelation::parse(const char* a_prefix)
 
 
 
-RateFactor* RateFactor::parse(const char* a_prefix)
+RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 {
 
   /// Get time units needed in rate factor constructors
   Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
-    {
-      ParmParse ppc("constants");
-      ppc.query("seconds_per_unit_time",seconds_per_unit_time);
-    }
+  ParmParse ppc("constants");
+  ppc.query("seconds_per_unit_time",seconds_per_unit_time);
 
   
   RateFactor* rateFactorPtr = NULL;
   std::string rateFactorType = "";
 
   ParmParse pp(a_prefix);
-  pp.get("rateFactor", rateFactorType);
+
+  std::string rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
+  
+  pp.query(rateFactorKey, rateFactorType);
 
   if (rateFactorType == "constRate")
       {
@@ -1001,6 +1002,13 @@ RateFactor* RateFactor::parse(const char* a_prefix)
       {
         ParmParse prPP("PatersonRate");
         PatersonRateFactor* newPtr = new PatersonRateFactor(seconds_per_unit_time, prPP);
+
+        if (a_basal)
+          {
+            // Set A0 to 1.0 as we will get the non-temperature dependent component from the basal friction law
+            newPtr->setA0(1.0);
+          }
+
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
         ParmParse prPP("patersonRate");
@@ -1045,51 +1053,6 @@ RateFactor* RateFactor::parse(const char* a_prefix)
         MayDay::Error("bad Rate factor type");
       }
 
-  return rateFactorPtr;
-}
-
-RateFactor* RateFactor::parseBasal(const char* a_prefix)
-{
-
-  /// Get time units needed in rate factor constructors
-  Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
-    {
-      ParmParse ppc("constants");
-      ppc.query("seconds_per_unit_time",seconds_per_unit_time);
-    }
-
-
-  RateFactor* rateFactorPtr = NULL;
-  std::string rateFactorType = "";
-
-  ParmParse pp(a_prefix);
-  pp.get("basalRateFactor", rateFactorType);
-
-  if (rateFactorType == "patersonRate")
-      {
-        ParmParse prPP("basalPatersonRate");
-        PatersonRateFactor* newPtr = new PatersonRateFactor(seconds_per_unit_time, prPP);
-        // This behaviour comes from the implementation in driver, don't fully understand the reasoning
-        newPtr->setA0(1.0);
-        rateFactorPtr = static_cast<RateFactor*>(newPtr);
-
-        ParmParse prPP("BasalPatersonRate");
-        if (prPP.contains("E") ||
-            prPP.contains("A0") ||
-            prPP.contains("T0") ||
-            prPP.contains("R") ||
-            prPP.contains("Qm") ||
-            prPP.contains("Qp") ||
-            prPP.contains("A0_multiplier"))
-          {
-            MayDay::Error("With main.basalRateFactor = patersonRate, set options using e.g. basalPatersonRate.E = X (lowercase 'b'). You have used BasalPatersonRate.E = X in the input file.");
-          }
-      }
-  else if (rateFactorType == "PatersonRate")
-      {
-        MayDay::Error("Use  main.basalRateFactor = patersonRate (lowercase 'p'). You have used main.basalRateFactor = PatersonRate in the input file.");
-      }
-  
   return rateFactorPtr;
 }
 
