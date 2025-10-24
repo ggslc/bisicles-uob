@@ -336,6 +336,7 @@ ConstitutiveRelation::computeStrainRateInvariantFace(LevelData<FluxBox>& a_epsil
 }
   
 
+/// Get input file information on rate factor 
  
 
 
@@ -934,5 +935,162 @@ ConstitutiveRelation* ConstitutiveRelation::parse(const char* a_prefix)
   return constRelPtr;
 }
 
+
+
+RateFactor* RateFactor::parse(const char* a_prefix)
+{
+
+  /// Get time units needed in rate factor constructors
+  Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
+    {
+      ParmParse ppc("constants");
+      ppc.query("seconds_per_unit_time",seconds_per_unit_time);
+    }
+
+  
+  RateFactor* rateFactorPtr = NULL;
+  std::string rateFactorType = "";
+
+  ParmParse pp(a_prefix);
+  pp.get("rateFactor", rateFactorType);
+
+  if (rateFactorType == "constRate")
+      {
+        ParmParse crPP("constRate");
+        Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
+        crPP.query("A", A);
+        ConstantRateFactor* newPtr = new ConstantRateFactor(A);
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse crPP("ConstRate");
+        if (crPP.contains("A"))
+          {
+            MayDay::Error("With main.rateFactor = constRate, set options using e.g. constRate.A = X (lowercase 'c'). You have used ConstRate.A = X in the input file.");
+          }
+      }
+  else if (rateFactorType == "ConstRate")
+      {
+        MayDay::Error("Use  main.rateFactor = constRate (lowercase 'c'). You have used main.rateFactor = ConstRate in the input file.");
+      }
+  else if (rateFactorType == "arrheniusRate")
+      {
+        /// Currently only default parameters are supported (so this additional ParmParse call, and name checking, are unnecessary). Providing code for future use if needed.
+        ParmParse arPP("ArrheniusRate");
+        ArrheniusRateFactor* newPtr = new ArrheniusRateFactor(seconds_per_unit_time);
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ///
+        ParmParse arPP("arrheniusRate");
+        if (arPP.contains("n") ||
+            arPP.contains("enhance") ||
+            arPP.contains("B0") ||
+            arPP.contains("theta_r") ||
+            arPP.contains("K") ||
+            arPP.contains("C") ||
+            arPP.contains("R") ||
+            arPP.contains("Q"))
+          {
+            MayDay::Error("With main.rateFactor = arrheniusRate, set options using e.g. ArrheniusRate.n = X (uppercase 'a'). You have used arrheniusRate.n = X in the input file.");
+          }
+      }
+  else if (rateFactorType == "ArrheniusRate")
+      {
+        MayDay::Error("Use  main.rateFactor = arrheniusRate (lowercase 'a'). You have used main.rateFactor = ArrheniusRate in the input file.");
+      }
+  else if (rateFactorType == "patersonRate")
+      {
+        ParmParse prPP("PatersonRate");
+        PatersonRateFactor* newPtr = new PatersonRateFactor(seconds_per_unit_time, prPP);
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse prPP("patersonRate");
+        if (prPP.contains("E") ||
+            prPP.contains("A0") ||
+            prPP.contains("T0") ||
+            prPP.contains("R") ||
+            prPP.contains("Qm") ||
+            prPP.contains("Qp") ||
+            prPP.contains("A0_multiplier"))
+          {
+            MayDay::Error("With main.rateFactor = patersonRate, set options using e.g. PatersonRate.E = X (uppercase 'P'). You have used patersonRate.E = X in the input file.");
+          }
+      }
+  else if (rateFactorType == "PatersonRate")
+      {
+        MayDay::Error("Use  main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
+      }
+  else if (rateFactorType == "zwingerRate")
+      {
+        ParmParse zrPP("ZwingerRate");
+        ZwingerRateFactor* newPtr = new ZwingerRateFactor(seconds_per_unit_time);
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse zrPP("zwingerRate");
+        if (zrPP.contains("E") ||
+            zrPP.contains("A0") ||
+            zrPP.contains("T0") ||
+            zrPP.contains("R") ||
+            zrPP.contains("Qm") ||
+            zrPP.contains("Qp"))
+          {
+            MayDay::Error("With main.rateFactor = zwingerRate, set options using e.g. ZwingerRate.E = X (uppercase 'Z'). You have used zwingerRate.E = X in the input file.");
+          }
+      }
+  else if (rateFactorType == "ZwingerRate")
+      {
+        MayDay::Error("Use  main.rateFactor = zwingerRate (lowercase 'z'). You have used main.rateFactor = ZwingerRate in the input file.");
+      }
+  else 
+      {
+        MayDay::Error("bad Rate factor type");
+      }
+
+  return rateFactorPtr;
+}
+
+RateFactor* RateFactor::parseBasal(const char* a_prefix)
+{
+
+  /// Get time units needed in rate factor constructors
+  Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
+    {
+      ParmParse ppc("constants");
+      ppc.query("seconds_per_unit_time",seconds_per_unit_time);
+    }
+
+
+  RateFactor* rateFactorPtr = NULL;
+  std::string rateFactorType = "";
+
+  ParmParse pp(a_prefix);
+  pp.get("basalRateFactor", rateFactorType);
+
+  if (rateFactorType == "patersonRate")
+      {
+        ParmParse prPP("basalPatersonRate");
+        PatersonRateFactor* newPtr = new PatersonRateFactor(seconds_per_unit_time, prPP);
+        // This behaviour comes from the implementation in driver, don't fully understand the reasoning
+        newPtr->setA0(1.0);
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse prPP("BasalPatersonRate");
+        if (prPP.contains("E") ||
+            prPP.contains("A0") ||
+            prPP.contains("T0") ||
+            prPP.contains("R") ||
+            prPP.contains("Qm") ||
+            prPP.contains("Qp") ||
+            prPP.contains("A0_multiplier"))
+          {
+            MayDay::Error("With main.basalRateFactor = patersonRate, set options using e.g. basalPatersonRate.E = X (lowercase 'b'). You have used BasalPatersonRate.E = X in the input file.");
+          }
+      }
+  else if (rateFactorType == "PatersonRate")
+      {
+        MayDay::Error("Use  main.basalRateFactor = patersonRate (lowercase 'p'). You have used main.basalRateFactor = PatersonRate in the input file.");
+      }
+  
+  return rateFactorPtr;
+}
 
 #include "NamespaceFooter.H"

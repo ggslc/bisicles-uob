@@ -173,6 +173,9 @@ public:
 
   virtual RateFactor* getNewRateFactor() const = 0;
 
+  static RateFactor* parse(const char* a_prefix);
+
+  static RateFactor* parseBasal(const char* a_prefix);  
 
 } ;
 
