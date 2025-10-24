@@ -961,6 +961,12 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
         Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
         crPP.query("A", A);
         ConstantRateFactor* newPtr = new ConstantRateFactor(A);
+
+        if (a_basal)
+          {
+            MayDay::Error("Only PatersonRate is supported as a basal rate factor.");
+          }
+
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
         ParmParse crPP("ConstRate");
@@ -969,15 +975,23 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
             MayDay::Error("With main.rateFactor = constRate, set options using e.g. constRate.A = X (lowercase 'c'). You have used ConstRate.A = X in the input file.");
           }
       }
+
   else if (rateFactorType == "ConstRate")
       {
-        MayDay::Error("Use  main.rateFactor = constRate (lowercase 'c'). You have used main.rateFactor = ConstRate in the input file.");
+        MayDay::Error("Use main.rateFactor = constRate (lowercase 'c'). You have used main.rateFactor = ConstRate in the input file.");
       }
+
   else if (rateFactorType == "arrheniusRate")
       {
         /// Currently only default parameters are supported (so this additional ParmParse call, and name checking, are unnecessary). Providing code for future use if needed.
         ParmParse arPP("ArrheniusRate");
         ArrheniusRateFactor* newPtr = new ArrheniusRateFactor(seconds_per_unit_time);
+
+        if (a_basal)
+          {
+            MayDay::Error("Only PatersonRate is supported as a basal rate factor.");
+          }
+
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
         ///
@@ -994,10 +1008,12 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
             MayDay::Error("With main.rateFactor = arrheniusRate, set options using e.g. ArrheniusRate.n = X (uppercase 'a'). You have used arrheniusRate.n = X in the input file.");
           }
       }
+
   else if (rateFactorType == "ArrheniusRate")
       {
         MayDay::Error("Use  main.rateFactor = arrheniusRate (lowercase 'a'). You have used main.rateFactor = ArrheniusRate in the input file.");
       }
+
   else if (rateFactorType == "patersonRate")
       {
         ParmParse prPP("PatersonRate");
@@ -1023,10 +1039,12 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
             MayDay::Error("With main.rateFactor = patersonRate, set options using e.g. PatersonRate.E = X (uppercase 'P'). You have used patersonRate.E = X in the input file.");
           }
       }
+
   else if (rateFactorType == "PatersonRate")
       {
-        MayDay::Error("Use  main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
+        MayDay::Error("Use main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
       }
+
   else if (rateFactorType == "zwingerRate")
       {
         ParmParse zrPP("ZwingerRate");
@@ -1044,10 +1062,12 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
             MayDay::Error("With main.rateFactor = zwingerRate, set options using e.g. ZwingerRate.E = X (uppercase 'Z'). You have used zwingerRate.E = X in the input file.");
           }
       }
+
   else if (rateFactorType == "ZwingerRate")
       {
-        MayDay::Error("Use  main.rateFactor = zwingerRate (lowercase 'z'). You have used main.rateFactor = ZwingerRate in the input file.");
+        MayDay::Error("Use main.rateFactor = zwingerRate (lowercase 'z'). You have used main.rateFactor = ZwingerRate in the input file.");
       }
+
   else 
       {
         MayDay::Error("bad Rate factor type");
