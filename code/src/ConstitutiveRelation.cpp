@@ -890,9 +890,9 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
   ParmParse pp(a_prefix);
 
-  const char* rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
-  
-  pp.query(rateFactorKey, rateFactorType);
+  std::string rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
+
+  pp.query(rateFactorKey.c_str(), rateFactorType);
 
   if (rateFactorType == "constRate")
       {
