@@ -831,67 +831,6 @@ RateFactor* PatersonRateFactor::getNewRateFactor() const
 }
 
 
-
-ZwingerRateFactor::ZwingerRateFactor(Real a_seconds_per_unit_time)
-{
-  setDefaultParameters(a_seconds_per_unit_time);
-}
-
-void ZwingerRateFactor::setDefaultParameters(Real a_seconds_per_unit_time)
-{
-  m_E  = 1.0;
-  m_A0 = 1.916e3 * a_seconds_per_unit_time;
-  m_T0 = 263.0;
-  m_R  = 8.314;
-  m_Qm = 6.0e+4;
-  m_Qp = 1.39e+5;
-}
-
-void ZwingerRateFactor::setParameters
-(Real a_E, Real a_A0, Real a_T0, Real a_R, 
- Real a_Qm, Real a_Qp)
-{
-  m_E  = a_E;
-  m_A0 = a_A0; 
-  m_T0 = a_T0;
-  m_R  = a_R;
-  m_Qm = a_Qm;
-  m_Qp = a_Qp;
-
-}
-void ZwingerRateFactor::computeA
-(FArrayBox& a_A, 
- const FArrayBox& a_thetaPC,
- const FArrayBox& a_pressure,
- const Box& a_box) const
-{
-  FArrayBox theta0PC(a_box,1);
-  theta0PC.copy(a_pressure);
-  theta0PC *= IceThermodynamics::icepmeltfactor();
-  theta0PC += m_T0;
-
-  FORT_COMPUTEZWINGERA
-    (CHF_FRA1(a_A,0),
-     CHF_CONST_FRA1(a_thetaPC,0),
-     CHF_CONST_FRA1(theta0PC,0),
-     CHF_BOX(a_box),
-     CHF_CONST_REAL(m_E),
-     CHF_CONST_REAL(m_A0),
-     CHF_CONST_REAL(m_R),
-     CHF_CONST_REAL(m_Qm),
-     CHF_CONST_REAL(m_Qp));
-  
-}
-
-
-
-RateFactor* ZwingerRateFactor::getNewRateFactor() const
-{
-  ZwingerRateFactor* newPtr = new ZwingerRateFactor(*this);
-  //newPtr->setParameters(m_E,m_A0,m_T0,m_R,m_Qm,m_Qp);
-  return static_cast<RateFactor*>(newPtr);
-}
-
 ConstitutiveRelation* ConstitutiveRelation::parse(const char* a_prefix)
 {
   ConstitutiveRelation* constRelPtr = NULL;
@@ -1021,7 +960,7 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
         if (a_basal)
           {
-            // Set A0 to 1.0 as we will get the non-temperature dependent component from the basal friction law
+            // Set A0 to 1.0 as we will get the non-temperature-dependent component from the basal friction law
             newPtr->setA0(1.0);
           }
 
@@ -1043,29 +982,6 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
   else if (rateFactorType == "PatersonRate")
       {
         MayDay::Error("Use main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
-      }
-
-  else if (rateFactorType == "zwingerRate")
-      {
-        ParmParse zrPP("ZwingerRate");
-        ZwingerRateFactor* newPtr = new ZwingerRateFactor(seconds_per_unit_time);
-        rateFactorPtr = static_cast<RateFactor*>(newPtr);
-
-        ParmParse zrPP("zwingerRate");
-        if (zrPP.contains("E") ||
-            zrPP.contains("A0") ||
-            zrPP.contains("T0") ||
-            zrPP.contains("R") ||
-            zrPP.contains("Qm") ||
-            zrPP.contains("Qp"))
-          {
-            MayDay::Error("With main.rateFactor = zwingerRate, set options using e.g. ZwingerRate.E = X (uppercase 'Z'). You have used zwingerRate.E = X in the input file.");
-          }
-      }
-
-  else if (rateFactorType == "ZwingerRate")
-      {
-        MayDay::Error("Use main.rateFactor = zwingerRate (lowercase 'z'). You have used main.rateFactor = ZwingerRate in the input file.");
       }
 
   else 
