@@ -336,7 +336,6 @@ ConstitutiveRelation::computeStrainRateInvariantFace(LevelData<FluxBox>& a_epsil
 }
   
 
-/// Get input file information on rate factor 
  
 
 
