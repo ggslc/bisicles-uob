@@ -886,17 +886,17 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
   
   RateFactor* rateFactorPtr = NULL;
-  std::string rateFactorType = "";
 
-  ParmParse pp(a_prefix);
-
+  std::string rateFactorType = a_basal ? "" : "constRate"; // default rate factor for bulk ice is constRate
   std::string rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
 
+  ParmParse pp(a_prefix);
   pp.query(rateFactorKey.c_str(), rateFactorType);
 
   if (rateFactorType == "constRate")
       {
         ParmParse crPP("constRate");
+        // default value for A
         Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
         crPP.query("A", A);
         ConstantRateFactor* newPtr = new ConstantRateFactor(A);
@@ -960,7 +960,7 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
         if (a_basal)
           {
-            // Set A0 to 1.0 as we will get the non-temperature-dependent component from the basal friction law
+            // Always set A0 to 1.0 as we will get the non-temperature-dependent component from the basal friction law
             newPtr->setA0(1.0);
           }
 
@@ -982,11 +982,6 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
   else if (rateFactorType == "PatersonRate")
       {
         MayDay::Error("Use main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
-      }
-
-  else 
-      {
-        MayDay::Error("bad Rate factor type");
       }
 
   return rateFactorPtr;

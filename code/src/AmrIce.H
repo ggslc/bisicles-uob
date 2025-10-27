@@ -80,15 +80,21 @@ public:
   /** needs to be done before calling initialize
    */
   void setRateFactor(RateFactor* a_rateFactorPtr)
-  {m_rateFactor = a_rateFactorPtr->getNewRateFactor(); }
+  {m_rateFactor = a_rateFactorPtr->getNewRateFactor();}
+
 
 
    /// set rate factor at base
   /** needs to be done before calling initialize
    */
   void setBasalRateFactor(RateFactor* a_rateFactorPtr)
-  {m_basalRateFactor = a_rateFactorPtr->getNewRateFactor(); }
-  
+  {
+    // only set if non-null pointer passed
+    if (a_rateFactorPtr){
+      m_basalRateFactor = a_rateFactorPtr->getNewRateFactor();
+    }
+  }
+
 
   /// set basal Friction relation
   /** needs to be done before calling initialize
