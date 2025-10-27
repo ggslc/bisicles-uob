@@ -890,7 +890,7 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
   ParmParse pp(a_prefix);
 
-  std::string rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
+  const char* rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
   
   pp.query(rateFactorKey, rateFactorType);
 
@@ -908,8 +908,8 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
-        ParmParse crPP("ConstRate");
-        if (crPP.contains("A"))
+        ParmParse crPP2("ConstRate");
+        if (crPP2.contains("A"))
           {
             MayDay::Error("With main.rateFactor = constRate, set options using e.g. constRate.A = X (lowercase 'c'). You have used ConstRate.A = X in the input file.");
           }
@@ -934,15 +934,15 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
         ///
-        ParmParse arPP("arrheniusRate");
-        if (arPP.contains("n") ||
-            arPP.contains("enhance") ||
-            arPP.contains("B0") ||
-            arPP.contains("theta_r") ||
-            arPP.contains("K") ||
-            arPP.contains("C") ||
-            arPP.contains("R") ||
-            arPP.contains("Q"))
+        ParmParse arPP2("arrheniusRate");
+        if (arPP2.contains("n") ||
+            arPP2.contains("enhance") ||
+            arPP2.contains("B0") ||
+            arPP2.contains("theta_r") ||
+            arPP2.contains("K") ||
+            arPP2.contains("C") ||
+            arPP2.contains("R") ||
+            arPP2.contains("Q"))
           {
             MayDay::Error("With main.rateFactor = arrheniusRate, set options using e.g. ArrheniusRate.n = X (uppercase 'a'). You have used arrheniusRate.n = X in the input file.");
           }
@@ -966,14 +966,14 @@ RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
 
         rateFactorPtr = static_cast<RateFactor*>(newPtr);
 
-        ParmParse prPP("patersonRate");
-        if (prPP.contains("E") ||
-            prPP.contains("A0") ||
-            prPP.contains("T0") ||
-            prPP.contains("R") ||
-            prPP.contains("Qm") ||
-            prPP.contains("Qp") ||
-            prPP.contains("A0_multiplier"))
+        ParmParse prPP2("patersonRate");
+        if (prPP2.contains("E") ||
+            prPP2.contains("A0") ||
+            prPP2.contains("T0") ||
+            prPP2.contains("R") ||
+            prPP2.contains("Qm") ||
+            prPP2.contains("Qp") ||
+            prPP2.contains("A0_multiplier"))
           {
             MayDay::Error("With main.rateFactor = patersonRate, set options using e.g. PatersonRate.E = X (uppercase 'P'). You have used patersonRate.E = X in the input file.");
           }
