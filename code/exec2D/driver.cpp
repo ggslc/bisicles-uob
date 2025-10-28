@@ -134,64 +134,32 @@ int main(int argc, char* argv[]) {
 
 
     AmrIce amrObject;
+
     // ---------------------------------------------
     // set constitutive relation & rate factor
     // ---------------------------------------------
 
-    Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
-    {
-      ParmParse ppc("constants");
-      ppc.query("seconds_per_unit_time",seconds_per_unit_time);
-    }
-    
-    std::string rateFactorType = "constRate";
-    pp2.query("rateFactor", rateFactorType);
-    if (rateFactorType == "constRate")
+    RateFactor* rateFactorPtr = RateFactor::parse("main");
+
+    if (rateFactorPtr == NULL)
       {
-	ParmParse crPP("constRate");
-	Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
-	crPP.query("A", A);
-	ConstantRateFactor rateFactor(A);
-	amrObject.setRateFactor(&rateFactor);
+        MayDay::Error("undefined rateFactor in inputs");
       }
-    else if (rateFactorType == "arrheniusRate")
-      {
-	ArrheniusRateFactor rateFactor(seconds_per_unit_time);
-	ParmParse arPP("ArrheniusRate");
-	amrObject.setRateFactor(&rateFactor);
-      }
-    else if (rateFactorType == "patersonRate")
-      {
-	ParmParse arPP("PatersonRate");
-	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
-	amrObject.setRateFactor(&rateFactor);
-      }
-    else if (rateFactorType == "zwingerRate")
-      {
-	ZwingerRateFactor rateFactor(seconds_per_unit_time);
-	ParmParse arPP("ZwingerRate");
-	amrObject.setRateFactor(&rateFactor);
-      }
+
+    amrObject.setRateFactor(rateFactorPtr);
 
     ConstitutiveRelation* constRelPtr = ConstitutiveRelation::parse("main");
 
     if (constRelPtr == NULL)
       {
-	MayDay::Error("undefined constitutiveRelation in inputs");
+	      MayDay::Error("undefined constitutiveRelation in inputs");
       }
 
     amrObject.setConstitutiveRelation(constRelPtr);
- 
-    std::string basalRateFactorType = "";
-    pp2.query("basalRateFactor", basalRateFactorType);
-    
-    if (basalRateFactorType == "patersonRate")
-      {
-	ParmParse arPP("basalPatersonRate");
-	PatersonRateFactor rateFactor(seconds_per_unit_time,arPP);
-	rateFactor.setA0(1.0);
-	amrObject.setBasalRateFactor(&rateFactor);
-      }
+
+    RateFactor* basalRateFactorPtr = RateFactor::parse("main", true);
+
+    amrObject.setBasalRateFactor(basalRateFactorPtr);
 
     // ---------------------------------------------
     // set surface flux. 
@@ -966,6 +934,18 @@ int main(int argc, char* argv[]) {
       {
         delete constRelPtr;
         constRelPtr = NULL;
+      }
+
+    if (rateFactorPtr != NULL)
+      {
+        delete rateFactorPtr;
+        rateFactorPtr = NULL;
+      }
+
+    if (basalRateFactorPtr != NULL)
+      {
+        delete basalRateFactorPtr;
+        basalRateFactorPtr = NULL;
       }
 
     if (surf_flux_ptr != NULL)

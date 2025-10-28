@@ -173,6 +173,9 @@ public:
 
   virtual RateFactor* getNewRateFactor() const = 0;
 
+  // a_basal indicates whether we are parsing for a basal rate factor (true) 
+  // or rate factor for the bulk ice sheet (false)
+  static RateFactor* parse(const char* a_prefix, bool a_basal = false);
 
 } ;
 
@@ -326,67 +329,6 @@ public:
 
 };
 
-
-/// Zwinger Rate Factor
-/**
-   Another  Arrhenius law, this one from
-   Zwinger (2007) Annals of Glaciology vol 45 p 29
-   and used in (older versions of?) Elmer/Ice. 
-
-   A = E*A0(T)*exp(-Qc / (R * T) ]
-   where Qc = Qm = if theta < theta0; Qc = Qp otherwise.
-   and   A0 = Am = if theta < theta0; A0 = Ap otherwise.
-   Am is computed so that A is continuous with T 
-
-   Th is the usual pressure-corrected temperature
-   Th = T + 7e−8 * P
-   T0* = T0  + 7e−8 * P (T0 = 263, P = pressure)
-   Qc = Qm = if Th < T∗; Qc = Qp if Th > T∗.
-  
-   Defaults: 
-
-   A0 = 1.916e3 Pa−3 s−1 * secondsperyear
-   Qp = 139 kJ mol−1
-   Qm = 6e4 kJ mol−1
-   R=8.314 J
-
- */
-class ZwingerRateFactor : public RateFactor  
-{
-  
-  /// enhancement factor
-  Real m_E;
-  /// flow rate factor
-  Real m_A0;
-  /// limit temperature in flow-rate factor
-  Real m_T0;
-  /// universal gas constant
-  Real m_R;
-  /// activation energies for creep 
-  // (insert funny comment about two lazy creeps here...)
-  Real m_Qm, m_Qp;
-
-public:
-
-  ZwingerRateFactor(Real a_seconds_per_unit_time);
- 
-  void setDefaultParameters(Real a_seconds_per_unit_time);
- 
-
-  void setParameters(Real a_E, Real a_A0, Real a_T0, Real a_R, 
-		     Real a_Qm, Real a_Qp);
-
-  //compute the (pressure-corrected temperature- 
-  //and pressure- dependent) rate factor A
-  void computeA(FArrayBox& a_A, 
-		const FArrayBox& a_thetaPC, 
-		const FArrayBox& a_pressure,
-		const Box& a_box) const;
-
-  RateFactor* getNewRateFactor() const; 
-  
-
-};
 
 
 /// Implements  ConstitutiveRelation to give Glen's flow law.

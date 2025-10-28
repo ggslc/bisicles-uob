@@ -830,67 +830,6 @@ RateFactor* PatersonRateFactor::getNewRateFactor() const
 }
 
 
-
-ZwingerRateFactor::ZwingerRateFactor(Real a_seconds_per_unit_time)
-{
-  setDefaultParameters(a_seconds_per_unit_time);
-}
-
-void ZwingerRateFactor::setDefaultParameters(Real a_seconds_per_unit_time)
-{
-  m_E  = 1.0;
-  m_A0 = 1.916e3 * a_seconds_per_unit_time;
-  m_T0 = 263.0;
-  m_R  = 8.314;
-  m_Qm = 6.0e+4;
-  m_Qp = 1.39e+5;
-}
-
-void ZwingerRateFactor::setParameters
-(Real a_E, Real a_A0, Real a_T0, Real a_R, 
- Real a_Qm, Real a_Qp)
-{
-  m_E  = a_E;
-  m_A0 = a_A0; 
-  m_T0 = a_T0;
-  m_R  = a_R;
-  m_Qm = a_Qm;
-  m_Qp = a_Qp;
-
-}
-void ZwingerRateFactor::computeA
-(FArrayBox& a_A, 
- const FArrayBox& a_thetaPC,
- const FArrayBox& a_pressure,
- const Box& a_box) const
-{
-  FArrayBox theta0PC(a_box,1);
-  theta0PC.copy(a_pressure);
-  theta0PC *= IceThermodynamics::icepmeltfactor();
-  theta0PC += m_T0;
-
-  FORT_COMPUTEZWINGERA
-    (CHF_FRA1(a_A,0),
-     CHF_CONST_FRA1(a_thetaPC,0),
-     CHF_CONST_FRA1(theta0PC,0),
-     CHF_BOX(a_box),
-     CHF_CONST_REAL(m_E),
-     CHF_CONST_REAL(m_A0),
-     CHF_CONST_REAL(m_R),
-     CHF_CONST_REAL(m_Qm),
-     CHF_CONST_REAL(m_Qp));
-  
-}
-
-
-
-RateFactor* ZwingerRateFactor::getNewRateFactor() const
-{
-  ZwingerRateFactor* newPtr = new ZwingerRateFactor(*this);
-  //newPtr->setParameters(m_E,m_A0,m_T0,m_R,m_Qm,m_Qp);
-  return static_cast<RateFactor*>(newPtr);
-}
-
 ConstitutiveRelation* ConstitutiveRelation::parse(const char* a_prefix)
 {
   ConstitutiveRelation* constRelPtr = NULL;
@@ -934,5 +873,117 @@ ConstitutiveRelation* ConstitutiveRelation::parse(const char* a_prefix)
   return constRelPtr;
 }
 
+
+
+RateFactor* RateFactor::parse(const char* a_prefix, bool a_basal)
+{
+
+  /// Get time units needed in rate factor constructors
+  Real seconds_per_unit_time = SECONDS_PER_TROPICAL_YEAR;
+  ParmParse ppc("constants");
+  ppc.query("seconds_per_unit_time",seconds_per_unit_time);
+
+  
+  RateFactor* rateFactorPtr = NULL;
+
+  std::string rateFactorType = a_basal ? "" : "constRate"; // default rate factor for bulk ice is constRate
+  std::string rateFactorKey = a_basal ? "basalRateFactor" : "rateFactor";
+
+  ParmParse pp(a_prefix);
+  pp.query(rateFactorKey.c_str(), rateFactorType);
+
+  if (rateFactorType == "constRate")
+      {
+        ParmParse crPP("constRate");
+        // default value for A
+        Real A = 9.2e-18 * seconds_per_unit_time/SECONDS_PER_TROPICAL_YEAR;
+        crPP.query("A", A);
+        ConstantRateFactor* newPtr = new ConstantRateFactor(A);
+
+        if (a_basal)
+          {
+            MayDay::Error("Only PatersonRate is supported as a basal rate factor.");
+          }
+
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse crPP2("ConstRate");
+        if (crPP2.contains("A"))
+          {
+            MayDay::Error("With main.rateFactor = constRate, set options using e.g. constRate.A = X (lowercase 'c'). You have used ConstRate.A = X in the input file.");
+          }
+      }
+
+  else if (rateFactorType == "ConstRate")
+      {
+        MayDay::Error("Use main.rateFactor = constRate (lowercase 'c'). You have used main.rateFactor = ConstRate in the input file.");
+      }
+
+  else if (rateFactorType == "arrheniusRate")
+      {
+        /// Currently only default parameters are supported (so this additional ParmParse call, and name checking, are unnecessary). Providing code for future use if needed.
+        ParmParse arPP("ArrheniusRate");
+        ArrheniusRateFactor* newPtr = new ArrheniusRateFactor(seconds_per_unit_time);
+
+        if (a_basal)
+          {
+            MayDay::Error("Only PatersonRate is supported as a basal rate factor.");
+          }
+
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ///
+        ParmParse arPP2("arrheniusRate");
+        if (arPP2.contains("n") ||
+            arPP2.contains("enhance") ||
+            arPP2.contains("B0") ||
+            arPP2.contains("theta_r") ||
+            arPP2.contains("K") ||
+            arPP2.contains("C") ||
+            arPP2.contains("R") ||
+            arPP2.contains("Q"))
+          {
+            MayDay::Error("With main.rateFactor = arrheniusRate, set options using e.g. ArrheniusRate.n = X (uppercase 'a'). You have used arrheniusRate.n = X in the input file.");
+          }
+      }
+
+  else if (rateFactorType == "ArrheniusRate")
+      {
+        MayDay::Error("Use  main.rateFactor = arrheniusRate (lowercase 'a'). You have used main.rateFactor = ArrheniusRate in the input file.");
+      }
+
+  else if (rateFactorType == "patersonRate")
+      {
+        ParmParse prPP("PatersonRate");
+        PatersonRateFactor* newPtr = new PatersonRateFactor(seconds_per_unit_time, prPP);
+
+        if (a_basal)
+          {
+            // Always set A0 to 1.0 as we will get the non-temperature-dependent component from the basal friction law
+            newPtr->setA0(1.0);
+          }
+
+        rateFactorPtr = static_cast<RateFactor*>(newPtr);
+
+        ParmParse prPP2("patersonRate");
+        if (prPP2.contains("E") ||
+            prPP2.contains("A0") ||
+            prPP2.contains("T0") ||
+            prPP2.contains("R") ||
+            prPP2.contains("Qm") ||
+            prPP2.contains("Qp") ||
+            prPP2.contains("A0_multiplier"))
+          {
+            MayDay::Error("With main.rateFactor = patersonRate, set options using e.g. PatersonRate.E = X (uppercase 'P'). You have used patersonRate.E = X in the input file.");
+          }
+      }
+
+  else if (rateFactorType == "PatersonRate")
+      {
+        MayDay::Error("Use main.rateFactor = patersonRate (lowercase 'p'). You have used main.rateFactor = PatersonRate in the input file.");
+      }
+
+  return rateFactorPtr;
+}
 
 #include "NamespaceFooter.H"
