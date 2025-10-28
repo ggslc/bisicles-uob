@@ -164,6 +164,7 @@ private:
   - `A.B.C.flux = <valid SurfaceFlux type (optional, default ZeroFlux) >`
   - `A.B.C.check_ocean_connected = <bool, default true>`
   - `A.B.C.conserve_sum = <bool, default true>`
+  -  A.B.C.known_sum = <real, optional>`
 
 */
 
@@ -174,7 +175,9 @@ public:
   ConservedSumIceShelfFlux(
 		  SurfaceFlux* a_flux, 
 		  bool a_check_ocean_connected = true,
-		  bool a_conserve_sum = true);
+		  bool a_conserve_sum = true,
+		  bool a_sum_known = false, 
+		  Real a_known_sum = 0.0);
 
   virtual ~ConservedSumIceShelfFlux()
   {
@@ -192,6 +195,8 @@ protected:
   SurfaceFlux* m_flux;
   bool m_check_ocean_connected;
   bool m_conserve_sum;
+  bool m_sum_known;
+  Real m_known_sum;
   
 private:
   // Disallowed for all the usual reasons

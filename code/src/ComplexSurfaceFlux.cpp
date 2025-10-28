@@ -82,10 +82,14 @@ ProductSurfaceFlux::surfaceThicknessFlux(LevelData<FArrayBox>& a_flux,
 ConservedSumIceShelfFlux::ConservedSumIceShelfFlux(
 	SurfaceFlux* a_flux, 
 	bool a_check_ocean_connected,
-	bool a_conserve_sum):
+	bool a_conserve_sum,
+        bool a_sum_known,	
+	Real a_known_sum):
 	m_flux(a_flux), 
 	m_check_ocean_connected(a_check_ocean_connected),
-	m_conserve_sum(a_conserve_sum)
+	m_conserve_sum(a_conserve_sum), 
+	m_sum_known(a_sum_known), 
+	m_known_sum(a_known_sum)
 {
 	CH_assert(a_flux);
 }
@@ -94,7 +98,8 @@ SurfaceFlux* ConservedSumIceShelfFlux::new_surfaceFlux()
 {
 	SurfaceFlux* f = m_flux->new_surfaceFlux();
 	return static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(f, 
-				m_check_ocean_connected, m_conserve_sum));
+				m_check_ocean_connected, m_conserve_sum, 
+				m_sum_known,  m_known_sum));
 }
 
 
@@ -137,7 +142,7 @@ void ConservedSumIceShelfFlux::surfaceThicknessFlux
       	  tmpFlux.push_back(new LevelData<FArrayBox>(a_amrIce.grids(lev), a_flux.nComp(), a_flux.ghostVect()));
           m_flux->surfaceThicknessFlux(*tmpFlux[lev], a_amrIce, lev, a_dt );
 	}
-     Real raw_sum = computeSum(tmpFlux, a_amrIce.refRatios(), a_amrIce.dx(0)[0],  Interval(0,0));
+     Real raw_sum = m_sum_known? m_known_sum : computeSum(tmpFlux, a_amrIce.refRatios(), a_amrIce.dx(0)[0],  Interval(0,0));
      for (int lev = 0; lev <= a_amrIce.finestLevel(); lev++)
      {
           MaskLevelData(*tmpFlux[lev], a_amrIce.geometry(lev)->getFloatingMask(), FLOATINGMASKVAL );

@@ -121,6 +121,7 @@ basalFlux.flux.type = LevelData
 basalFlux.flux.n = 1
 basalFlux.flux.fileFormat = coarse_bmb.2d.H5
 basalFlux.flux.name = bmb
+#basalFlux.known_sum = -1e-10
 # compute ocean connection
 geometry.compute_ocean_connection_iter = 4
 

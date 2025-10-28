@@ -298,8 +298,13 @@ SurfaceFlux* SurfaceFlux::parse(const char* a_prefix)
       bool check_ocean_connected(false);
       if (iter > 0) pp.query("check_ocean_connected", check_ocean_connected);
       bool conserve_sum(true);
-      pp.query("conserve_sum",conserve_sum); 
-      ptr = static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(fptr, check_ocean_connected, conserve_sum));
+      pp.query("conserve_sum",conserve_sum);
+      Real known_sum(0.0);
+      bool sum_known = pp.contains("known_sum");
+      if (sum_known) pp.get("known_sum", known_sum);
+
+      ptr = static_cast<SurfaceFlux*>(new ConservedSumIceShelfFlux(fptr, check_ocean_connected, 
+			      conserve_sum, sum_known, known_sum));
  
   }
   else if (type == "maskedFlux")

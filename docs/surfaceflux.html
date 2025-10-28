@@ -206,27 +206,29 @@ in the input file.
 <h2><a name='complex'>Complex fluxes</a></h2>
 
 <h3>maskedFlux</h3>
-
+<p>
 maskedflux divides the domain into grounded ice, floating ice, open land, and open sea.
 It is most often used to apply melting to the underside of ice shelves. In effect, it
 expands the basalFlux. section (or surfaceFlux. section) to include
 basalFlux.grounded., basalFlux.floating., basalFlux.openLand and basalFlux.openSea.
 Each section assumes a zeroFlux by default, so
+</p>
 <pre>
 basalFlux.type = maskedFlux
 basalFlux.grounded.type  = zeroFlux
 basalFlux.floating.type = constantFlux
 basalFlux.floating.flux_value = -100.0
 </pre> 
+<p>
 gives zero flux everywhere except the shelf, where a melt rate of 100 m/a
 is applied. Note the maskedFlux is <strong>non-conservative</strong> - it 
 restricts flux to the masked. For exmaple, if the supplied floating flux is
 a gridded outout from an ocean model, melt/freeze in regions outside of the BISICLES
 ice shelf will be discarded. There is a specific option, conservedSumIceShelfFlux, for 
 this case (see below).
-
+</p>
 <h3>conservedSumIceShelfFlux</h3>
-
+<p>
 Designed for use with ocean models that supply an ice shelf freeze/melt rate over a region
 that does not correspond exactly to the BISICLES ice shelf. The regions should be reasonably
 close, such that the distribution of flux within the BISICLES ice shelf is representative
@@ -234,12 +236,17 @@ of the supplied flux. The flux computed will be restriced to fully-floating cell
 so that the total flux into the BISICLES ice shelf is equal to the total supplied flux. 
 There are some pathological cases that are expected if the supplied flux is reasonably well represented
 in the BISICLES ice shelf. We regularize these and warn in the log (pout.*) files.
+</p>
 <ul>
 	<li>The amplication A &lt 0, for example if all of the melt is concentrated on BISICLES
 	grounded ice. We set A = 0 in this case, so no melt or freeze anywhere </li>
 	<li>Total supplied flux |F| is much larger than the total restricted to the BISICLES ice shelf |F'|. 
-		We set A = min(A, 4.0).  <li>
+		We set A = min(A, 4.0).  </li>
 </ul>
+<p>
+It is also possible to specify the total flux, for example when the melt rate has been computed by 
+an ocean model and post-processed in some non-conservative way (e.g flood filling values).
+</p>
 <pre>
 basalFlux.type = conservedSumIceShelfFlux
 basalFlux.flux.type = LevelData # the supplied flux
@@ -249,6 +256,7 @@ basalFlux.flux.name = bmb
 geometry.compute_ocean_connection_iter = 4 # set this > 0 to avoid ocean melt applied in (e.g) subglacial lakes
 basalFlux.check_ocean_conected = true # default true when geometry.compute_ocean_connection_iter > 0, else always false
 basalFlux.conserve_sum = true # default
+#basalFlux.known_sum = -9987654321 # specify this to specify the total flux to be applied rather than compute the total from the supplied flux
 </pre>
 Note: if <tt>geometry.compute_ocean_connection_iter < 1</tt>, <tt>check_ocean_connected</tt> is always <tt>false</tt>.
 
