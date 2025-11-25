@@ -422,9 +422,11 @@ public:
   /**
      e.g when a_maskVal == GROUNDEDMASKVAL, a_area will be
      filled with values from 0 (not grounded ice) to 1 (entirely grounded ice)
+     weight by ice fraction when a_use_frac 
+
    */
   void computeAreaFraction(LevelData<FArrayBox>& a_area,
-			   int a_maskVal, int a_level) const;
+			   int a_maskVal, int a_level, bool a_use_frac=false) const;
 
   /// compute area of ice with grounded/floating status given by a_maskval
   // Real computeArea(int a_maskVal) const;

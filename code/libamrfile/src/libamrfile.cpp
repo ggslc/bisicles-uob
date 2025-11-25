@@ -108,7 +108,7 @@ public:
     m_names.resize(n_comp);
     for (int i =0; i < n_comp; i++)
       {
-	char name[16];
+	char name[32];
 	sprintf(name,"component%i",i);
 	m_names[i] = name; 
       }

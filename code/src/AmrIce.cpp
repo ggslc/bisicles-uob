@@ -4134,7 +4134,7 @@ AmrIce::computeFaceCalvingVel
   // to be parallel to grad(thickness) or grad(iceFrac)
 
   //some calving model supply a face centered calving vector directly. Well done them. 
-  if (!m_calvingModelPtr->getCalvingVel(a_faceCalvingVel, a_faceIceVel, *m_velocity[a_lev], a_grids, *this, a_lev))
+  //if (!m_calvingModelPtr->getCalvingVel(a_faceCalvingVel, a_faceIceVel, *m_velocity[a_lev], a_grids, *this, a_lev))
     {
       // calving rate is a cell-centered scalar and we need to interpolate
       LevelData<FArrayBox> calvingRate(a_grids, 1, 2*IntVect::Unit);
@@ -4443,9 +4443,14 @@ void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
 	      const IntVect& iv = bit();
 	      for (int dir = 0; dir < SpaceDim; dir++)
 		{
-		  dF(iv) -= a_dt / dx[dir]
-		    * u(iv, dir) 
-		    //FC *0.5* (u[dir](iv + BASISV(dir)) + u[dir](iv))
+		  Real v = u(iv,dir);
+		  if (levelH[dit](iv) < TINY_THICKNESS)
+		  {
+		     // u == 0 not valid in ice free regions - try neighbours
+		     v = 0.5 * (u(iv - BASISV(dir)) + u(iv + BASISV(dir)));
+     		     v = (v > 0)?u(iv - BASISV(dir)):u(iv + BASISV(dir));		     
+		  }	  
+		  dF(iv) -= a_dt / dx[dir] * v
 		    * (f[dir](iv + BASISV(dir)) - f[dir](iv));
 		} // dir
 	    } // bit
@@ -5743,7 +5748,8 @@ AmrIce::computeTotalIce() const
 
 void AmrIce::computeAreaFraction(LevelData<FArrayBox>& a_area,
 				 int a_maskVal,
-				 int a_level) const
+				 int a_level, 
+				 bool a_use_frac) const
 {
   CH_assert(a_level <= m_finest_level)
     {
@@ -5764,6 +5770,11 @@ void AmrIce::computeAreaFraction(LevelData<FArrayBox>& a_area,
 		  thisIce(iv,0) = 1.0;
 		}
 	    }
+	  if (a_use_frac)
+	  {
+	  	const FArrayBox& frac = (*m_iceFrac[a_level])[dit];
+	  	a_area[dit] *= frac;
+	  }
 	}
     }
 }

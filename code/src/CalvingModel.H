@@ -47,24 +47,11 @@ public:
   /// factory method
   virtual CalvingModel* new_CalvingModel() = 0;
 
-  ///frontal ablation vector, if implelmented. Returns false  by default
-  virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
-			      const LevelData<FluxBox>& a_faceIceVel,
-			      const LevelData<FArrayBox>& a_centreIceVel,
-			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level)
-  {
-    return false;
-  }
-
   ///cell centred frontal ablation vector, if implelmented. Returns false  by default
   virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
 			      const LevelData<FArrayBox>& a_centreIceVel,
 			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level)
-  {
-    return false;
-  }
+			      const AmrIce& a_amrIce,int a_level);
 
   
   /// frontal ablation rate.

@@ -2952,6 +2952,10 @@ void AmrIce::initCFData()
 			      CHF_CONST_FIA1(mask,0),
 			      CHF_CONST_INT(b),CHF_CONST_REAL(a),
 			      CHF_BOX(levelGrids[dit]));
+		
+		const FArrayBox& frac = (*m_iceFrac[a_lev])[dit];
+		a_buf[dit] *= frac;
+
 	      
 	     }
 	   return &a_buf;
@@ -2969,7 +2973,7 @@ void AmrIce::initCFData()
       m_uniform_cf_units.push_back("1");
       m_cf_field_function.push_back([this](int a_lev, LevelData<FArrayBox>& a_buf)
 				    {
-				      computeAreaFraction(a_buf, GROUNDEDMASKVAL, a_lev);
+				      computeAreaFraction(a_buf, GROUNDEDMASKVAL, a_lev, true);
 				      return &a_buf;
 				    } );
       m_cf_field_interval.push_back( Interval(0,0));
@@ -2984,8 +2988,9 @@ void AmrIce::initCFData()
       m_uniform_cf_long_name.push_back(CFIO_FIELD_FLOATING_ICE_AREA_FRACTION_LONG_NAME);
       m_uniform_cf_units.push_back("1");
       m_cf_field_function.push_back([this](int a_lev, LevelData<FArrayBox>& a_buf)
-       				    {computeAreaFraction(a_buf, FLOATINGMASKVAL, a_lev);
-				      return &a_buf;
+       				    {	
+				    	computeAreaFraction(a_buf, FLOATINGMASKVAL, a_lev, true);
+				      	return &a_buf;
 				    } );
       m_cf_field_interval.push_back( Interval(0,0));
     }
@@ -3098,7 +3103,7 @@ void AmrIce::initCFData()
       m_cf_field_function.push_back
 	([this](int a_lev, LevelData<FArrayBox>& a_buf)
 	 {
-	   computeAreaFraction(a_buf, GROUNDEDMASKVAL, a_lev);
+	   computeAreaFraction(a_buf, GROUNDEDMASKVAL, a_lev, m_frac_sources);
 	   const LevelData<FArrayBox>& b = (*m_basalThicknessSource[a_lev]);
 	   LevelSigmaCS& levelCS = *m_vect_coordSys[a_lev];
 	   Real rhoi = levelCS.iceDensity();
@@ -3124,7 +3129,7 @@ void AmrIce::initCFData()
       m_cf_field_function.push_back
 	([this](int a_lev, LevelData<FArrayBox>& a_buf)
 	 {
-	   computeAreaFraction(a_buf, FLOATINGMASKVAL, a_lev);
+	   computeAreaFraction(a_buf, FLOATINGMASKVAL, a_lev, m_frac_sources);
 	   const LevelData<FArrayBox>& b = (*m_basalThicknessSource[a_lev]);
 	   LevelSigmaCS& levelCS = *m_vect_coordSys[a_lev];
 	   Real rhoi = levelCS.iceDensity();

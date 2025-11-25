@@ -32,6 +32,24 @@ CalvingModel::getCalvingRate(LevelData<FArrayBox>& a_calvingRate, const AmrIce& 
     }
 }
 
+/// a default implementation
+/**
+   most models provide a criterion, rather than a rate.
+*/ 
+bool
+CalvingModel::getCalvingVel(LevelData<FArrayBox>& a_centreCalvingVel,
+			      const LevelData<FArrayBox>& a_centreIceVel,
+			      const DisjointBoxLayout& a_grids,
+			      const AmrIce& a_amrIce,int a_level)
+{
+  DataIterator dit = a_centreCalvingVel.dataIterator();
+  for (dit.begin(); dit.ok(); ++dit)
+    {
+      a_centreCalvingVel[dit].setVal(0.0);
+    }
+  return true;
+}
+
 void
 CalvingModel::getWaterDepth(LevelData<FArrayBox>& a_waterDepth, const AmrIce& a_amrIce,int a_level)
 {
