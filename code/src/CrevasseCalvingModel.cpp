@@ -271,6 +271,9 @@ CrevasseCalvingModel::CrevasseCalvingModel(ParmParse& a_pp)
   m_calvingZoneLength = -1.0;
   a_pp.query("calvingZoneLength",m_calvingZoneLength);
   
+  m_criticalStress = 0.0;
+  a_pp.query("criticalStress",m_criticalStress);
+
   m_stressMeasure = FirstPrincipalStress; // was the original default
   {
     std::string s = "FirstPrincipalStress"; 
@@ -314,6 +317,8 @@ CrevasseCalvingModel::~CrevasseCalvingModel()
  
 }
 
+#define FRESH_WATER_DENSITY 1000.0;
+
 void BennCalvingModel::computeRemnant(LevelData<FArrayBox>& a_remnant,
 				      const LevelData<FArrayBox>& a_stress,
 				      const LevelData<FArrayBox>& a_thck,
@@ -328,7 +333,8 @@ void BennCalvingModel::computeRemnant(LevelData<FArrayBox>& a_remnant,
   const Real& rhoi = a_coords.iceDensity();
   const Real& rhoo = a_coords.waterDensity();
   const Real& grav = a_coords.gravity();
-  
+  Real rhow = FRESH_WATER_DENSITY;
+
   for (DataIterator dit(a_coords.grids());dit.ok();++dit)
     {
       FArrayBox& remnant = a_remnant[dit];
@@ -342,22 +348,25 @@ void BennCalvingModel::computeRemnant(LevelData<FArrayBox>& a_remnant,
       for (BoxIterator bit(b);bit.ok();++bit)
 	{
 	  const IntVect& iv = bit();
-	  Real Ds = std::max(s(iv),0.0) / (grav*rhoi) + 1000.0/rhoi * wd(iv);
+	  if (s(iv) > m_criticalStress) //if in (sufficient) tension 
+	     {
+		Real Ds = s(iv) / (grav*rhoi) + rhow/rhoi * wd(iv);
 
-	  if (m_includeBasalCrevasses)
-	    {
-	      //explicit basal crevasse depth calculation
-	      Real Db = ((rhoi/(rhoo-rhoi)) * ( s(iv) /(grav*rhoi) - hab(iv)));
-	      remnant(iv) = std::max( 0.0, thck(iv) - Ds -  Db);
-	    }
-	  else
-	    {
-	      //assume full thickness fracture if surface crevasses reach sea-level
-	      remnant(iv) = std::max( 0.0, usrf(iv) - Ds);
-	    }
-	}
-    }
-  a_remnant.exchange();
+	  	if (m_includeBasalCrevasses)
+	    	{
+	      	  //explicit basal crevasse depth calculation
+	      	  Real Db = ((rhoi/(rhoo-rhoi)) * ( s(iv) /(grav*rhoi) - hab(iv)));
+	      	  remnant(iv) = std::max( 0.0, thck(iv) - Ds -  Db);
+	        }	
+	       else
+	        {
+	         //assume full thickness fracture if surface crevasses reach sea-level
+	         remnant(iv) = std::max( 0.0, usrf(iv) - Ds);
+		}
+	     } // end tension
+	  } // end loop over cells
+    } // end loop over grid patches
+  a_remnant.exchange();	
 }
 
 BennCalvingModel::BennCalvingModel(ParmParse& a_pp)  

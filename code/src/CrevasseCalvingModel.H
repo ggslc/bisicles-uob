@@ -63,6 +63,7 @@ public:
     m_calvingZoneLength = a.m_calvingZoneLength;
     m_domainEdgeCalvingModel = new DomainEdgeCalvingModel(*a.m_domainEdgeCalvingModel);
     m_stressMeasure = a.m_stressMeasure;
+    m_criticalStress = a.m_criticalStress;
   }
 
 protected:
@@ -76,6 +77,7 @@ protected:
   Real m_calvingZoneLength;
   DomainEdgeCalvingModel* m_domainEdgeCalvingModel;
   StressMeasure m_stressMeasure; 
+  Real m_criticalStress;
 
 };
 
