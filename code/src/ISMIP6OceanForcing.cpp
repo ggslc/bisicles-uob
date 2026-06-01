@@ -159,7 +159,7 @@ void ISMIP6OceanForcing::computeTFb_and_slope(LevelData<FArrayBox>& a_TFb,
 
   const DisjointBoxLayout& grids = a_TF.disjointBoxLayout();
   a_TFb.define(grids, 1, IntVect::Zero);
-  a_slope.define(grids, 1, IntVect::Zero);
+  a_slope.define(grids, 1, IntVect::Unit); // ghost cell needed to compute gradient
   CH_assert(a_TF.nComp() == m_n_layer);
   
   // which mesh level in AmrIce corresponds to TF/Tfb?
@@ -175,6 +175,7 @@ void ISMIP6OceanForcing::computeTFb_and_slope(LevelData<FArrayBox>& a_TFb,
   // are not on the same DisjointBoxLayout
   LevelData<FArrayBox> s(grids,1,IntVect::Zero);
   a_amrIce.geometry(lev)->getSurfaceHeight().copyTo(Interval(0,0), s, Interval(0,0));
+  s.exchange(); // need to compute gradients.
   LevelData<FArrayBox> h(grids,1,IntVect::Zero);
   a_amrIce.geometry(lev)->getH().copyTo(Interval(0,0), h , Interval(0,0));
 
