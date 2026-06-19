@@ -1,0 +1,54 @@
+site_name: BISICLES User Documentation
+site_description: Documentation for BISICLES ice sheet model
+repo_url: https://github.com/ggslc/bisicles-uob
+repo_name: ggslc/bisicles-uob
+
+theme:
+  name: material
+  palette:
+    scheme: default
+    primary: blue
+    accent: orange
+  features:
+    - navigation.tabs
+    - navigation.top
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+
+markdown_extensions:
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.tasklist
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Building and Running:
+      - Generic Instructions: build/readme.md
+      - Site Specific Notes: build/sites.md
+      - Common Issues: build/trouble.md
+      - Old Build Instructions: build/oldbuild.md
+  - BISICLES Executables:
+      - Driver: executables/driver.md
+      - Solver Benchmark: executables/benchmark.md
+      - File Tools: executables/filetools.md
+      - CDriver Interface: executables/cdriver.md
+  - Run-time Options:
+      - Configuration & I/O: configuration/io.md
+      - Geometry: configuration/geometry.md
+      - Stress: configuration/stress.md
+      - Thermodynamics: configuration/thermodynamics.md
+      - Velocity: configuration/velocity.md
+      - Surface Flux: configuration/surfaceflux.md
+      - LevelData Interface: configuration/leveldatainterface.md
+      - Python Interface: configuration/pythoninterface.md
+  - Examples:
+      - Pine Island Glacier: examples/pineisland.md
+      - Pine Island Inverse: examples/pineislandinverse.md
+  - Data Analysis:
+      - VisIt: analysis/visit.md
+      - libamrfile: analysis/libamrfile.md
