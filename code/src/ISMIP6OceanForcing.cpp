@@ -176,9 +176,9 @@ void ISMIP6OceanForcing::computeTFb_and_slope(LevelData<FArrayBox>& a_TFb,
   LevelData<FArrayBox> s(grids,1,IntVect::Unit); // ghost cell needed to compute gradient
   a_amrIce.geometry(lev)->getSurfaceHeight().copyTo(Interval(0,0), s, Interval(0,0));
   s.exchange(); // need to compute gradients.
-  LevelData<FArrayBox> h(grids,1,IntVect::Zero);
+  LevelData<FArrayBox> h(grids,1,IntVect::Unit); // ghost cell needed to compute gradient
   a_amrIce.geometry(lev)->getH().copyTo(Interval(0,0), h , Interval(0,0));
-
+  h.exchange();// need to compute gradients.
 
   Real z_min = m_dz * 0.5;
   Real z_max = m_dz * (0.5 + Real(m_n_layer));
