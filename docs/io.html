@@ -159,11 +159,11 @@ that are designed to produce  <a href='http://cfconventions.org/'>Climate and Fo
 compatible data. They differ from the standard files in several respects:</p>
 <ol>
   <li>They include a single mesh level, and data from coarser or finer levels is interpolated/coarsened as needed)</li>
-  <li>The fields are time-averaged rather than snapshots: each file contains the time means since the previous
-    file was written</li>
+  <li>The fields are by default time-averaged rather than snapshots: each file contains the time means since the previous
+    file was written. Alternatively, you can specify snapshots (final values) </li>
   <li>Time sequences of domain wide data (such as ice volume) are included: these span the time interval since the previous
     file was written</li>
-  <li>The output fields (ice thickness etc) are labeled with to CF standard names</li>
+  <li>The output fields (ice thickness etc) are labeled with CF short names</li>
 </ol>
 <p>
 The files produced are not themselves CF-compliant, because they are
@@ -181,7 +181,13 @@ plot.X.CF.2d.hdf5, run (for example)
 amr.plot_style_cf = true
 amr.plot_style_amr = false # leave out to have both sorts of file
 CFIO.level = 1 # default is 0 (coarsest level); set to desired level
-CFIO.lithk = true # for land_ice_thickness. Note the form: CFIO.short_name = true
+
+CFIO.lithk = true # ouput land ice thickness Note the form: CFIO.short_name = true
+CFIO.lithk.time_integration = 1 # output time step final value for lithk. Default is 0 (means)
+
+CFIO.acabf = true # surface mass balance
+CFIO.acabf.time_integration = 0 # default is 0 (time mean)
+
 CFIO.velbase = true # for land_ice_basal_velocity
 CFIO.orog = true # for surface_altitude
 CFIO.topg = true # for bedrock_altitude
@@ -190,6 +196,14 @@ CFIO.topg = true # for bedrock_altitude
 CRS.EPSG = 3031 # EPSG is the only system supported for now
 CRS.origin_x = 1.234 # the coordinates of the point (0,0) on (all) BISICLES levels 
 CRS.origin_y = 5.678 # (measured in metres)
+
+#CFIO requires additional data on restarts (see below for restarts in general).
+#when plot_style_cf = true, a *.CF.2d.hdf5 file is written in addition to the usual *.2d.hdf5 checkpoint 
+CFIO.imply_restart = true # default false. If true, imply a filename  (chk.*.CF.2d.hdf5) from amr.check_prefix (chk.*.2d.hdf5)  
+#amr.restart_file = choose a specific CF filename
+CFIO.checkpoint_strict = true # default true. rause error on restarts without a cf checkpoint
+#if false, ignore missing checkpointt data but time integration lower limit will be the restart time   
+
 </pre>
 
 <h2> <a name='restart'>Checkpoints (chk.*.2d.hdf5 files) and restarts </a></h2>

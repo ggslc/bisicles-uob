@@ -118,7 +118,7 @@ void NCIO::defineCF(int ncID, const DomainDiagnosticData& a_dd)
 
       for (int i = 0; i < a_dd.m_cf_stuff.size(); i++)
 	{
-	  pout() << "Diagnostic info: " << a_dd.m_cf_stuff[i].cf_name 
+	  pout() << "Diagnostic info: " << a_dd.m_cf_stuff[i].short_name 
 		 << ", " << a_dd.m_cf_stuff[i].units 
 		 << ", " << a_dd.m_cf_stuff[i].long_name 
 		 << endl;
@@ -127,7 +127,7 @@ void NCIO::defineCF(int ncID, const DomainDiagnosticData& a_dd)
       for (int i = 0; i < a_dd.m_cf_stuff.size(); ++i)
 	{
 	  int varID;
-	  rc = nc_def_var(ncID, a_dd.m_cf_stuff[i].cf_name.c_str(), NC_DOUBLE, one ,
+	  rc = nc_def_var(ncID, a_dd.m_cf_stuff[i].short_name.c_str(), NC_DOUBLE, one ,
        			  &tdimID[0], &varID);
 	  const char* c = a_dd.m_cf_stuff[i].cf_name.c_str();
 	  rc = nc_put_att_text(ncID, varID, "standard_name", strlen(c), c); 
@@ -150,7 +150,7 @@ void NCIO::writeCF(int ncID, const DomainDiagnosticData& a_dd)
   for (int i = 0; i < a_dd.m_cf_stuff.size(); ++i)
     {
       int varID;
-      rc = nc_inq_varid(ncID, a_dd.m_cf_stuff[i].cf_name.c_str(), &varID);
+      rc = nc_inq_varid(ncID, a_dd.m_cf_stuff[i].short_name.c_str(), &varID);
 	
       const Vector<Real>* v = a_dd.m_cf_stuff[i].data;
       if (v && v->size() > 0)
@@ -168,6 +168,8 @@ void NCIO::writeFAB(const std::string& a_file,
 		    const Vector<std::string>& a_cf_standard_names,
 		    const Vector<std::string>& a_cf_units,
 		    const Vector<std::string>& a_cf_long_names,
+		    const Vector<std::string>& a_cf_FL_ST,
+		    const Vector<Real>& a_cf_times,
 		    const FArrayBox& a_fab, 
 		    const Real& a_dx,
 		    const Real& a_time,
@@ -285,7 +287,12 @@ void NCIO::writeFAB(const std::string& a_file,
 	   c = a_cf_units[i].c_str();
 	   rc = nc_put_att_text(ncID, varID, "units", strlen(c), c); 
 	   c = a_cf_long_names[i].c_str();
-	   rc = nc_put_att_text(ncID, varID, "long_name", strlen(c), c); 
+	   rc = nc_put_att_text(ncID, varID, "long_name", strlen(c), c);
+	   c = a_cf_FL_ST[i].c_str();
+	   rc = nc_put_att_text(ncID, varID, "FL_ST", strlen(c), c);
+	   
+	   rc = nc_put_att_double(ncID, varID, "time",
+				  NC_DOUBLE,1,&a_cf_times[i]);
 	 }
        else
 	 {

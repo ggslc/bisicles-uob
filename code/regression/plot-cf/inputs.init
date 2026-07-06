@@ -111,7 +111,8 @@ CFIO.dlithkdt = true
 CFIO.sftgif = true
 CFIO.sftgrf = true
 CFIO.sftflf = true
-
+CFIO.libmassbffl = true
+CFIO.libmassbfgr = true
 
 # this looks a bit odd, but allows a regression test for maskedFLux
 surfaceFlux.type =  maskedFlux

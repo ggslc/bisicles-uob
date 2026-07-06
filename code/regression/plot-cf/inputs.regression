@@ -86,6 +86,7 @@ amr.velocity_solver_type = 1
 regression.result_hdf5 = plot.cf_regression.000008.CF.2d.hdf5
 regression.reference_hdf5 = plot.cf_regression.000008.CF.2d.H5
 regression.tol = 1.0e-5
+regression.diff_hdf5 = plot.cf_regression.diff.CF.2d.hdf5
 
 amr.plot_time_interval = 1
 amr.plot_style_amr = false
@@ -99,14 +100,20 @@ amr.restart_file = chk.cf_regression.000004.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
+CFIO.lithk.time_integration = 0
 CFIO.orog = true
 CFIO.acabf = true
 CFIO.libmassbf = true
+CFIO.libmassbffl = true
+CFIO.libmassbfgr = true
 CFIO.licalvf = true
 CFIO.dlithkdt = true
 CFIO.sftgif = true
 CFIO.sftgrf = true
 CFIO.sftflf = true
+CFIO.checkpoint_strict = false
+#CFIO.imply_restart = true
+
 
 # this looks a bit odd, but allows a regression test for maskedFLux
 surfaceFlux.type =  maskedFlux

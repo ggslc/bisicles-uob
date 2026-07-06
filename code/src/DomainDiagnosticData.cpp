@@ -218,6 +218,14 @@ void DomainDiagnosticData::setCFdata()
   cf_info.data = &m_ice_total_bmb;
   m_cf_stuff.push_back(cf_info);
 
+  cf_info.short_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_SHORT_NAME;
+  cf_info.cf_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_CF_NAME;
+  cf_info.long_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_LONG_NAME;
+  cf_info.units = "kg yr^-1";
+  cf_info.data = &m_ice_grounded_total_bmb;
+  m_cf_stuff.push_back(cf_info);
+
+  
   cf_info.short_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_SHORT_NAME;
   cf_info.cf_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_CF_NAME;
   cf_info.long_name = CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_LONG_NAME;
@@ -231,6 +239,14 @@ void DomainDiagnosticData::setCFdata()
   cf_info.units = "kg yr^-1";
   cf_info.data = &m_ice_total_calving_flux;
   m_cf_stuff.push_back(cf_info);
+
+  cf_info.short_name = CFIO_DIAGNOSTIC_GL_FLUX_SHORT_NAME;
+  cf_info.cf_name = CFIO_DIAGNOSTIC_GL_FLUX_CF_NAME;
+  cf_info.long_name = CFIO_DIAGNOSTIC_GL_FLUX_LONG_NAME;
+  cf_info.units = "kg yr^-1";
+  cf_info.data = &m_ice_total_gl_flux;
+  m_cf_stuff.push_back(cf_info);
+  
 
 }
 
@@ -248,9 +264,7 @@ DomainDiagnosticData::initDiagnostics
   m_report_area = false;
   m_report_total_flux = false;
   m_report_calving = false;
-
   ParmParse pp("amr");
-
   pp.query("report_sum_grounded_ice", m_report_grounded_ice);
   pp.query("report_ice_area", m_report_area);
   pp.query("report_total_flux", m_report_total_flux);
@@ -317,8 +331,10 @@ void DomainDiagnosticData::record(AmrIce& a_amrIce)
   m_ice_total_smb.push_back(rhoi*sumScalar(smb, ice));
   m_ice_total_bmb.push_back(rhoi*sumScalar(bmb, ice));
   m_ice_floating_total_bmb.push_back(rhoi*sumScalar(bmb, floating));
+  m_ice_grounded_total_bmb.push_back(rhoi*sumScalar(bmb, grounded));
   m_ice_total_calving_flux.push_back(rhoi*sumScalar(cflux, entire));
-
+  //m_ice_total_gl_flux.push_back(rhoi*sumScalar(glflux, grounded));
+  m_ice_total_gl_flux.push_back(1.2345678e+300); // for now
 }
 
 inline 
@@ -346,7 +362,9 @@ void DomainDiagnosticData::reset()
      last_to_first_resize(m_ice_total_smb);
      last_to_first_resize(m_ice_total_bmb);
      last_to_first_resize(m_ice_floating_total_bmb);
+     last_to_first_resize(m_ice_grounded_total_bmb);
      last_to_first_resize(m_ice_total_calving_flux);
+     last_to_first_resize(m_ice_total_gl_flux);
    }
  else
    {
@@ -358,7 +376,9 @@ void DomainDiagnosticData::reset()
      m_ice_total_smb.resize(0);
      m_ice_total_bmb.resize(0);
      m_ice_floating_total_bmb.resize(0);
+     m_ice_grounded_total_bmb.resize(0);
      m_ice_total_calving_flux.resize(0);
+     m_ice_total_gl_flux.resize(0);
    }
 }
 

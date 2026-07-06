@@ -342,34 +342,38 @@ public:
   void readCheckpointFile(HDF5Handle& a_handle);
 
   /// set up for restart
-  void restart(const string& a_restart_file);
+  void restart(const string& a_restart_file, const string& a_cf_restart_file="");
 
   
 
 
 
 private:
-
+  
   /// store CF output data on a uniform mesh 
   LevelData<FArrayBox> m_uniform_cf_data;
   /// mesh level for cf data
   int m_cf_level;
+  
   /// (CF) names for fields to be written 
   Vector<std::string> m_uniform_cf_data_name;
-  /// (CF) standard names for fields to be written (some fields share cf name) 
+  /// (CF) standard names for fields to be written
   Vector<std::string> m_uniform_cf_standard_name;
-   /// Long names for fields to be written 
+  /// Long names for fields to be written 
   Vector<std::string> m_uniform_cf_long_name;
   /// Units for fields to be written 
   Vector<std::string> m_uniform_cf_units;
-  /// function/interval pair (maybe should store as std::pairs) used to evaluate cf data on a given AMR level
+  /// time intergratation method
+  Vector<int> m_uniform_cf_time_integration;
+  /// function/interval pair used to evaluate cf data on a given AMR level
   Vector<std::function<const LevelData<FArrayBox>*(int, LevelData<FArrayBox>&) > >m_cf_field_function;
-  // the function prototype include a LevelData<FArrayBox>& that can be used for storage by the implementation
-  
-  LevelData<FArrayBox> m_cf_tmp_data;
+  // the function prototype includes a LevelData<FArrayBox>& that can be used for storage by the implementation
+  /// Interval within m_uniform_cf_data to store each field
   Vector<Interval> m_cf_field_interval;
+  LevelData<FArrayBox> m_cf_tmp_data;
   Real m_cf_dt;
   Real m_cf_start_time;
+  
   bool m_plot_style_cf, m_plot_style_amr;
   enum OutputFileNumbering { time_step = 0, time_seconds = 1, time_years = 2, time_yyyymmdd_360 = 3, NUM_PLOT_NUMBERING};
   OutputFileNumbering m_output_file_numbering;
@@ -407,6 +411,19 @@ private:
 
   /// set up various run-long data for CF Output
   void initCFData();
+
+  /// write current CF data to hdf5 
+  void writeCFData(string a_filename);
+  
+  /// read CF data from hdf5 
+  void readCFData(string a_filename);
+  
+  /// save current CF data (alongside checkpoint file) to allow restarts
+  void checkpointCFData();
+
+  // filename for CF checkpoint implied by m_check_prefix
+  string filenameCFCheckpoint();
+  
 public:
   
 #endif
@@ -1329,7 +1346,7 @@ protected:
 
 
   /// how verbose should we be?
-  static int s_verbosity;
+  int m_verbosity;
 
   /// is this object initialized?
   bool m_is_defined;

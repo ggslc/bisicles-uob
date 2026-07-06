@@ -121,7 +121,7 @@ AmrIce::regrid()
 
   CH_TIME("AmrIce::regrid");
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::regrid" << endl;
     }
@@ -186,7 +186,7 @@ AmrIce::regrid()
 	  }
 	if (gridsSame)
 	  {
-	    if (s_verbosity > 3) 
+	    if (m_verbosity > 3) 
 	      { 
 		pout() << "AmrIce::regrid -- grids unchanged" << endl;
 	      }
@@ -590,7 +590,7 @@ AmrIce::regrid()
 
   Real volumeAfter = computeTotalIce();
   Real volumeDifference = volumeAfter - volumeBefore;
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       
       pout() << "AmrIce::regrid: volume on input,output,difference =  " 
@@ -607,7 +607,7 @@ void
 AmrIce::tagCells(Vector<IntVectSet>& a_tags)
 {
   
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::tagCells" << endl;
     }
@@ -628,7 +628,7 @@ AmrIce::tagCells(Vector<IntVectSet>& a_tags)
     }
 
   //throw away any coarse level tags outside m_tag_subset
-  // if (s_verbosity > 3) 
+  // if (m_verbosity > 3) 
   //   { 
   //     pout() << "AmrIce::tagCells, subset II" << endl;
   //   }
@@ -650,7 +650,7 @@ void
 AmrIce::tagCellsLevel(IntVectSet& a_tags, int a_level)
 {
 
-  if (s_verbosity > 4) 
+  if (m_verbosity > 4) 
     { 
       pout() << "AmrIce::tagCellsLevel " << a_level << endl;
     }
@@ -1115,7 +1115,7 @@ void
 AmrIce::tagCellsInit(Vector<IntVectSet>& a_tags)
 {
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::tagCellsInit" << endl;
     }
@@ -1133,7 +1133,7 @@ AmrIce::initGrids(int a_finest_level)
 
   CH_TIME("AmrIce::initGrids");
   
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::initGrids" << endl;
     }
@@ -1150,7 +1150,7 @@ AmrIce::initGrids(int a_finest_level)
   
   DisjointBoxLayout baseGrids(baseBoxes, procAssign, m_amrDomains[0]);
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       long long numCells0 = baseGrids.numCells();
       pout() << "Level 0: " << numCells0 << " cells: " << baseGrids << endl;
@@ -1255,7 +1255,7 @@ AmrIce::initGrids(int a_finest_level)
                                          m_amrDomains[lev]);
           m_amrGrids[lev] = newDBL;
 
-          if (s_verbosity > 2)
+          if (m_verbosity > 2)
             {
               long long levelNumCells = newDBL.numCells();          
               pout() << "   Level " << lev << ": " 
@@ -1315,7 +1315,7 @@ AmrIce::setupFixedGrids(const std::string& a_gridFile)
 
       CH_assert (inNumLevels <= m_max_level+1);
 
-      if (s_verbosity > 3)
+      if (m_verbosity > 3)
         {
           pout() << "numLevels = " << inNumLevels << endl;
         }
@@ -1328,7 +1328,7 @@ AmrIce::setupFixedGrids(const std::string& a_gridFile)
       domainSplit(m_amrDomains[0],gridvect[0], m_max_base_grid_size, 
                   m_block_factor);
 
-      if (s_verbosity >= 3)
+      if (m_verbosity >= 3)
         {
           pout() << "level 0: ";
           for (int n=0; n < gridvect[0].size(); n++)
@@ -1343,7 +1343,7 @@ AmrIce::setupFixedGrids(const std::string& a_gridFile)
         {
           is >> numGrids;
 
-          if (s_verbosity >= 3)
+          if (m_verbosity >= 3)
             {
               pout() << "level " << lev << " numGrids = " 
                      << numGrids <<  endl;
@@ -1370,7 +1370,7 @@ AmrIce::setupFixedGrids(const std::string& a_gridFile)
                   MayDay::Error();
                 }
 
-              if (s_verbosity >= 3) 
+              if (m_verbosity >= 3) 
                 {
                   pout() << bx << endl;
                 }
