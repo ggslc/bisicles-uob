@@ -443,9 +443,9 @@ void ISMIP6OceanForcing::surfaceThicknessFlux
     {
       MayDay::Error("Time out of range for ISMIP6 Ocean forcing");
     }
-  //update TF once per year
-  //pout() << " update? " << time << " " << m_uniform_source_year << " " << (time >= Real(m_uniform_source_year + 1)) << std::endl;
-  if (time >= Real(m_uniform_source_year + 1))
+  //update TF once per year, up to m_end_year
+  if ( (time >= Real(m_uniform_source_year + 1))
+       && (time <= Real(m_end_year)) )
     {
       updateUniformSource(time, a_amrIce);
     }
