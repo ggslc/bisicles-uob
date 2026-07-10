@@ -671,8 +671,9 @@ AmrIce::writeAMRPlotFile()
 	 // the 'supplied' sources. The actual ('active') sources
 	 // are store in m_surface/basalThicknessSource and are *also* written.
 	 // Hence the need to recompute and dispose of these...
-	 m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
-	 m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
+	  Real dummy_dt(0.0);
+	  m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
+	  m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
 
@@ -2534,7 +2535,8 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 
 #ifdef CH_USE_HDF5
 
-void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
+void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle,
+			       const Real& a_time, const Real& a_dt) const
 {
   //Additional data (BISICLES specific)
   HDF5HeaderData headerData;
@@ -2542,7 +2544,7 @@ void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
   headerData.m_int["finest_level"] = m_finest_level;
   headerData.m_int["current_step"] = m_cur_step; 
   headerData.m_real["time"] = time();
-  headerData.m_real["dt"] = m_dt;
+  headerData.m_real["dt"] = a_dt;
   headerData.m_string["svn_version"] = SVN_REV;
   headerData.m_string["svn_repository"] = SVN_REP;
   headerData.m_string["svn_url"] = SVN_URL;
@@ -2602,7 +2604,7 @@ void AmrIce::writeAMRHierarchyHDF5(HDF5Handle& a_handle,
 			a_domain, a_dx, a_dt, a_time, a_ratio, 
 			a_numLevels);
 
-  writeMetaDataHDF5(a_handle);
+  writeMetaDataHDF5(a_handle, a_time, a_dt);
   
 }
 
@@ -3505,7 +3507,7 @@ void AmrIce::readCFData(string a_filename)
 	Box crseBox;
 	int numLevels;
 	int status = ReadAMRHierarchyHDF5
-	  (cf_check_file_handle,grids,data,names,crseBox,crseDx,dt,time,
+	  (cf_check_file_handle,grids,data,names,crseBox,crseDx,m_cf_dt,time,
 	   ratio,numLevels);      
 	for (size_t i =0; i < names.size(); i++)
 	  {
@@ -3559,14 +3561,15 @@ void AmrIce::writeCFData(string a_filename)
 			      grids,cf_data,
 			      m_uniform_cf_data_name,
 			      dbl.physDomain().domainBox(),
-			      dx,m_dt,
+			      dx, m_cf_dt, // m_cf_dt makes sense here rather tham m_dt *
 			      cf_end_time,
 			      ref_ratio,1);
 
-  std:: string group = handle.getGroup();
-  
+  // * when we are writing checkpoints, we want to read the accumulated m_cf_st
+  //   when we are writing ouput data (plots), we 'time step between ouputs' is mot relevant
 
   
+  std:: string group = handle.getGroup();  
   for (int i = 0; i < m_uniform_cf_data_name.size(); ++i)
     { 
       HDF5HeaderData attributeInfo;

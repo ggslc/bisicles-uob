@@ -97,12 +97,13 @@ amr.plot_prefix = plot.cf_regression.
 amr.write_thickness_sources = true
 amr.write_mask = true
 amr.check_prefix = chk.cf_regression.
-amr.check_interval = 4
+amr.check_interval = 5 # out of line with the plots, to test cf checkpoints
 amr.check_overwrite = false
 #amr.restart_file = chk.cf_regression.000004.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
+CFIO.lithk.time_integration = 1 # final array (0 default -> time mean)
 CFIO.orog = true
 CFIO.acabf = true
 CFIO.libmassbf = true

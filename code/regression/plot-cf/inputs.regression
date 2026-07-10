@@ -96,7 +96,8 @@ amr.plot_prefix = plot.cf_regression.
 amr.check_prefix = chk.cf_regression.
 amr.check_interval = 4
 amr.check_overwrite = false
-amr.restart_file = chk.cf_regression.000004.2d.H5
+amr.restart_file = chk.cf_regression.000005.2d.H5
+amr.cf_restart_file = chk.cf_regression.000005.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
@@ -111,8 +112,8 @@ CFIO.dlithkdt = true
 CFIO.sftgif = true
 CFIO.sftgrf = true
 CFIO.sftflf = true
-CFIO.checkpoint_strict = false
-#CFIO.imply_restart = true
+CFIO.checkpoint_strict = true
+CFIO.imply_restart = true
 
 
 # this looks a bit odd, but allows a regression test for maskedFLux

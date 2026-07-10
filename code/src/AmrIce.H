@@ -268,7 +268,8 @@ private:
   HDF5HeaderData m_headerData;
 
   /// write BISICLES specific metadata to HDF5 attributes
-  void writeMetaDataHDF5(HDF5Handle& a_handle) const;
+  void writeMetaDataHDF5(HDF5Handle& a_handle,
+			 const Real& a_time, const Real& a_dt) const;
 
 public:
   void setHeader(const std::string& a_key, const std::string& a_val)
