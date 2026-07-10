@@ -1542,7 +1542,7 @@ AmrIce::initialize()
       ppAmr.get("restart_file", restart_file);
       //optionally, specify a CF restart file
       string cf_restart_file("");
-      ppAmr.query("cf_restart_file", restart_file);
+      ppAmr.query("cf_restart_file", cf_restart_file);
       m_do_restart = true;
 #ifdef CH_USE_HDF5
       restart(restart_file, cf_restart_file);

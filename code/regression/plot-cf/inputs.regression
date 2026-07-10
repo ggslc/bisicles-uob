@@ -97,7 +97,7 @@ amr.check_prefix = chk.cf_regression.
 amr.check_interval = 4
 amr.check_overwrite = false
 amr.restart_file = chk.cf_regression.000005.2d.H5
-amr.cf_restart_file = chk.cf_regression.000005.2d.H5
+amr.cf_restart_file = chk.cf_regression.000005.CF.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
