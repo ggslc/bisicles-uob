@@ -113,7 +113,7 @@ CFIO.sftgif = true
 CFIO.sftgrf = true
 CFIO.sftflf = true
 CFIO.checkpoint_strict = true
-CFIO.imply_restart = true
+#CFIO.imply_restart = true
 
 
 # this looks a bit odd, but allows a regression test for maskedFLux
