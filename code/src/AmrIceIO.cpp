@@ -199,7 +199,16 @@ long AmrIce::outputNumbering()
 void 
 AmrIce::writePlotFile()
 {
-  if (m_plot_style_cf && m_cur_step > 0 ) flushCFData();
+
+  CH_TIME("AmrIce::writePlotFile");
+  if (m_verbosity > -3) 
+    { 
+      pout() << "AmrIce::writePlotFile" << endl;
+    }
+  if (m_plot_style_cf)
+    {     
+      flushCFData();
+    }
   if (m_plot_style_amr) writeAMRPlotFile();
 }
 
@@ -209,7 +218,7 @@ AmrIce::writeAMRPlotFile()
 {
   CH_TIME("AmrIce::writeAMRPlotFile");
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::writeAMRPlotFile" << endl;
     }
@@ -662,8 +671,9 @@ AmrIce::writeAMRPlotFile()
 	 // the 'supplied' sources. The actual ('active') sources
 	 // are store in m_surface/basalThicknessSource and are *also* written.
 	 // Hence the need to recompute and dispose of these...
-	 m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
-	 m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
+	  Real dummy_dt(0.0);
+	  m_surfaceFluxPtr->surfaceThicknessFlux(levelSTS, *this, lev, m_dt);
+	  m_basalFluxPtr->surfaceThicknessFlux(levelBTS, *this, lev, m_dt); 
 	  (*m_calvingModelPtr).getWaterDepth(levelWaterDepth, *this, lev);
 	}
 
@@ -1139,7 +1149,7 @@ AmrIce::writeAMRPlotFile()
 void 
 AmrIce::writeCheckpointFile() 
 {
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::writeCheckpointfile" << endl;
     }
@@ -1176,13 +1186,22 @@ AmrIce::writeCheckpointFile()
 
   CH_assert(iter_str != NULL);
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       pout() << "checkpoint file name = " << iter_str << endl;
     }
 
   writeCheckpointFile(std::string(iter_str));
   delete[] iter_str;
+
+
+  if (m_plot_style_cf)
+    {
+      // if we are writing CF style plot files, we need to save their
+      // state, too. 
+      checkpointCFData();
+    }
+  
 }
 
 /// write checkpoint file out for later restarting
@@ -1190,7 +1209,7 @@ void
 AmrIce::writeCheckpointFile(const string& a_file) 
 {
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::writeCheckpointfile((const string& a_file)" << endl;
       pout() << "checkpoint file name a_file = " << a_file << endl;
@@ -1257,7 +1276,6 @@ AmrIce::writeCheckpointFile(const string& a_file)
          
   // CF domain wide diagnostic data includes data that are not easily re-computed on a restart
   m_cf_domain_diagnostic_data.write(handle);
-
   
   // set up component names
   char compStr[30];
@@ -1552,7 +1570,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
       if (giaFluxPtr != NULL)
       {
         // we were able to cast to a BuelerGIAFlux pointer   
-        if (s_verbosity >= 3) {
+        if (m_verbosity >= 3) {
           pout() << "Writing GIA checkpoint" << endl;
         }
         RefCountedPtr<LevelData<FArrayBox>> tmp;
@@ -1582,7 +1600,7 @@ AmrIce::writeCheckpointFile(const string& a_file)
             if (giaFluxPtr != NULL)
             {
             // we were able to cast to a BuelerGIAFlux pointer   
-            if (s_verbosity >= 3) {
+            if (m_verbosity >= 3) {
               pout() << "Writing Composite GIA checkpoint" << endl;
             }
             RefCountedPtr<LevelData<FArrayBox>> tmp;
@@ -1620,7 +1638,7 @@ void
 AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 {
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::readCheckpointFile" << endl;
     }
@@ -1690,7 +1708,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
     }
     }
 
-  if (s_verbosity >= 3)
+  if (m_verbosity >= 3)
     {
       pout() << "hdf5 header data: " << endl;
       pout() << header << endl;
@@ -1705,7 +1723,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
   int max_level_check = header.m_int["max_level"];
   if (max_level_check != m_max_level)
     {
-      if (s_verbosity > 0)
+      if (m_verbosity > 0)
         {
           pout() << "Restart file has a different max level than inputs file"
                  << endl;
@@ -1793,7 +1811,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
       // check for consistency and warn if different
       if (check_cfl != m_cfl)
 	{
-	  if (s_verbosity > 0)
+	  if (m_verbosity > 0)
 	    {
 	      pout() << "CFL in checkpoint file different from inputs file" 
 		     << endl;
@@ -1902,7 +1920,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
       HDF5HeaderData levheader;
       levheader.readFromFile(a_handle);
       
-      if (s_verbosity >= 3)
+      if (m_verbosity >= 3)
         {
           pout() << "level " << lev << " header data" << endl;
           pout() << levheader << endl;
@@ -2499,7 +2517,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	}
     }
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       pout() << "AmrIce::readCheckPointFile solveVelocityField() " << endl;
     }
@@ -2517,7 +2535,8 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 
 #ifdef CH_USE_HDF5
 
-void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
+void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle,
+			       const Real& a_time, const Real& a_dt) const
 {
   //Additional data (BISICLES specific)
   HDF5HeaderData headerData;
@@ -2525,7 +2544,7 @@ void AmrIce::writeMetaDataHDF5(HDF5Handle& a_handle) const
   headerData.m_int["finest_level"] = m_finest_level;
   headerData.m_int["current_step"] = m_cur_step; 
   headerData.m_real["time"] = time();
-  headerData.m_real["dt"] = m_dt;
+  headerData.m_real["dt"] = a_dt;
   headerData.m_string["svn_version"] = SVN_REV;
   headerData.m_string["svn_repository"] = SVN_REP;
   headerData.m_string["svn_url"] = SVN_URL;
@@ -2585,7 +2604,7 @@ void AmrIce::writeAMRHierarchyHDF5(HDF5Handle& a_handle,
 			a_domain, a_dx, a_dt, a_time, a_ratio, 
 			a_numLevels);
 
-  writeMetaDataHDF5(a_handle);
+  writeMetaDataHDF5(a_handle, a_time, a_dt);
   
 }
 
@@ -2611,11 +2630,13 @@ void AmrIce::writeAMRHierarchyHDF5(const string& filename,
 
 /// set up for restart
 void 
-AmrIce::restart(const string& a_restart_file)
+AmrIce::restart(const string& a_restart_file,
+		const string& a_cf_restart_file)
 {
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
-      pout() << "AmrIce::restart(" << a_restart_file << ")" << endl;
+      pout() << "AmrIce::restart(" << a_restart_file << ", "
+	     << a_cf_restart_file << ")" << endl;
     }
   
   HDF5Handle handle(a_restart_file, HDF5Handle::OPEN_RDONLY);
@@ -2634,6 +2655,29 @@ AmrIce::restart(const string& a_restart_file)
   if (invPtr)
     {
       invPtr->setPreviousTime(m_time);
+    }
+
+  if (m_plot_style_cf)
+    {
+      // attempt to read CF restart data
+      string cf_restart_file(a_cf_restart_file);
+      bool imply_restart(false);
+      ParmParse pp("CFIO");
+      pp.query("imply_restart",imply_restart);
+      if (cf_restart_file == "" && imply_restart)
+	{
+	  // try the filename implied by m_check_prefix
+	  cf_restart_file = filenameCFCheckpoint();
+	}
+      if (cf_restart_file != "")
+	{
+	  //accumulateCFData(0.0, true);
+	  readCFData(cf_restart_file);
+	}
+      else
+	{
+	  pout() << "AmrIce::restart: no CF restart file, next CF output means may miss times. Set CFIO.imply_restart = true, or set amr.cf_restart_file " << std::endl;
+	}
     }
 }
 
@@ -2664,15 +2708,23 @@ AmrIce::restart(const string& a_restart_file)
 #define CFIO_FIELD_TEMPERATURE_GROUNDED_ICE_BASE_SHORT_NAME "litempbotgr"
 #define CFIO_FIELD_TEMPERATURE_FLOATING_ICE_BASE_SHORT_NAME "litempbotfl"
 #define CFIO_FIELD_MAGNITUDE_BASAL_DRAG_SHORT_NAME "strbasemag"
- 
 #define CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_SHORT_NAME "dlithkdt"
 #define CFIO_FIELD_LAND_ICE_CALVING_FLUX_SHORT_NAME "licalvf"
+#define CFIO_FIELD_LAND_ICE_GL_FLUX_SHORT_NAME "ligroundf"
 #define CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_SHORT_NAME "acabf"
 #define CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_SHORT_NAME "libmassbf"
 #define CFIO_FIELD_GROUNDED_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME "libmassbfgr"
 #define CFIO_FIELD_FLOATING_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME "libmassbffl"
 #define CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME "lifmassbf"
 #define CFIO_FIELD_GEOTHERMAL_FLUX_SHORT_NAME "hfgeoubed"
+
+/**
+   ismip 7 - FL variables (fluxes, at time step centre - CF cell methods: time: mean)
+   vs ST variables (state variables, at time step end - CF cell methods: time: point)
+   
+ */
+#define CFIO_TIME_INTEGRATION_ARITHMETIC_MEAN 0
+#define CFIO_TIME_INTEGRATION_FINAL 1
 
 #define CFIO_FIELD_LAND_ICE_THICKNESS_CF_NAME "land_ice_thickness"
 #define CFIO_FIELD_LAND_ICE_BASAL_VELOCITY_CF_NAME "land_ice_basal_velocity"
@@ -2692,6 +2744,7 @@ AmrIce::restart(const string& a_restart_file)
 #define CFIO_FIELD_TEMPERATURE_FLOATING_ICE_BASE_CF_NAME "temperature_at_base_of_ice_sheet_model" 
 #define CFIO_FIELD_MAGNITUDE_BASAL_DRAG_CF_NAME "land_ice_basal_drag" 
 
+#define CFIO_FIELD_LAND_ICE_GL_FLUX_CF_NAME "land_ice_specific_mass_flux_due_to_discharge_across_gl"
 #define CFIO_FIELD_LAND_ICE_CALVING_FLUX_CF_NAME "land_ice_specific_mass_flux_due_to_calving"
 #define CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_CF_NAME "land_ice_surface_specific_mass_balance_flux"
 #define CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_CF_NAME "land_ice_basal_specific_mass_balance_flux"
@@ -2719,13 +2772,15 @@ AmrIce::restart(const string& a_restart_file)
 #define CFIO_FIELD_MAGNITUDE_BASAL_DRAG_LONG_NAME "Land ice basal drag" 
 
 #define CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_LONG_NAME "Ice thickness imbalance"
+#define CFIO_FIELD_LAND_ICE_GL_FLUX_LONG_NAME "Land ice grounding line flux"
 #define CFIO_FIELD_LAND_ICE_CALVING_FLUX_LONG_NAME "Land ice calving flux"
 #define CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_LONG_NAME "Surface mass balance flux"
 #define CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_LONG_NAME "Basal mass balance of ice sheet"
 #define CFIO_FIELD_GROUNDED_ICE_BASAL_MASS_BALANCE_FLUX_LONG_NAME "Basal mass balance of grounded ice sheet"
 #define CFIO_FIELD_FLOATING_ICE_BASAL_MASS_BALANCE_FLUX_LONG_NAME "Basal mass balance of floating ice shelf"
-#define CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_LONG_NAME "Ice frontcalving and melt flux"
+#define CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_LONG_NAME "Ice front calving and melt flux"
 #define CFIO_FIELD_GEOTHERMAL_FLUX_LONG_NAME "Bedrock geothermal heat flux"
+
 
 void AmrIce::initCFData()
 {
@@ -2733,7 +2788,7 @@ void AmrIce::initCFData()
   CH_TIME("AmrIce::initCFData");
 
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::initCFData" << endl;
     }
@@ -2761,7 +2816,17 @@ void AmrIce::initCFData()
       return a_default;
     };
 
-									      
+  auto time_integration = [](const char* name)
+  {
+    string prefix(CFIO_PARM_PARSE_FIELD_PREFIX);
+    prefix += ".";
+    prefix += name;
+    ParmParse ppopt(prefix);
+    int time_integration(CFIO_TIME_INTEGRATION_ARITHMETIC_MEAN);
+    ppopt.query("time_integration", time_integration);
+    return time_integration;
+  };
+  
 
 /* 
    Fields from Table A3 from Nowicki et al, Geosci. Model Dev., 9, 4521–4545, 2016 
@@ -2787,7 +2852,11 @@ void AmrIce::initCFData()
   if (test(CFIO_FIELD_LAND_ICE_THICKNESS_SHORT_NAME,ppf,false))
     {
       pout() << "AmrIceIO:: CF thickness" << endl;
+
+
+      
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_THICKNESS_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_LONG_NAME);
       m_uniform_cf_units.push_back("m");
@@ -2800,6 +2869,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF surface" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_SURFACE_ALTITUDE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_SURFACE_ALTITUDE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_SURFACE_ALTITUDE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_SURFACE_ALTITUDE_LONG_NAME);
       m_uniform_cf_units.push_back("m");
@@ -2812,6 +2882,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF bedrock" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_BEDROCK_ALTITUDE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_BEDROCK_ALTITUDE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_BEDROCK_ALTITUDE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_BEDROCK_ALTITUDE_LONG_NAME);
       m_uniform_cf_units.push_back("m");
@@ -2824,12 +2895,14 @@ void AmrIce::initCFData()
     { 
       pout() << "AmrIceIO:: CF basal veolcity" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_X_VELOCITY_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_BASAL_VELOCITY_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_X_VELOCITY_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_X_VELOCITY_LONG_NAME);
       m_uniform_cf_units.push_back("m yr^-1");
       m_cf_field_function.push_back([this](int a_lev, LevelData<FArrayBox>& a_buf){return &(*m_layerSFaceXYVel[a_lev]);} );
       m_cf_field_interval.push_back( Interval(m_nLayers,m_nLayers+1)); // when x is requested, supply x and y
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_Y_VELOCITY_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_BASAL_VELOCITY_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_Y_VELOCITY_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_BASAL_Y_VELOCITY_LONG_NAME);
       m_uniform_cf_units.push_back("m yr^-1");
@@ -2842,12 +2915,14 @@ void AmrIce::initCFData()
     { 
       pout() << "AmrIceIO:: CF surface velocity" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_X_VELOCITY_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_SURFACE_VELOCITY_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_X_VELOCITY_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_X_VELOCITY_LONG_NAME);
       m_uniform_cf_units.push_back("m yr^-1");
       m_cf_field_function.push_back([this](int a_lev, LevelData<FArrayBox>& a_buf){return  &(*m_layerSFaceXYVel[a_lev]);} );
       m_cf_field_interval.push_back( Interval(0,1)); // when x is requested, supply x and y
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_Y_VELOCITY_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_SURFACE_VELOCITY_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_Y_VELOCITY_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_SURFACE_Y_VELOCITY_LONG_NAME);
       m_uniform_cf_units.push_back("m yr^-1");
@@ -2860,6 +2935,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF top temperature" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_TOP_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_TEMPERATURE_ICE_TOP_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_TOP_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_TOP_LONG_NAME);
       m_uniform_cf_units.push_back("K");
@@ -2872,6 +2948,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF basal temperature" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_BASE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_TEMPERATURE_ICE_BASE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_BASE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_BASE_LONG_NAME);
       m_uniform_cf_units.push_back("K");
@@ -2884,6 +2961,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF basal temperature for grounded ice" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_TEMPERATURE_GROUNDED_ICE_BASE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_TEMPERATURE_GROUNDED_ICE_BASE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_BASE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_TEMPERATURE_GROUNDED_ICE_BASE_LONG_NAME);
       m_uniform_cf_units.push_back("K");
@@ -2906,6 +2984,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF basal temperature for ice shelves" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_TEMPERATURE_FLOATING_ICE_BASE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_TEMPERATURE_FLOATING_ICE_BASE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_TEMPERATURE_ICE_BASE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_TEMPERATURE_FLOATING_ICE_BASE_LONG_NAME);
       m_uniform_cf_units.push_back("K");
@@ -2928,6 +3007,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF ice fraction" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_AREA_FRACTION_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_AREA_FRACTION_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_AREA_FRACTION_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_AREA_FRACTION_LONG_NAME);
       m_uniform_cf_units.push_back("1");
@@ -2968,6 +3048,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF grounded ice fraction" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_GROUNDED_ICE_AREA_FRACTION_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_GROUNDED_ICE_AREA_FRACTION_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_GROUNDED_ICE_AREA_FRACTION_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_GROUNDED_ICE_AREA_FRACTION_LONG_NAME);
       m_uniform_cf_units.push_back("1");
@@ -2984,6 +3065,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF floating ice fraction" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_FLOATING_ICE_AREA_FRACTION_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_FLOATING_ICE_AREA_FRACTION_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_FLOATING_ICE_AREA_FRACTION_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_FLOATING_ICE_AREA_FRACTION_LONG_NAME);
       m_uniform_cf_units.push_back("1");
@@ -3000,6 +3082,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF ice thickness imbalance" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_THICKNESS_IMBALANCE_LONG_NAME);
       m_uniform_cf_units.push_back("m yr^-1");
@@ -3029,6 +3112,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF smb" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_SURFACE_MASS_BALANCE_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3072,6 +3156,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF bmb" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3097,6 +3182,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF bmb for grounded ice" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_GROUNDED_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_GROUNDED_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_GROUNDED_ICE_BASAL_MASS_BALANCE_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3123,6 +3209,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF bmb for floating ice" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_FLOATING_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_FLOATING_ICE_BASAL_MASS_BALANCE_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_BASAL_MASS_BALANCE_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_FLOATING_ICE_BASAL_MASS_BALANCE_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3149,6 +3236,7 @@ void AmrIce::initCFData()
  //    {
  //      pout() << "AmrIceIO:: CF vertical front mb" << endl;
  //      m_uniform_cf_data_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME);
+  //m_uniform_cf_time_integration.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_SHORT_NAME));
  //      m_uniform_cf_standard_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_CF_NAME);
  //      m_uniform_cf_long_name.push_back(CFIO_FIELD_ICE_FRONT_CALVING_AND_MELT_LONG_NAME);
  //      m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3188,6 +3276,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF calving flux" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_CALVING_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_CALVING_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("kg m^-2 yr^-1");
@@ -3213,6 +3302,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF basal drag" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_MAGNITUDE_BASAL_DRAG_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_MAGNITUDE_BASAL_DRAG_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_MAGNITUDE_BASAL_DRAG_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_MAGNITUDE_BASAL_DRAG_LONG_NAME);
       m_uniform_cf_units.push_back("Pa");
@@ -3243,6 +3333,7 @@ void AmrIce::initCFData()
     {
       pout() << "AmrIceIO:: CF geothermal flux" << endl;
       m_uniform_cf_data_name.push_back(CFIO_FIELD_GEOTHERMAL_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_GEOTHERMAL_FLUX_SHORT_NAME));
       m_uniform_cf_standard_name.push_back(CFIO_FIELD_GEOTHERMAL_FLUX_CF_NAME);
       m_uniform_cf_long_name.push_back(CFIO_FIELD_GEOTHERMAL_FLUX_LONG_NAME);
       m_uniform_cf_units.push_back("W m^-2 ?");
@@ -3266,6 +3357,9 @@ void AmrIce::initCFData()
       pout() << " no " << CFIO_PARM_PARSE_FIELD_PREFIX << ".<field> entries specified or write_ismip6 " << endl;
       CH_assert(m_uniform_cf_data.nComp() > 0);
     }
+									      
+
+
 }
   
 
@@ -3274,7 +3368,7 @@ void AmrIce::accumulateCFData(Real a_dt, bool a_reset)
 {
   CH_TIME("AmrIce::accumulateCFData");
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::accumulateCFData" << endl;
     }
@@ -3357,23 +3451,185 @@ void AmrIce::accumulateCFData(Real a_dt, bool a_reset)
      comp =  fun(comp, m_cf_field_function[comp], m_cf_field_interval[comp]);
     }
 
-  // update the integral with respect to time
+  // update the integrals with respect to time
   Real w = std::max(a_dt, 1.0e-10);
   m_cf_dt += w;
   for (DataIterator dit(m_uniform_cf_data.dataIterator()); dit.ok(); ++dit)
     {
-      current[dit] *= w;
-      m_uniform_cf_data[dit] += current[dit];
+      for (int comp = 0; comp < current[dit].nComp(); comp++) 
+	{
+	  if ( m_uniform_cf_time_integration[comp] == CFIO_TIME_INTEGRATION_ARITHMETIC_MEAN)
+	    {
+	      //e.g ismip7 fluxes time integrated to obtain the mean
+	      current[dit].mult(w, comp);
+	      m_uniform_cf_data[dit].plus(current[dit], comp, comp);
+	    }
+	  else if (m_uniform_cf_time_integration[comp] == CFIO_TIME_INTEGRATION_FINAL)
+	    {
+	      // e.g ismip7 state vars: we just want the latest values
+	      m_uniform_cf_data[dit].copy(current[dit], comp, comp);
+	    }
+	  else
+	    {
+	      // we should not get here
+	      CH_assert(m_uniform_cf_time_integration[comp] <= CFIO_TIME_INTEGRATION_FINAL);
+	    }
+	}
     }
 
 }
+void AmrIce::readCFData(string a_filename)
+{
+  
+  if (m_verbosity > 3) 
+    { 
+      pout() << "AmrIce::readCFData(" << a_filename << ")"<< endl;
+    }
+
+  initCFData(); // set up the CF data according to config
+  
+  bool cf_checkpoint_strict(true);
+  ParmParse pp("CFIO");
+  pp.query("checkpoint_strict",  cf_checkpoint_strict);
+  
+  Vector<int> cf_name_match(m_uniform_cf_data_name.size(),0);
+  {
+    HDF5Handle cf_check_file_handle;
+    cf_check_file_handle.open(a_filename,  HDF5Handle::OPEN_RDONLY);
+    
+    if (cf_check_file_handle.isOpen())
+      {
+	Vector<std::string> names;  
+	Vector<LevelData<FArrayBox>* > data;
+	Vector<DisjointBoxLayout> grids;
+	Vector<int> ratio;
+	Real crseDx = 0.0, dt = 0.0, time = 0.0;
+	Box crseBox;
+	int numLevels;
+	int status = ReadAMRHierarchyHDF5
+	  (cf_check_file_handle,grids,data,names,crseBox,crseDx,m_cf_dt,time,
+	   ratio,numLevels);      
+	for (size_t i =0; i < names.size(); i++)
+	  {
+	    for (size_t j = 0; j < m_uniform_cf_data_name.size(); j++)
+	      {
+		if (names[i] == m_uniform_cf_data_name[j])
+		  {
+		    cf_name_match[j]++;
+		    data[0]->copyTo(Interval(i,i),m_uniform_cf_data, Interval(j,j));
+		  }
+	      }
+	  }
+	cf_check_file_handle.close();
+      }
+  }
+  
+  for (int j = 0; j < m_uniform_cf_data_name.size(); j++)
+    {
+      if (!(cf_name_match[j] == 1))
+	{
+	  pout() << "AmrIce::readCFData: "
+		 << m_uniform_cf_data_name[j]
+		 << " has " << cf_name_match[j] << "matching entries in "
+		 << a_filename << std::endl;
+	
+	  if (cf_checkpoint_strict)
+	    {
+	      pout() << "AmrIce::readCFData: missing or duplicate data. "
+		     << "Set CFIO.checkpoint_strict = false if you don't care " << std::endl;
+	      CH_assert(cf_name_match[j]);
+	    }
+	}
+    }
+}
+
+void AmrIce::writeCFData(string a_filename)
+{
+  const DisjointBoxLayout& dbl = m_uniform_cf_data.disjointBoxLayout();
+  HDF5Handle handle(a_filename.c_str(), HDF5Handle::CREATE);
+  Vector<DisjointBoxLayout> grids(1,dbl);
+  Vector<LevelData<FArrayBox>* > cf_data(1,&m_uniform_cf_data);
+  Real dx = m_amrDx[m_cf_level];
+  Vector<int> ref_ratio(1,2);
+
+  // time centering for s(t=a+d) = s(t=a) + ds/dt(t=a + d/2)*d  
+  Real cf_end_time = time(); // time for 'snapshot' data
+  Real cf_start_time = cf_end_time - m_cf_dt; // time for previous snapshot data
+  Real cf_mid_time =  cf_end_time - 0.5 * m_cf_dt; // time for 'flux' data
+  
+  this->writeAMRHierarchyHDF5(handle,
+			      grids,cf_data,
+			      m_uniform_cf_data_name,
+			      dbl.physDomain().domainBox(),
+			      dx, m_cf_dt, // m_cf_dt makes sense here rather tham m_dt *
+			      cf_end_time,
+			      ref_ratio,1);
+
+  // * when we are writing checkpoints, we want to read the accumulated m_cf_st
+  //   when we are writing ouput data (plots), we 'time step between ouputs' is mot relevant
+
+  
+  std:: string group = handle.getGroup();  
+  for (int i = 0; i < m_uniform_cf_data_name.size(); ++i)
+    { 
+      HDF5HeaderData attributeInfo;
+
+      attributeInfo.m_string["Short name"] = m_uniform_cf_data_name[i];
+      attributeInfo.m_string["Long name"] = m_uniform_cf_long_name[i];
+      attributeInfo.m_string["Units"] = m_uniform_cf_units[i];
+      attributeInfo.m_string["Standard name"] = m_uniform_cf_standard_name[i];
+      attributeInfo.m_int["time_integration"] = m_uniform_cf_time_integration[i];
+      handle.setGroup(group + "/" + m_uniform_cf_data_name[i] + "_attribute");
+      attributeInfo.writeToFile(handle);
+      handle.setGroup(group);
+    }
+
+  // //   HDF5Handle handle(filename, HDF5Handle::mode::OPEN_RDWR);
+  m_cf_domain_diagnostic_data.write(handle);
+  
+  handle.close();
+}
+
+string AmrIce::filenameCFCheckpoint()
+{
+  std::string fs;
+  fs.assign("%s%06ld.CF.%dd.hdf5");
+  char* iter_str = new char[m_check_prefix.size() + 64 + fs.size()];
+  sprintf(iter_str, fs.c_str(), m_check_prefix.c_str(), outputNumbering() , SpaceDim );
+  string filename(iter_str);
+  delete[] iter_str;
+  return filename;
+}
+
+void AmrIce::checkpointCFData()
+{
+  CH_TIME("AmrIce::checkpointCFData");
+
+  if (m_verbosity > 3) 
+    { 
+      pout() << "AmrIce::checkpointCFData" << endl;
+    }
+
+   if (! m_uniform_cf_data.isDefined())
+    {
+      if (m_verbosity > 3) 
+	{ 
+	  pout() << "AmrIce::checkpointCFData no data" << endl;
+	}
+      return;
+    }
+   
+   writeCFData(filenameCFCheckpoint());
+   
+}
+
 
 void AmrIce::flushCFData()
 {
 
   CH_TIME("AmrIce::flushCFData");
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::flushCFData" << endl;
     }
@@ -3381,19 +3637,27 @@ void AmrIce::flushCFData()
   // do we end up in this state after reading a checkpoint?
   if (! m_uniform_cf_data.isDefined())
     {
-      if (s_verbosity > 3) 
+      if (m_verbosity > 3) 
 	{ 
 	  pout() << "AmrIce::flushCFData no data to flush" << endl;
 	}
-      return;
-      //initCFData();
+      //return;
+      initCFData();
+      accumulateCFData(0.0, true);
     }
 
-  // time integral -> time mean.
-  Real cf_end_time = time(); 
+
+
+  // time integral -> time mean for fluxes.
   for (DataIterator dit(m_uniform_cf_data.dataIterator()); dit.ok(); ++dit)
     {
-      m_uniform_cf_data[dit] /= m_cf_dt;
+      for (int comp = 0; comp < m_uniform_cf_data[dit].nComp(); comp++) 
+	{
+	  if ( m_uniform_cf_time_integration[comp] == CFIO_TIME_INTEGRATION_ARITHMETIC_MEAN)
+	    {
+	      m_uniform_cf_data[dit].divide(m_cf_dt, comp);
+	    }
+	}
     }
  
 
@@ -3411,49 +3675,10 @@ void AmrIce::flushCFData()
   string filename(iter_str);
   delete[] iter_str;
 
-  
-  const DisjointBoxLayout& dbl = m_uniform_cf_data.disjointBoxLayout();
-
-  HDF5Handle handle(filename.c_str(), HDF5Handle::CREATE);
-  Vector<DisjointBoxLayout> grids(1,dbl);
-  Vector<LevelData<FArrayBox>* > cf_data(1,&m_uniform_cf_data);
-  Real dx = m_amrDx[m_cf_level];
-  Vector<int> ref_ratio(1,2);
-
-  this->writeAMRHierarchyHDF5(handle,
-			      grids,cf_data,
-			      m_uniform_cf_data_name,
-			      dbl.physDomain().domainBox(),
-			      dx,m_dt,
-			      cf_end_time,
-			      ref_ratio,1);
-
-  std:: string group = handle.getGroup();
-  for (int i = 0; i < m_uniform_cf_data_name.size(); ++i)
-    { 
-      HDF5HeaderData attributeInfo;
-
-      attributeInfo.m_string["Short name"] = m_uniform_cf_data_name[i];
-      attributeInfo.m_string["Long name"] = m_uniform_cf_long_name[i];
-      attributeInfo.m_string["Units"] = m_uniform_cf_units[i];
-      attributeInfo.m_string["Standard name"] = m_uniform_cf_standard_name[i];
-      handle.setGroup(group + "/" + m_uniform_cf_data_name[i] + "_attribute");
-      attributeInfo.writeToFile(handle);
-      handle.setGroup(group);
-    }
-
-  // //   HDF5Handle handle(filename, HDF5Handle::mode::OPEN_RDWR);
-  m_cf_domain_diagnostic_data.write(handle);
-
-  if (s_verbosity > 3) 
-    { 
-      pout() << "AmrIce::flushCFData close handle" << endl;
-    }
-  
-  handle.close();
+  writeCFData(filename);
   
   //reset CF data following a write
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::flushCFData reset" << endl;
     }

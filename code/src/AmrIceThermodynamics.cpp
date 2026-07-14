@@ -87,7 +87,7 @@ void AmrIce::updateInternalEnergy(Vector<LevelData<FluxBox>* >& a_layerEH_half,
 {
 
   CH_TIME("AmrIce::updateInternalEnergy");
-  if (s_verbosity > 0) 
+  if (m_verbosity > 0) 
     {
       pout() << "AmrIce::updateInternalEnergy " << endl;
     }

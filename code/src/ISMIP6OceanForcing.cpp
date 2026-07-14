@@ -176,9 +176,9 @@ void ISMIP6OceanForcing::computeTFb_and_slope(LevelData<FArrayBox>& a_TFb,
   LevelData<FArrayBox> s(grids,1,IntVect::Unit); // ghost cell needed to compute gradient
   a_amrIce.geometry(lev)->getSurfaceHeight().copyTo(Interval(0,0), s, Interval(0,0));
   s.exchange(); // need to compute gradients.
-  LevelData<FArrayBox> h(grids,1,IntVect::Zero);
+  LevelData<FArrayBox> h(grids,1,IntVect::Unit); // ghost cell needed to compute gradient
   a_amrIce.geometry(lev)->getH().copyTo(Interval(0,0), h , Interval(0,0));
-
+  h.exchange();// need to compute gradients.
 
   Real z_min = m_dz * 0.5;
   Real z_max = m_dz * (0.5 + Real(m_n_layer));
@@ -443,9 +443,9 @@ void ISMIP6OceanForcing::surfaceThicknessFlux
     {
       MayDay::Error("Time out of range for ISMIP6 Ocean forcing");
     }
-  //update TF once per year
-  //pout() << " update? " << time << " " << m_uniform_source_year << " " << (time >= Real(m_uniform_source_year + 1)) << std::endl;
-  if (time >= Real(m_uniform_source_year + 1))
+  //update TF once per year, up to m_end_year
+  if ( (time >= Real(m_uniform_source_year + 1))
+       && (time <= Real(m_end_year)) )
     {
       updateUniformSource(time, a_amrIce);
     }

@@ -83,9 +83,11 @@ namespace MaskedIntegration
 #define CFIO_DIAGNOSTIC_FLOATING_ICE_AREA_SHORT_NAME "iareafl"
 #define CFIO_DIAGNOSTIC_UPPER_SURFACE_FLUX_SHORT_NAME "tendacabf"
 #define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLUX_SHORT_NAME "tendlibmassbf"
+#define CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_SHORT_NAME "tendlibmassbfgr"
 #define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_SHORT_NAME "tendlibmassbffl"
 #define CFIO_DIAGNOSTIC_CALVING_FLUX_SHORT_NAME "tendlicalvf"
 #define CFIO_DIAGNOSTIC_ICE_FRONT_CALVING_AND_MELTING_SHORT_NAME "tendlifmassbf"
+#define CFIO_DIAGNOSTIC_GL_FLUX_SHORT_NAME "tendligroundf"
 
 #define CFIO_DIAGNOSTIC_ICE_VOLUME_CF_NAME "land_ice_mass"
 #define CFIO_DIAGNOSTIC_ICE_VAF_CF_NAME "land_ice_mass_not_displacing_sea_water"
@@ -93,8 +95,10 @@ namespace MaskedIntegration
 #define CFIO_DIAGNOSTIC_FLOATING_ICE_AREA_CF_NAME "floating_ice_sheet_area"
 #define CFIO_DIAGNOSTIC_UPPER_SURFACE_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_surface_mass_balance"
 #define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_basal_mass_balance"
-#define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_basal_mass_balance"
+#define CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_basal_mass_balance_floating"
+#define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_basal_mass_balance_grounded"
 #define CFIO_DIAGNOSTIC_CALVING_FLUX_CF_NAME "tendency_of_land_ice_mass_due_to_calving"
+#define CFIO_DIAGNOSTIC_GL_FLUX_CF_NAME "tendency_of_grounded_ice_mass_due_to_discharge"
 #define CFIO_DIAGNOSTIC_ICE_FRONT_CALVING_AND_MELTING_CF_NAME "tendency_of_land_ice_mass_due_to_calving_and_ice_front_melting"
 
 #define CFIO_DIAGNOSTIC_ICE_VOLUME_LONG_NAME "Ice mass"
@@ -103,8 +107,10 @@ namespace MaskedIntegration
 #define CFIO_DIAGNOSTIC_FLOATING_ICE_AREA_LONG_NAME "Area covered by floating ice"
 #define CFIO_DIAGNOSTIC_UPPER_SURFACE_FLUX_LONG_NAME "Total SMB flux"
 #define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLUX_LONG_NAME "Total BMB flux"
+#define CFIO_DIAGNOSTIC_LOWER_SURFACE_GROUNDED_ICE_FLUX_LONG_NAME "Total BMB flux beneath grounded ice"
 #define CFIO_DIAGNOSTIC_LOWER_SURFACE_FLOATING_ICE_FLUX_LONG_NAME "Total BMB flux beneath floating ice"
 #define CFIO_DIAGNOSTIC_CALVING_FLUX_LONG_NAME "Total calving flux"
+#define CFIO_DIAGNOSTIC_GL_FLUX_LONG_NAME "Total grounding line flux"
 #define CFIO_DIAGNOSTIC_ICE_FRONT_CALVING_AND_MELTING_LONG_NAME "Total calving and ice front melting flux"
 
 struct cfDiagnostic
@@ -125,8 +131,10 @@ class DomainDiagnosticData
   Vector<Real> m_ice_floating_area; // floating ice area
   Vector<Real> m_ice_total_smb; // total SMB over ice covered regions
   Vector<Real> m_ice_total_bmb; // total BMB over ice covered regions
+  Vector<Real> m_ice_grounded_total_bmb; // total BMB over floating ice
   Vector<Real> m_ice_floating_total_bmb; // total BMB over floating ice
   Vector<Real> m_ice_total_calving_flux; // total calving flux
+  Vector<Real> m_ice_total_gl_flux; // total gl flux
   Vector<Real> m_ice_total_calving_and_ice_front_melting_flux; // total calving and ice front melting flux
 
   Real m_previous_time, m_previous_volume; // used for computing the calving rate
@@ -170,10 +178,10 @@ public:
      [9] total calving and ice front melting flux.  
 
    */
-  Real m_diagnostic_values[10]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; 
+  //Real m_diagnostic_values[16]={0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, .0}; 
   //cfDiagnostic m_cf_stuff[10]; 
-  vector<cfDiagnostic> m_cf_stuff; 
-
+  vector<cfDiagnostic> m_cf_stuff;
+  
   /// if true, report sum(grounded ice) as well as sum(total ice)
   bool m_report_grounded_ice;
 

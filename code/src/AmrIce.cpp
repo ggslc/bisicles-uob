@@ -77,7 +77,7 @@ using std::string;
 // small parameter defining when times are equal
 #define TIME_EPS 1.0e-12
 
-int AmrIce::s_verbosity = 1;
+
       
 /// fill flattened Fortran array of data with ice thickness
 void
@@ -347,7 +347,7 @@ AmrIce::setDefaults()
 
 AmrIce::~AmrIce()
 {
-  if (s_verbosity > 4)
+  if (m_verbosity > 4)
     {
       pout() << "AmrIce::~AmrIce()" << endl;
     }
@@ -799,7 +799,7 @@ AmrIce::initialize()
 {
 
   CH_TIME("AmrIce::initialize");
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       pout() << "AmrIce::initialize" << endl;
     }
@@ -937,7 +937,8 @@ AmrIce::initialize()
       m_refinement_ratios[0] = -1;
     }
 
-  ppAmr.query("verbosity", s_verbosity);
+  m_verbosity = 1;
+  ppAmr.query("verbosity", m_verbosity);
   ppAmr.get("regrid_interval", m_regrid_interval);
   m_n_regrids = 0;
   ppAmr.query("interpolate_zb", m_interpolate_zb);
@@ -1539,9 +1540,12 @@ AmrIce::initialize()
       string restart_file;
       ppAmr.query("force_gia_init", m_force_gia_init);
       ppAmr.get("restart_file", restart_file);
+      //optionally, specify a CF restart file
+      string cf_restart_file("");
+      ppAmr.query("cf_restart_file", cf_restart_file);
       m_do_restart = true;
 #ifdef CH_USE_HDF5
-      restart(restart_file);
+      restart(restart_file, cf_restart_file);
 #else
       MayDay::Error("restart_file specified but hdf5 support not built"); 
 #endif // hdf5
@@ -1706,7 +1710,7 @@ AmrIce::defineSolver()
                           dxCrse,
                           m_thicknessIBCPtr,
                           numLevels);
-      m_velSolver->setVerbosity(s_verbosity);
+      m_velSolver->setVerbosity(m_verbosity);
 
       m_velSolver->setTolerance(m_velocity_solver_tolerance);
 
@@ -1832,7 +1836,7 @@ AmrIce::run2(Real a_max_time, int a_max_step)
 
   CH_TIME("AmrIce::run2");
   
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       pout() << "AmrIce::run -- max_time= " << a_max_time 
              << ", max_step = " << a_max_step << endl;
@@ -1857,6 +1861,34 @@ AmrIce::run2(Real a_max_time, int a_max_step)
 	}
       timeStep2(dt);
     }
+
+#ifdef CH_USE_HDF5
+  
+  // dump out final plotfile, if appropriate
+  if (m_plot_interval >= 0)
+    {  
+      if (m_verbosity > 2)
+        {
+          pout() << "AmrIce::run2 final plot" << endl;
+        }  
+
+      writePlotFile();
+    }
+
+
+  // dump out final checkpoint file, if appropriate
+  if (m_check_interval >= 0)
+    {
+      if (m_verbosity > 2)
+       {
+         pout() << "AmrIce::run2 final checkpoint" << endl;
+       }
+
+      writeCheckpointFile();
+    }
+#endif    
+ 
+
 }
 
 /// set H += (source terms - div(u H ) ) * a_dt  
@@ -1963,7 +1995,7 @@ void AmrIce::advectH(Vector<LevelData<FArrayBox>*>& a_H, Vector<LevelData<FArray
       if (m_evolve_ice_frac) advectIceFrac(a_f, m_faceVelAdvection, ddt);
       
       
-      if (s_verbosity > 3)  pout() << "AmrIce::advectH -- time = " << m_time + dt + ddt << endl;
+      if (m_verbosity > 3)  pout() << "AmrIce::advectH -- time = " << m_time + dt + ddt << endl;
       dt += ddt;
       
     }
@@ -2079,7 +2111,7 @@ AmrIce::timeStep2(Real a_dt)
   CH_assert(m_isothermal);
   
   CH_TIME("AmrIce::timeStep2");
-  if (s_verbosity >=2) 
+  if (m_verbosity >=2) 
     {
       pout() << "Timestep (v2) " << m_cur_step 
              << " Advancing solution from time " 
@@ -2162,7 +2194,7 @@ AmrIce::timeStep2(Real a_dt)
       //update the velocity
       if (m_evolve_velocity )
 	{
-	  if (s_verbosity > 3) 
+	  if (m_verbosity > 3) 
 	    pout() << "AmrIce::timeStep2 solveVelocityField() (intermediate) " << endl;
 	  m_time = inter_time;
 	  solveVelocityField();
@@ -2222,7 +2254,7 @@ AmrIce::timeStep2(Real a_dt)
   //final velocity update
   if (m_evolve_velocity )
     {
-      if (s_verbosity > 3) 
+      if (m_verbosity > 3) 
 	pout() << "AmrIce::timeStep2 solveVelocityField() (final) " << endl;
       solveVelocityField();
     }
@@ -2246,7 +2278,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
 
   CH_TIME("AmrIce::run");
   
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     {
       pout() << "AmrIce::run -- max_time= " << a_max_time 
              << ", max_step = " << a_max_step << endl;
@@ -2300,7 +2332,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
 	      writeCheckpointFile();
 	      if (m_cur_step > 0 && m_check_exit)
 		{
-		  if (s_verbosity > 2)
+		  if (m_verbosity > 2)
 		    {
 		      pout() << "AmrIce::exit on checkpoint" << endl;
 		      return;
@@ -2340,11 +2372,16 @@ AmrIce::run(Real a_max_time, int a_max_step)
 #endif
     } // end timestepping loop
  
-  // dump out final plotfile, if appropriate
 #ifdef CH_USE_HDF5
   
+  // dump out final plotfile, if appropriate
   if (m_plot_interval >= 0)
-    {
+    {  
+      if (m_verbosity > 2)
+        {
+          pout() << "AmrIce::run final plot" << endl;
+        }  
+
       writePlotFile();
     }
 
@@ -2352,11 +2389,16 @@ AmrIce::run(Real a_max_time, int a_max_step)
   // dump out final checkpoint file, if appropriate
   if (m_check_interval >= 0)
     {
+      if (m_verbosity > 2)
+       {
+         pout() << "AmrIce::run final checkpoint" << endl;
+       }
+
       writeCheckpointFile();
     }
 #endif    
   
-  if (s_verbosity > 2)
+  if (m_verbosity > 2)
     {
       pout() << "AmrIce::run finished" << endl;
     }
@@ -2369,7 +2411,7 @@ AmrIce::timeStep(Real a_dt)
 
   CH_TIME("AmrIce::timestep");
     
-  if (s_verbosity >=2) 
+  if (m_verbosity >=2) 
     {
       pout() << "Timestep " << m_cur_step 
              << " Advancing solution from time " 
@@ -2555,14 +2597,14 @@ AmrIce::timeStep(Real a_dt)
   // compute new ice velocity field
   if (m_evolve_velocity )
     {
-      if (s_verbosity > 3) 
+      if (m_verbosity > 3) 
 	{
 	  pout() << "AmrIce::timeStep solveVelocityField() (step end) " << endl;
 	}
       solveVelocityField();
     }
   
-  if (s_verbosity > 0) 
+  if (m_verbosity > 0) 
     {
       pout () << "AmrIce::timestep " << m_cur_step
               << " --     end time = " 
@@ -2581,7 +2623,7 @@ AmrIce::timeStep(Real a_dt)
       totalCellsAdvanced += m_num_cells[lev];
     }
      
-  if (s_verbosity > 0) 
+  if (m_verbosity > 0) 
     {
       pout() << "Time = " << m_time  
              << " cells advanced = " 
@@ -3306,7 +3348,7 @@ AmrIce::initData(Vector<RefCountedPtr<LevelSigmaCS> >& a_vectCoordSys,
   CH_TIME("AmrIce::initData");
   //  for (int i=0; i < 
   //m_diagnostic_values[]={0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0};
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::initData" << endl;
     }
@@ -3449,7 +3491,7 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
   defineVelRHS(vectRhs);
 
   // write out sumRhs if appropriate
-  if (s_verbosity > 3)
+  if (m_verbosity > 3)
     {
       Real sumRhs = computeSum(vectRhs,
                                m_refinement_ratios,
@@ -3498,7 +3540,7 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
 	    }
 	  else if (m_initialGuessType == ConstMu)
 	    {
-	      if (s_verbosity > 3) 
+	      if (m_verbosity > 3) 
 		{
 		  pout() << "computing an initial guess by solving the velocity equations "
 			 <<" with constant mu = " 
@@ -3743,8 +3785,7 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
 	    
 	} // end if (a_forceSolve || ((m_cur_step+1)%m_velocity_solve_interval == 0))
   
-      // update the viscous tensor  
-      updateViscousTensor();
+      
       //allow calving model to modify geometry 
       applyCalvingCriterion(CalvingModel::PostVelocitySolve);
 	
@@ -3753,7 +3794,9 @@ AmrIce::solveVelocityField(bool a_forceSolve, Real a_convergenceMetric)
       notifyObservers(Observer::PostVelocitySolve);
 	
     } // end if (m_doInitialSolve)
-
+  
+  // update the viscous tensor  
+  updateViscousTensor();
   // (optionally ) deal with excessive speeds at fronts
   {
     ParmParse ppAmr("amr");
@@ -4729,7 +4772,7 @@ AmrIce::computeDt()
 Real 
 AmrIce::computeDtCFL()
 {
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::computeDtCFL" << endl;
     }
@@ -4809,7 +4852,7 @@ AmrIce::computeDtCFL()
   }
   
   m_stable_dt = dt;
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::computeDt dt = " << dt << ", max vel = " << maxVelAll <<  endl;
     }
@@ -4836,7 +4879,7 @@ Real
 AmrIce::computeInitialDt()
 {
 
-  if (s_verbosity > 3) 
+  if (m_verbosity > 3) 
     { 
       pout() << "AmrIce::computeInitialDt" << endl;
     }
@@ -4872,7 +4915,7 @@ void AmrIce::updateGroundingLineProximity() const
       m_groundingLineProximity.resize(m_finest_level + 1, NULL);
     }
 
-  if (s_verbosity > 0)
+  if (m_verbosity > 0)
     {
       pout() << "AmrIce::updateGroundingLineProximity() max level = " << m_finest_level << " " << endl; 
     }
@@ -4991,7 +5034,7 @@ void AmrIce::updateGroundingLineProximity() const
     = new RelaxSolver<Vector<LevelData<FArrayBox>* > >();
 
   relaxSolver->define(&poissonOp,false);
-  relaxSolver->m_verbosity = s_verbosity;
+  relaxSolver->m_verbosity = m_verbosity;
   relaxSolver->m_normType = 0;
   relaxSolver->m_eps = 1.0e-8;
   relaxSolver->m_imax = 12;
@@ -5409,7 +5452,7 @@ void AmrIce::eliminateRemoteIce()
 				 m_amrGrids, m_amrDomains, 
 				 m_refinement_ratios, m_amrDx[0], 
 				 m_finest_level, m_eliminate_remote_ice_max_iter,
-				 m_eliminate_remote_ice_tol,s_verbosity);
+				 m_eliminate_remote_ice_tol,m_verbosity);
 
   //any thickness change in eliminateRemoteIce is assumed to be calving: observers may care
   notifyObservers(Observer::PostCalving);
@@ -5428,7 +5471,7 @@ AmrIce::implicitThicknessCorrection(Real a_dt,
 {
 
   CH_TIME("AmrIce::implicitThicknessCorrection");
-  if (s_verbosity > 3)
+  if (m_verbosity > 3)
     {
       pout() << "AmrIce::implicitThicknessCorrection" << std::endl;
     }
@@ -5610,7 +5653,7 @@ void AmrIce::helmholtzSolve
       mgSolver.m_pre = numMGSmooth;
       mgSolver.m_post = numMGSmooth;
       mgSolver.m_bottom = numMGSmooth;
-      mgSolver.m_verbosity = s_verbosity - 1;
+      mgSolver.m_verbosity = m_verbosity - 1;
       
       mgSolver.solve(phi, rhs, m_finest_level, 0,  false);
       
@@ -5667,7 +5710,7 @@ void AmrIce::computeA(Vector<LevelData<FArrayBox>* >& a_A,
 		      const Vector<RefCountedPtr<LevelSigmaCS> >& a_coordSys) const
 		      
 {
-  if (s_verbosity > 0)
+  if (m_verbosity > 0)
     {
       pout() <<  "AmrIce::computeA" <<  std::endl;
     }
@@ -5713,7 +5756,7 @@ void AmrIce::computeA(Vector<LevelData<FArrayBox>* >& a_A,
    
     }//end loop over AMR levels
 
-  if (s_verbosity > 0)
+  if (m_verbosity > 0)
     {
       Real Amin = computeMin(a_A,  m_refinement_ratios, Interval(0,a_A[0]->nComp()-1));
       Real Amax = computeMax(a_A,  m_refinement_ratios, Interval(0,a_A[0]->nComp()-1));
