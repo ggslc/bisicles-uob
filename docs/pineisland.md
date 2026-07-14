@@ -28,7 +28,7 @@ under the influence of sub-shelf melting. To that end we will
 Pre-processing might involve a few steps : here we take a subset of the
 original elevation and topography data to cover a 256 x 384 grid -
 because we use a multigrid solver in BISICLES, it is essential that the
-geometry is of dimensions (nx,ny) = (2\^n \* a , 2\^m \* b), where n and
+geometry is of dimensions (nx,ny) = (2 ^n  * a , 2 ^m  * b), where n and
 m are integers and a and b are small integers. We then crudely estimate
 a basal traction coefficient from velocity data, and invent a
 temperature structure. This step is somewhat iterative with actually
@@ -47,8 +47,8 @@ appropriate directory
           > cd $BISICLES_HOME/BISICLES/examples/PineIslandGlacier
         
 
-then, if your netcdf is not installed at \$BISICLES_HOME/netcdf, edit
-the file \'GNUMakefile\' to give the correct value for NETCDF_HOME. Then
+then, if your netcdf is not installed at  $BISICLES_HOME/netcdf, edit
+the file  'GNUMakefile ' to give the correct value for NETCDF_HOME. Then
 make and execute, like so (you can skip this step)
 
           > make friction
@@ -56,7 +56,7 @@ make and execute, like so (you can skip this step)
         
 
 Some text will be written to standard output, and the end result is a
-file containing \'pig-bisicles-1km.nc\'. You can have a quick look at
+file containing  'pig-bisicles-1km.nc '. You can have a quick look at
 the contents by running
 
           > $BISICLES_HOME/netcdf/serial/bin/ncdump pig-bisicles-1km.nc | head -n 30
@@ -95,7 +95,7 @@ and you should see:
 
 The first part of the output above is a list of the basic variables we
 need, and they sit on a uniform, square cell 256 x 384 grid in (x,y)
-that we\'ll call the **data level grid**. BISICLES will perform its
+that we 'll call the **data level grid**. BISICLES will perform its
 calculations on a set of level grids, one of which will have the same
 mesh spacing as the data level grid, some of which may be coarser , and
 some of which will be finer. As for the vertical direction, the ice
@@ -130,7 +130,7 @@ nctoamr tool to convert it into a Chombo AMR hierarchy stored in an
 
 and you should end up with a file called pig-bisicles-1km.2d.hdf5 that
 has the same data as pig-bisicles-1km.nc. You can inspect the contents
-of this file with the h5ls and h5dump programs, but it won\'t be pretty.
+of this file with the h5ls and h5dump programs, but it won 't be pretty.
 Instead, copy the file to your workstation and open into
 [VisIt](visit.md) which has a special module for viewing Chombo AMR
 hierarchies.
@@ -148,8 +148,8 @@ inputs.pigv5.1km.l1l2.l2, where l1l2 stands for the choice of the
 Schoof-Hindmarsh L1L2 physics (as opposed to ssa, for shelfy-stream
 approximation (aka shallow-shelf approximation)) and l2 stands for 2
 levels of refinement (on top of the base level, to give us 2 level
-grids). The names aren\'t important of course, only the contents. Below,
-we\'ll look at the entries in inputs.pigv5.1km.l1l2.l2.
+grids). The names aren 't important of course, only the contents. Below,
+we 'll look at the entries in inputs.pigv5.1km.l1l2.l2.
 
 The first section sets up the domain.
 
@@ -184,8 +184,8 @@ temperature dependent A(T) (as in, for example, Cuffey and Paterson,
 2010).
 
 We also need to specify a rule for basal friction: here we are using a
-power law (Weertman) rule, where the friction \|T(x,y)\| = beta(x,y) \*
-\|u(x,y)\|\^1/3.
+power law (Weertman) rule, where the friction  |T(x,y) | = beta(x,y)  *
+ |u(x,y) | ^1/3.
 
     #basal friction relation parameters
     main.basalFrictionRelation = powerLaw
@@ -217,7 +217,7 @@ also include an entry for amr.sigma, which specifies the sigma values of
 the layer interfaces, starting from the upper surface and finishing at
 the base. Therefore, amr.sigma should list n+1 numbers, where n is the
 number of layers. As for inputLevelData.temperatureName, we need to give
-the name of the first layer\'s temperature field, and the remaining n-1
+the name of the first layer 's temperature field, and the remaining n-1
 will be read from the next n-1 fields in the file, in order.
 
 It is also possible to specify a few physical constants, such as ice
@@ -297,8 +297,8 @@ equations are solved.
 
 We will not say much about these, except that if
 JFNKSolver.writeResiduals = true is present (not commented, as it is
-above), a file named \'jknkopres.XXXXXX.2d.hdf5\' will be written to
-disk on every evaluation of the stress-balance equation\'s residuals,
+above), a file named  'jknkopres.XXXXXX.2d.hdf5 ' will be written to
+disk on every evaluation of the stress-balance equation 's residuals,
 containing velocity and residual data. These are useful when trying to
 understand solver failures.
 
@@ -407,7 +407,7 @@ There are 10 entries (corresponding to amr.max_level=10 : level 10 is
 never refined), each of which consists of the string level X on one
 line, the number, n, of subset boxes on the next line, then n lines
 indicating the indices of the corners of the box. For now, follow this
-format exactly (if amr.tagSubsetBoxesFile exists at all) . We\'ll
+format exactly (if amr.tagSubsetBoxesFile exists at all) . We 'll
 improve this soon to allow comments and so on.
 
 ## [Running a simulation](#runpig)
@@ -422,7 +422,7 @@ e.g
 
     > $BISICLES_HOME/BISICLES/code/exec2D/driver2d.Linux.64.g++.gfortran.DEBUG.OPT.ex inputs.pigv5.1km.l1l2.l2 > sout.0 2>err.0 &
 
-In both cases, you can view the resulting plot\*2d.hdf5 files in visit.
+In both cases, you can view the resulting plot *2d.hdf5 files in visit.
 You should see the grounding line of Pine Island Glacier retreat rather
 rapidly in either case, and the AMR mesh changing to follow it. If you
 do have the time, try running the simulation for a range of finest

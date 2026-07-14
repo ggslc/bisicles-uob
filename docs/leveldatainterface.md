@@ -17,7 +17,7 @@ file stored as hdf5, with a single level of data covering the whole
 computational domain. This **data level grid** will usually have a
 resolution that coincides with one of the AMR levels specified by the
 input file parameters amr.num_cells,amr.maxLevel and amr.ref_ratio. More
-generally, it can have a resolution which is 2\^n (where n is an
+generally, it can have a resolution which is 2 ^n (where n is an
 integer) times coarser or finer than any of the AMR levels. The simplest
 way to produce the correct kind of file is to create a netcdf file and
 convert it with the [nctoamr file tool](filetools.md#nctoamr), as in
@@ -30,8 +30,8 @@ elevation map (DEM). To load a DEM into BISICLES, determine the bedrock
 topography and ice thickness, and create an appropriate hdf5 file from
 those fields. In the [Pine Island Glacier example](pineisland.md), the
 following lines are used to select an initial geometry loaded from a
-file named \'pig-bisicles-1km.2d.hdf5\', in which the relevant fields
-are called \"thk\" and \"topg\"
+file named  'pig-bisicles-1km.2d.hdf5 ', in which the relevant fields
+are called  "thk " and  "topg "
 
     geometry.problem_type = LevelData
     inputLevelData.geometryFile = pig-bisicles-1km.2d.hdf5
@@ -90,7 +90,7 @@ lines are relevant.
 
 Note the 11 values of sigma; these are the values at the layer faces.
 The temperature values are stored at the layer midpoint, so 10 are
-needed, with the first called \"temp000000\".
+needed, with the first called  "temp000000 ".
 
 ## [Basal traction coefficient](#btrc)
 

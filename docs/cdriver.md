@@ -35,18 +35,18 @@ A calling program will typically:
     obtaining an integer key that will be used in all subsequent calls.
 3.  Allocate memory for data to BISICLES to read, such as surface mass
     balance
-4.  Make multiple calls to (f\_)bisicles_set_2d_data to instruct
+4.  Make multiple calls to (f _)bisicles_set_2d_data to instruct
     BISICLES to read e.g surface mass balance from a particular array.
-5.  Call (f\_)bisicles_init_instance: after this point it is possible to
+5.  Call (f _)bisicles_init_instance: after this point it is possible to
     change the (e.g) surface mass balance data but **not its memory
     address**.
 6.  Call f_bisicles_get_2d_data to e.g the ice sheet upper surface
     elevation into rectangular arrays.
 7.  Modify (e.g) the surface mass balance data.
-8.  Call (f\_)bisicles_advance to instruct BISICLES to advance in time
+8.  Call (f _)bisicles_advance to instruct BISICLES to advance in time
 9.  Repeat steps 6-8 till complete.
 10. Shut down the BISICLES instance by calling
-    (f\_)bisicles_free_instance.
+    (f _)bisicles_free_instance.
 11. Shut down MPI , if applicable.
 
 ## [FORTRAN 90 example](#fortran)

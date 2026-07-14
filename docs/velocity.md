@@ -19,17 +19,17 @@ Additional options include
       amr.velocity_solver_interval = < integer n, default 1 > recompute the velocity every n timesteps.
       amr.regrid_interval = < integer m, default 1 > recompute the mesh and velocity every m timesteps.
 
-Options for \< solver_type \> are
+Options for  < solver_type  > are
 
-0.  [Picard Solver](#picard) \[deprecated, because the JFNKSolver
-    provides the same functionality\]
+0.  [Picard Solver](#picard)  [deprecated, because the JFNKSolver
+    provides the same functionality ]
 1.  [JFNK Solver](#jfnk) (the default) solves the vertically integrated
     (SSA, L1L2) stress equations using a matrix-free Newton method.
 2.  [Known Velocity](#known) specifies a known velocity
-3.  [Petsc Nonlinear Solver](#snes) \[EXPERIMENTAL\] solves the
+3.  [Petsc Nonlinear Solver](#snes)  [EXPERIMENTAL ] solves the
     vertically integrated (SSA, L1L2) stress equations using a PETSc
     SNES.
-4.  [FASMGAMR](#fas) \[EXPERIMENTAL\] A full-approximation storage
+4.  [FASMGAMR](#fas)  [EXPERIMENTAL ] A full-approximation storage
     solver for the vertically integrated (SSA, L1L2) stress equations.
 5.  [Python](#python) specifies velocity through the python interface
 6.  [Inverse Vertically Integrated Velocity Solver](#inversevi)
@@ -92,8 +92,8 @@ solvers,
 
 2.  Edit your BISICLES input file. There are two ways to use PETSC:
 
-3.  As a bottom solver in the Chombo GMG solver. (if you don\'t know
-    what that means, don\'t worry \-- suffice it to say that in many
+3.  As a bottom solver in the Chombo GMG solver. (if you don 't know
+    what that means, don 't worry  -- suffice it to say that in many
     cases, this option occupies the middle ground between the Chombo
     native GMG solvers and a full AMR AMG solver.). Assuming you are
     using the JFNKSolver for your velocity solve, add the following line
@@ -101,8 +101,8 @@ solvers,
 
         JFNKSolver.bottom_solver_type = 1
 
-4.  If that doesn\'t help, then you\'re ready for the full AMR PETSc
-    solver. Assuming once again that you\'re using the JFNKSolver, then
+4.  If that doesn 't help, then you 're ready for the full AMR PETSc
+    solver. Assuming once again that you 're using the JFNKSolver, then
     change
 
          

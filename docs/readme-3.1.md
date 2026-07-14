@@ -1,6 +1,6 @@
 [User documentation index](index.md)
 
-# BISICLES build instructions (deprecated \-- Chombo 3.1)
+# BISICLES build instructions (deprecated  -- Chombo 3.1)
 
 To build (and run) BISICLES you need to
 
@@ -44,7 +44,7 @@ There are some [site specific notes](sites.md)
 Since this readme file lives in the source code repository, you might
 have already checked the source code out. There are two source trees,
 Chombo, and BISICLES, and the rest of this guide assumes that you have a
-directory called \$BISICLES_HOME which contains the two.
+directory called  $BISICLES_HOME which contains the two.
 
 To obtain the source trees, you first need an [ANAG repository
 account](https://anag-repo.lbl.gov/). Once that is sorted out, create a
@@ -66,7 +66,7 @@ the current release. Three approaches to hdf5 will work:
 
 -   Download the older 1.6 version of hdf5 and build against that one.
 -   Download the current 1.8 release and make sure the compilation flag
-    \"-DH5_USE_16_API\" is present to Make.defs.local
+     "-DH5_USE_16_API " is present to Make.defs.local
 -   Use an already installed hdf5, and modify Make.defs.local
     accordingly
 
@@ -80,10 +80,10 @@ netcdf. So, while you could use the version installed on your system it
 is often simpler to compile netCDF from source.
 
 There should be a script, download_dependencies.sh (in the same
-directory as this file, \$BISICLES_HOME/BISICLES/docs) that will get the
+directory as this file,  $BISICLES_HOME/BISICLES/docs) that will get the
 (version 1.8.9) hdf5 sources and unpack them, twice : once into
 hdf5/serial/src and once into hdf5/parallel/src. It assumes
-\$BISICLES_HOME is set. It should contain the following
+ $BISICLES_HOME is set. It should contain the following
 
     cd $BISICLES_HOME
     echo `pwd`
@@ -130,7 +130,7 @@ and configure hdf5 like so
 
     CC=gcc CFLAGS=-fPIC ./configure --prefix=$BISICLES_HOME/hdf5/serial/ --enable-shared=no
 
-note the \--enable-shared=no. This isn\'t strictly necessary - you could
+note the  --enable-shared=no. This isn 't strictly necessary - you could
 use shared libraries - but we find they are more trouble than they are
 worth, especially when running on clusters. The -fPIC flag will be
 useful later if you want to build the experimental libamrfile.so shared
@@ -172,7 +172,7 @@ reads as follows:
        Optimization Instrumentation: no
            Large File Support (LFS): yes
 
-Don\'t worry that the C++ and Fortran languages are not enabled : Chombo
+Don 't worry that the C++ and Fortran languages are not enabled : Chombo
 uses the C interface, and (when we come to compile that too), so does
 netcdf. Assuming this is all OK, type
 
@@ -180,7 +180,7 @@ netcdf. Assuming this is all OK, type
 
 and you, after a round of compiling and copying, you should see that the
 hdf5 libraries bin,doc,include and src have appeared in
-\$BISICLES_HOME/hdf5/serial/.
+ $BISICLES_HOME/hdf5/serial/.
 
 ### Building parallel hdf5
 
@@ -194,7 +194,7 @@ place of gcc
 
     > CC=mpicc ./configure --prefix=$BISICLES_HOME/hdf5/parallel/ --enable-shared=no
 
-This time, configure\'s final report should read
+This time, configure 's final report should read
 
 
                 SUMMARY OF THE HDF5 CONFIGURATION
@@ -227,14 +227,14 @@ This time, configure\'s final report should read
        Optimization Instrumentation: no
            Large File Support (LFS): yes
 
-Note especially the line \'Parallel HDF5: mpicc \'
+Note especially the line  'Parallel HDF5: mpicc  '
 
 Assuming this is all OK, type
 
     > make install
 
 this time, the bin,doc,include and src directories should end up in
-\$BISICLES_HOME/hdf5/parallel/.
+ $BISICLES_HOME/hdf5/parallel/.
 
 ### Building serial netcdf
 
@@ -243,7 +243,7 @@ the appropriate source directory
 
     > cd $BISICLES_HOME/netcdf/serial/src/netcdf-4.1.3/
 
-Now, netcdf needs to link hdf5 : it doesn\'t really matter which version
+Now, netcdf needs to link hdf5 : it doesn 't really matter which version
 but we might as well use the one we have. So, we have a custom configure
 line
 
@@ -254,7 +254,7 @@ Next, compile, test, and install netcdf
     > make check install
 
 and assuming all goes well, netcdf 4.1.3 will now be installed in
-\$BISICLES_HOME/netcdf/serial
+ $BISICLES_HOME/netcdf/serial
 
 ### Building parallel netcdf
 
@@ -271,11 +271,11 @@ glimmer-CISM, otherwise it can be skipped.
 
 ## [Chombo configuration](#chombo)
 
-Next we need to set up Combo\'s configuration (which BISICLES will
+Next we need to set up Combo 's configuration (which BISICLES will
 inherit automatically). The main task here is create a file called
-\$BISICLES_HOME/Chombo/lib/mk/Make.defs.local, and there is version
+ $BISICLES_HOME/Chombo/lib/mk/Make.defs.local, and there is version
 stored in this directory that should be easy enough to edit. First, copy
-it into \$BISICLES_HOME
+it into  $BISICLES_HOME
 
     > cp $BISICLES_HOME/BISICLES/docs/Make.defs.local $BISICLES_HOME
 
@@ -284,7 +284,7 @@ At the very least, you will need to edit the line that reads
      
     BISICLES_HOME=..., 
 
-to give the correct value. If you don\'t have MPI, there are a few lines
+to give the correct value. If you don 't have MPI, there are a few lines
 to comment out. You might also want to tinker with the optimization
 flags and so on. Then create a link so that Chombo sees Make.defs.local
 in the place it expects
@@ -299,7 +299,7 @@ straightforward in modern GNU/linux distributions, since Python is so
 widespread. Before you can compile BISICLES with Python support, find
 out
 
-1.  where the header file \"Python.h\" lives; /usr/include/python2.6,
+1.  where the header file  "Python.h " lives; /usr/include/python2.6,
     for example
 2.  what linker flags you need, for example -lpython2.6
 
@@ -369,14 +369,14 @@ for optimized parallel builds
 
 ## [Make realclean](#makerealclean)
 
-In the event even more houscleaning is desired, the \"realclean\" target
-does everything the \"clean\" target does, and additionally removes many
-other user-generated files, including all files with the \".hdf5\"
+In the event even more houscleaning is desired, the  "realclean " target
+does everything the  "clean " target does, and additionally removes many
+other user-generated files, including all files with the  ".hdf5 "
 suffix (including checkpoint and plot files).
 
 ## [Running BISICLES on a simple problem](#example)
 
-All the data to run [Frank Pattyn\'s MISMIP3D P075
+All the data to run [Frank Pattyn 's MISMIP3D P075
 experiment](http://homepages.ulb.ac.be/~fpattyn/mismip3d/welcome.md)
 is already present. Change to the MISMIP3D subdirectory, and generate
 some input files from a template.
@@ -397,7 +397,7 @@ You can watch progress by typing
 
     > tail -f sout.0
 
-and eventually, you will get a series of plot\*2d.hdf5 files that you
+and eventually, you will get a series of plot *2d.hdf5 files that you
 can view in visit
 
 ### Running on a parallel Workstation
@@ -423,7 +423,7 @@ You can watch progress by typing
 
     > tail -f pout.0
 
-and eventually, you will get a series of plot\*2d.hdf5 files that you
+and eventually, you will get a series of plot *2d.hdf5 files that you
 can view in visit
 
 ### Running on a cluster
@@ -433,7 +433,7 @@ See the [Site specific notes](sites.md)
 ### [Compiling and using the file tools](#nctoamr)
 
 To compile the file tools you might need to edit file
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs. If you have installed
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs. If you have installed
 BISICLES (and netcdf in particular) following this guide, there should
 be no need, but otherwise make sure that the variable NETCDF_HOME points
 to the parent directory of the netcdf include and lib directories. There

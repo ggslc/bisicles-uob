@@ -13,7 +13,7 @@
           
 
     In this case, either rift.py does not exists, or, it is in a
-    directory outside \$PYTHONPATH. By default \$PYTHONPATH does not
+    directory outside  $PYTHONPATH. By default  $PYTHONPATH does not
     include the current working directory, so this is an easy mistake to
     make. Try e.g
 
@@ -25,7 +25,7 @@
 Sometimes the code starts, but then terminates, leaving a more or less
 cryptic error in one other other log.
 
-1.  **maxFaceVelocity \> 0.5 \* HUGE_VEL**. A very common error. It
+1.  **maxFaceVelocity  > 0.5  * HUGE_VEL**. A very common error. It
     implies that the velocity solver - which can fail for many reasons,
     has produced an enormous speed somewhere. Start off by looking at
     the [velocity calculation](velocity.md), but be aware that the

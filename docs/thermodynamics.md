@@ -49,7 +49,7 @@ for mass can be employed to set these fluxes, with
       surfaceHeatBoundaryData.type = ...
       basalHeatBundaryData.type = ...
 
-The fluxes are measured in J/a/m\^2. It is also possible to set an upper
+The fluxes are measured in J/a/m ^2. It is also possible to set an upper
 surface temperature, rather than a heat flux, by setting
 
       surfaceHeatBoundaryData.Dirichlett = true  # false by default
@@ -113,7 +113,7 @@ A more sophisticated basal hydrology model is in development.
 
 The thermodynamics model is coupled with the stress balance model
 through an (optional) temperature dependence of the rate factor that
-appear in Glen\'s Law etc ( A(T) ), through an (optional) similar factor
+appear in Glen 's Law etc ( A(T) ), through an (optional) similar factor
 in the basal traction that affects Weertman friction rules, and through
 a relationship between till water depth and effective pressure that
 affects Coulomb friction rules.

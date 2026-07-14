@@ -11,7 +11,7 @@ Ubuntu installed. On Ubuntu 22.04 or 24.04 run
 
 If you want to use python for analysis you will need the usual libraries
 (numpy, matplotlib etc) The file
-\$BISICLES_HOME/Chombo/lib/mk/Make.defs.local should contain:
+ $BISICLES_HOME/Chombo/lib/mk/Make.defs.local should contain:
 
     PRECISION     = DOUBLE  
     CXX           = g++
@@ -30,9 +30,9 @@ If you want to use python for analysis you will need the usual libraries
     FFTW_3=TRUE
     FFTWDIR=/usr
 
-and the file \$BISICLES_HOME/BISICLES/code/mk/Make.defs.\$mymachine
-(where \$mymachine is the output from \'uname -n\') can be copied from
-s\$BISICLES_HOME/BISICLES/code/mk/Make.defs.ubuntu_22.4 (or 24.04) and
+and the file  $BISICLES_HOME/BISICLES/code/mk/Make.defs. $mymachine
+(where  $mymachine is the output from  'uname -n ') can be copied from
+s $BISICLES_HOME/BISICLES/code/mk/Make.defs.ubuntu_22.4 (or 24.04) and
 should contain
 
     PYTHON_INC=$(shell python3-config --includes)
@@ -56,7 +56,7 @@ or (for 24.04),
 
 Then follow the [generic instructions](readme.md). For BISICLES
 configuration, use the file
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs.rocky8. For example,
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs.rocky8. For example,
 
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.rocky8 Make.defs.none
@@ -71,14 +71,14 @@ developers work there.
 Load the modules openmpi/5.0.3-et6p and languages/python/3.8.20 (the
 more recent versions of python contain a libmpi version that conflicts
 with the one in openmpi/5.0.3-et6p). Add the commands below to
-\~/.bash_profile.
+ ~/.bash_profile.
 
       module load languages/python/3.8.20
       module load openmpi/5.0.3-et6p
 
 Then follow the [generic instructions](readme.md). For BISICLES
 configuration, used the file
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs.bp1. For example,
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs.bp1. For example,
 
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.bp1 Make.defs.none
@@ -88,14 +88,14 @@ configuration, used the file
 Load the modules openmpi/5.0.3-gi7y and languages/python/biopython-1.83
 (this version is needed as python/3.12.3 contains a libmpi version that
 conflicts with the one in openmpi/5.0.3-gi7y). Add the commands below to
-\~/.bash_profile.
+ ~/.bash_profile.
 
       module load languages/python/biopython-1.83
       module load openmpi/5.0.3-gi7y
 
 Then follow the [generic instructions](readme.md). For BISICLES
 configuration, used the file
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs.bc4. For example,
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs.bc4. For example,
 
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.bc4 Make.defs.none
@@ -116,7 +116,7 @@ Cray of some sort. To build and run, use the following modules.
 
 There is (as yet) no pre-installed hdf5 or PETSc, so follow the [generic
 instructions](readme.md) to install those. There is no reason to build
-serial hdf5. The file \$BISICLES_HOME/Chombo/lib/mk/Make.defs.local
+serial hdf5. The file  $BISICLES_HOME/Chombo/lib/mk/Make.defs.local
 should contain:
 
     MPI=TRUE 
@@ -139,7 +139,7 @@ should contain:
     HDFINCFLAGS=   -I$(HDF5_SER_DIR)/include
     HDFMPIINCFLAGS=-I$(HDF5_PAR_DIR)/include
 
-The file \$BISICLES_HOME/Chombo/lib/mk/Make.defs.none should include
+The file  $BISICLES_HOME/Chombo/lib/mk/Make.defs.none should include
 
     PYTHON_INC=$(shell python3-config --includes)
     #--ldflags does not include -lpython for reasons that escape me
@@ -155,25 +155,25 @@ may find useful.
 
 The Cray XC40 (
 [Cori](https://www.nersc.gov/users/computational-systems/cori) ) at
-NERSC offers Cray, GNU, and Intel compilers. Cori has two partitions \--
-the Intel Xeon \"Haswell\" partition is often faster execution
+NERSC offers Cray, GNU, and Intel compilers. Cori has two partitions  --
+the Intel Xeon  "Haswell " partition is often faster execution
 time-wise, but has longer waits in the queues. The Knights Landing
-\"KNL\" partition has slower run times, but often significantly faster
+ "KNL " partition has slower run times, but often significantly faster
 turnaround in the queues. I (Dan Martin) generally use the Haswell nodes
 for things like visualization (I use VisIt in client-server mode,
 leaving the data on NERSC), and the KNL nodes for moderate to large
 production runs. We are also maintaining precompiled executables for our
-own (and others\') use if that\'s more convenient. If you have any
+own (and others ') use if that 's more convenient. If you have any
 difficulties with these, e-mail Dan at DFMartin@lbl.gov.
 
-#### Haswell nodes \-- precompiled binaries
+#### Haswell nodes  -- precompiled binaries
 
 The precompiled BISICLES executable for Haswell nodes (from the
 public/trunk branch) can be found at
 
     /global/common/software/m1041/BISICLES/haswell/bin/driver2d.Linux.64.CC.ftn.OPT.MPI.PETSC.ex
 
-To use it, you\'ll need to load the python, GNU PrgEnv, and hdf5 modules
+To use it, you 'll need to load the python, GNU PrgEnv, and hdf5 modules
 as below, and add the python library directory to your LD_LIBRARY_PATH
 environment. In a csh/tcsh environment, this looks like:
 
@@ -186,7 +186,7 @@ environment. In a csh/tcsh environment, this looks like:
     > module load python
     > setenv LD_LIBRARY_PATH ${PYTHON_DIR}/lib:${LD_LIBRARY_PATH}
 
-#### Haswell nodes \-- GNU compilers
+#### Haswell nodes  -- GNU compilers
 
 To compile with GNU, switch to the correct PrgEnv and load an hdf5
 module, plus netcdf and python if desired
@@ -200,7 +200,7 @@ module, plus netcdf and python if desired
 
 To have the python interface work, the compiler needs the -shared and
 -fPIC flags, and the linker needs the -dynamic flag. You may also need
-to have the environment variable CRAYPE_LINK_TYPE set to \"dynamic\"; in
+to have the environment variable CRAYPE_LINK_TYPE set to  "dynamic "; in
 the csh or tcsh shells:
 
     > setenv CRAYPE_LINK_TYPE dynamic
@@ -210,12 +210,12 @@ maintained by Mark Adams:
 
 PETSC_DIR=/global/common/software/m1041/petsc_install/petsc_haswell_gnu
 
-PETSC_ARCH=\"\"
+PETSC_ARCH= " "
 
 You should be able to use the existing
 Chombo/lib/mk/local/Make.defs.cori.hsw.gnu file in the Chombo release as
 a starting point. An example
-\$BISICLES_HOME/Chombo/lib/mk/local/Make.defs.local would be:
+ $BISICLES_HOME/Chombo/lib/mk/local/Make.defs.local would be:
 
     makefiles+=Make.defs.local
 
@@ -263,15 +263,15 @@ csh/tcsh environment, this looks like:
     module load python
     setenv LD_LIBRARY_PATH ${PYTHON_DIR}/lib:${LD_LIBRARY_PATH}
 
-#### KNL Nodes \-- Intel compilers
+#### KNL Nodes  -- Intel compilers
 
 The precompiled BISICLES executable for KNL nodes (from the public/trunk
 branch) can be found at
 
     /global/common/software/m1041/BISICLES/KNL/bin/driver-public2d.Linux.64.CC.ftn.OPT.MPI.PETSC.ex
 
-We\'ve found that the Intel compilers work well for the KNL part of
-Cori. You\'ll first need to load the correct modules and set some
+We 've found that the Intel compilers work well for the KNL part of
+Cori. You 'll first need to load the correct modules and set some
 environment variables (including pointing the build toward the Mark
 Adams-maintained PETSC library).
 
@@ -305,13 +305,13 @@ and runs that we are constantly doing.
 ## [ARCHER](#archer)
 
 The Cray XC30 at ARCHER (UK National HPC) offers Cray, GNU, and Intel
-compilers. Cray is the default (but doesn\'t seem to work for now). All
+compilers. Cray is the default (but doesn 't seem to work for now). All
 three compilers can be supported with a single Make.def.locals, it only
 only necessary to load the correct PrgEnv module and the
 cray-hdf5-parallel. One complexity is with statically versus dynamically
 linked executables. Static linking is often simpler, but, will prevent
 you from using the python interface as freely as you might like - in
-particular, \'import math\', which is needed for many common math
+particular,  'import math ', which is needed for many common math
 functions, will result in a segfault. The alternative is dynamic
 linking, which results in executables that have a longer list of
 dependencies that must be matched between login nodes and compute nodes.
@@ -326,7 +326,7 @@ machine, one possibility is to run a virtual machine with GNU/linux. We
 have found that Oracle virtualbox and Ubuntu 18.04 work well on both
 Windows and MacOS X machines.
 
-### ARCHER \-- GNU compilers \-- static linking
+### ARCHER  -- GNU compilers  -- static linking
 
 For static linking, use the file Make.defs.archer included with Chombo
 
@@ -343,7 +343,7 @@ PrgEnv and load an hdf5 module q
         > module load cray-netcdf-hdf5parallel # if you want to build the filetools
       
 
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs.archer includes the following
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs.archer includes the following
 details for the python interface and netcdf.
 
        
@@ -355,7 +355,7 @@ details for the python interface and netcdf.
         NETCDF_LIBS=-L$(NETCDF_DIR)/lib -lnetcdf
       
 
-Copy this file to Make.defs.none or Make.defs.\$UNAMEN (where \$UNAMEN
+Copy this file to Make.defs.none or Make.defs. $UNAMEN (where  $UNAMEN
 is the output from uname -n) Then compile:
 
       cd BISICLES/code/exec2D
@@ -369,7 +369,7 @@ driver2d.Linux.64.CC.ftn.OPT.MPI.PETSC.GNU.ex
          make all OPT=TRUE MPI=TRUE DEBUG=FALSE USE_PETSC=TRUE 
       
 
-### ARCHER \-- GNU compilers \-- dynamic linking
+### ARCHER  -- GNU compilers  -- dynamic linking
 
 For dynamic linking, use the file Make.defs.archer_dynamic_chombo
 included with BISICLES
@@ -389,7 +389,7 @@ To build with GNU, switch to the correct PrgEnv and load an hdf5 module
         > export CRAYPE_LINK_TYPE dynamic
       
 
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs.archer_dyamic includes the
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs.archer_dyamic includes the
 following details for the python interface and netcdf.
 
         PYTHON_DIR=/work/y07/y07/cse/python/2.7.6/
@@ -399,7 +399,7 @@ following details for the python interface and netcdf.
         NETCDF_INC=-I$(NETCDF_DIR)/include
         NETCDF_LIBS=-L$(NETCDF_DIR)/lib -lnetcdf
 
-Copy this file to Make.defs.none or Make.defs.\$UNAMEN (where \$UNAMEN
+Copy this file to Make.defs.none or Make.defs. $UNAMEN (where  $UNAMEN
 is the output from uname -n) Then compile
 
         cd BISICLES/code/exec2D
@@ -416,7 +416,7 @@ driver2d.Linux.64.CC.ftn.OPT.MPI.PETSC.GNU.DY.ex
 
 ### ARCHER - Intel compilers
 
-Compiling with Intel is essentially the same as with GNU. It\'s just a
+Compiling with Intel is essentially the same as with GNU. It 's just a
 case of running
 
       > module unload PrgEnv-cray PrgEnv-gnu
@@ -434,10 +434,10 @@ driver2d.Linux.64.CC.ftn.OPT.MPI.INTEL.DY.ex)
 
 ### Running jobs on ARCHER
 
-ARCHER\'s compute nodes do not have access to the /home mount point (and
-therefore your home directory) It\'s not obvious where login scripts
+ARCHER 's compute nodes do not have access to the /home mount point (and
+therefore your home directory) It 's not obvious where login scripts
 come from in that case, either. This can all be dealt with inside the
-submission script (the MOM nodes do have access to home\...). A minimal
+submission script (the MOM nodes do have access to home ...). A minimal
 script (run from somewhere in /work) would look something like
 
     #PBS -l walltime=00:10:00 
@@ -466,7 +466,7 @@ NERSC). So much so that the ARCHER makefile seems to work, ie
 
     ln -s $BISICLES_HOME/Chombo/lib/mk/local/Make.defs.archer $BISICLES_HOME/Chombo/lib/mk/Make.defs.local
 
-I\'m assuming that Monsoon users are interested in BISICLES coupled via
+I 'm assuming that Monsoon users are interested in BISICLES coupled via
 glimmer-cism to UKESM, i.e have checked out UniCiCles, and want to use
 the intel compiler.
 
@@ -478,7 +478,7 @@ the intel compiler.
     > module load cray-petsc/3.6.1.0 #optional, needed if you want the petsc solver
 
 If you want the python interface, make sure that
-\$BISICLES_HOME/BISICLES/code/mk/Make.defs includes the following
+ $BISICLES_HOME/BISICLES/code/mk/Make.defs includes the following
 
           
     PYTHON_DIR=opt/python/gnu/2.7.9                                                                                    
@@ -487,7 +487,7 @@ If you want the python interface, make sure that
 
 and for netcdf stuff (e.g glimmer-cism, filetoools)
 
-NETCDF_INC=\$(NETCDF_DIR)/include NETCDF_LIBS=-L\$(NETCDF_DIR)/lib
+NETCDF_INC= $(NETCDF_DIR)/include NETCDF_LIBS=-L $(NETCDF_DIR)/lib
 -lnetcdf
 
 Compile with

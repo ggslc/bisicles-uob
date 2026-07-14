@@ -27,7 +27,7 @@ following operations
 It then runs the following operations until the simulation has completed
 
 1.  Write a check-point file, if required
-2.  If time t \> simulation time, exit, else continue
+2.  If time t  > simulation time, exit, else continue
 3.  Compute surface fluxes (accumulation and melting) given the geometry
     and velocity field
 4.  Compute horizontal thickness and internal energy fluxes given the

@@ -23,7 +23,7 @@ in your Make.defs.local file, e.g
     foptflags     = -fPIC -O3
 
 These flags are already set in the current version of Make.defs.local in
-\$BISICLES_HOME/BISICLES/docs, but were not set in older versions. If
+ $BISICLES_HOME/BISICLES/docs, but were not set in older versions. If
 you see an error like
 
     /usr/bin/ld: $BISICLES_HOME/Chombo/lib/libamrtools2d.Linux.64.g++.gfortran.DEBUG.a(AverageF.o): relocation R_X86_64_32 against `.rodata' can not be used when making a shared object; recompile with -fPIC
@@ -244,10 +244,10 @@ the shared library (libamrfile.so). First, the library needs to be built
     > cd $BISICLES_HOME/BISICLES/code/libamrfile
     > make libamrfile.so 
 
-Then, add \$BISICLES_HOME/BISICLES/code/libamrfile/,
-\$BISICLES_HOME/BISICLES/code/libamrfile/src and
-\$BISICLES_HOME/BISICLES/code/libamrfile/matlab to the MATLAB search
-path. There are a number of issues associated with MATLAB\'s tendency to
+Then, add  $BISICLES_HOME/BISICLES/code/libamrfile/,
+ $BISICLES_HOME/BISICLES/code/libamrfile/src and
+ $BISICLES_HOME/BISICLES/code/libamrfile/matlab to the MATLAB search
+path. There are a number of issues associated with MATLAB 's tendency to
 carry around (potentially conflicting) versions of shared libraries
 around, those we have seen are described [below](#matlablibs)
 
@@ -350,14 +350,14 @@ BISICLES and libamrfile with the same tool chain (gcc-4.4.6 in this
 case, and hdf5 v 1.8.6). That might not be realistic, for example at UoB
 we have gcc-4.7.2 and no desire to switch back to gcc-4.4.6. Forcing
 MATLAB to load the newer libstdc++ by unlinking the symlinks in
-/\<path-to-MATLAB\>/sys/os/glnxa64/ seems to work
+/ <path-to-MATLAB >/sys/os/glnxa64/ seems to work
 
     > cd /<path-to-MATLAB>/sys/os/glnxa64/
     > unlink libstdc++.so.6
     > unlink libgfortran.so.3
 
 Obviously, write access to the MATLAB directories is needed. You might
-also need to unlink and replace MATLAB\'s own copies of libhdf5_hl.so
+also need to unlink and replace MATLAB 's own copies of libhdf5_hl.so
 and libhdf5.so: they are typically older versions and will cause a fatal
 error
 

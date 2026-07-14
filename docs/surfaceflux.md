@@ -5,9 +5,9 @@ the rate at which e.g volume and/or energy is added to the ice sheet.
 Usually, there will be a source of ice thickness at the upper surface,
 and one at the lower surface (or base), the same for heat, and a
 topography flux (bedrock uplift rate). In the code we often call upper
-surface fluxes \'surface flux\' and lower surface fluxes \'basal flux\'
+surface fluxes  'surface flux ' and lower surface fluxes  'basal flux '
 but this can be bit confusing because they are both, strictly speaking,
-\'surface fluxes\'.
+ 'surface fluxes '.
 
 Each of the flux quantities can be specified as either a simple flux or
 a complex fluxes. Simple fluxes just specify a field of values (which
@@ -72,7 +72,7 @@ If you want either flux to be zero, use this. e.g
 
 ### constantFlux
 
-Another straightforward type, where the flux doesn\'t depend on time or
+Another straightforward type, where the flux doesn 't depend on time or
 space.
 
     surfaceFlux.type = constantFlux
@@ -105,7 +105,7 @@ topography and thickness. The data must be cell-centred and sit on a
 domain covering grid such that it can be refined or coarsened to any of
 BISICLES levels. For example, the data can sit on a grid that covers the
 whole domain at the coarsest level, or at some higher level. Much of the
-time it will sit on the same grid as the topography etc. Let\'s say you
+time it will sit on the same grid as the topography etc. Let 's say you
 just have one field, acc, in one file, accfile.2d.hdf5, to be applied
 for the whole run. Then you add lines like
 
@@ -155,7 +155,7 @@ real year, and you would like to see real years in the plot files.
 Provided that the [Python interface](pythoninterface.md) has be
 compiled, it is possible to specify a surface flux through a python
 function. You need to write a python function that takes five scalar
-arguments (x,y,t,thickness,topography). Let\'s say that you have created
+arguments (x,y,t,thickness,topography). Let 's say that you have created
 a file my.py
 
     #file my.py
@@ -204,13 +204,13 @@ cells, but amplified so that the total flux into the BISICLES ice shelf
 is equal to the total supplied flux. There are some pathological cases
 that are expected if the supplied flux is reasonably well represented in
 the BISICLES ice shelf. We regularize these and warn in the log
-(pout.\*) files.
+(pout. *) files.
 
--   The amplication A \< 0, for example if all of the melt is
+-   The amplication A  < 0, for example if all of the melt is
     concentrated on BISICLES grounded ice. We set A = 0 in this case, so
     no melt or freeze anywhere
--   Total supplied flux \|F\| is much larger than the total restricted
-    to the BISICLES ice shelf \|F\'\|. We set A = min(A, 4.0).
+-   Total supplied flux  |F | is much larger than the total restricted
+    to the BISICLES ice shelf  |F ' |. We set A = min(A, 4.0).
 
 It is also possible to specify the total flux, for example when the melt
 rate has been computed by an ocean model and post-processed in some
@@ -245,7 +245,7 @@ km) and (500 km , 360 km)
 ### axbyFlux
 
 Use axbyFlux to construct a flux F from two fluxes x and y, so that F =
-a \* x + b \* y; a and b are scalars. Below, we amplify a field loaded
+a  * x + b  * y; a and b are scalars. Below, we amplify a field loaded
 from a file and add a constant to it.
 
     basalFlux.type = maskedFlux
@@ -268,7 +268,7 @@ from a file and add a constant to it.
 ### productFlux
 
 Use productFlux to construct a flux F from two fluxes flux1 and flux2,
-so that F = flux1 \* flux2. For example, given a file maskfile.2d.hdf5
+so that F = flux1  * flux2. For example, given a file maskfile.2d.hdf5
 that include a field asemask set to 0.0 everywhere but the Amundsen Sea
 Embayment, where it is 1.0. A productFlux can be used to set a meltrate
 in the ASE only, like so:
@@ -290,7 +290,7 @@ in the ASE only, like so:
 
 ### normalizedFlux
 
-NormalizedFlux allow the \'amplitude\' of a flux to be set, so that the
+NormalizedFlux allow the  'amplitude ' of a flux to be set, so that the
 integral of the square of the flux over the whole domain is equal to the
 amplitude squared multiplied by the area. E.g.
 
@@ -336,7 +336,7 @@ an ice shelf
 
 **This flux is incomplete, more options will be added** Constructs a
 flux from two fields G (grounding) and A (ambient), using the formula
-H\^m ( p \* G + (1-p) \* A). p is a function which decays exponentially
+H ^m ( p  * G + (1-p)  * A). p is a function which decays exponentially
 quickly away from grounded ice with a default scale length of 10 km and
 is equal to 1 on grounded ice. It is usually used within a masked flux
 to impose strong melting near the current grounding line and a smaller

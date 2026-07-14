@@ -1,6 +1,6 @@
 # BISICLES Python Interface
 
-BISICLES\' python interface is intended to make some of less performance
+BISICLES ' python interface is intended to make some of less performance
 intensive parts of BISICLES easier to program. It is fairly crude : at
 certain points during a run BISICLES will use an embedded python
 interpreter to evaluate various fields. At the moment, it is possible to
@@ -31,7 +31,7 @@ and in parallel, assuming 4 processors,
 
 To specify a [surface flux](surfaceflux.md) through a python function
 write a python function that takes five scalar arguments
-(x,y,t,thickness,topography). Let\'s say that you have created a file
+(x,y,t,thickness,topography). Let 's say that you have created a file
 foo.py
 
     #file foo.py
@@ -65,7 +65,7 @@ with input file lines
 
 So far the supported list is short
 
-1.  gl_proximity : solution to p + scale\^2 \* grad\^2 = 1 (grounded) or
+1.  gl_proximity : solution to p + scale ^2  * grad ^2 = 1 (grounded) or
     0 (floating) with natural BCs
 2.  gl_proximity_scale : scale in the above
 

@@ -1,6 +1,6 @@
 # BISICLES Run-time configuration, input, output, and checkpoints
 
-## [Run-time configuration (inputs.\* files)](#config)
+## [Run-time configuration (inputs. * files)](#config)
 
 The majority of BISICLES options are set in a configuration file which
 is specified at run time as the first command line argument of the
@@ -35,10 +35,10 @@ the tropical year. To chose seconds instead, set
 
 In that case, make sure that e.g surface mass balance is specified in
 m/s (as opposed to m/a). Likewise, ensure that the rate factor (A in
-Glen\'s law) and the basal traction coefficient are given in the correct
+Glen 's law) and the basal traction coefficient are given in the correct
 units.
 
-## [Log output (pout.\* files)](#pout)
+## [Log output (pout. * files)](#pout)
 
 Non-mpi executables write a log is to stdout, while mpi executables
 write to files called (by default) pout.0, pout.1, one for each
@@ -53,7 +53,7 @@ specify the file name (for mpi binaries) with
 to get pout.something.0, pout.something.1, etc. Either absolute or
 relative paths can be specified.
 
-## [Plot files (plot.\*.2d.hdf5 files)](#plot)
+## [Plot files (plot. *.2d.hdf5 files)](#plot)
 
 Ice sheet snapshots, containing spatially varying fields such as ice
 thickness and velocity can be written either at regular time steps or
@@ -79,13 +79,13 @@ and do not set (e.g)
 
     amr.plot_interval = 32
 
-Provided the time interval is {\... 1/4 , 1/2, 1, 2, 4, \...} it might
+Provided the time interval is { ... 1/4 , 1/2, 1, 2, 4,  ...} it might
 also be worth setting
 
     amr.time_step_ticks = 1
 
-which will restrict the time step to a value in {\... 1/4 , 1/2, 1, 2,
-4, \...} ,
+which will restrict the time step to a value in { ... 1/4 , 1/2, 1, 2,
+4,  ...} ,
 
 There are several options that determine which fields are included in
 the plot files. With default values they are
@@ -109,7 +109,7 @@ to have them numbered otherwise: the options are
       amr.output_file_numbering = time_years # a long integer time in years
       amr.output_file_numbering = time_seconds # a long integer time in seconds
 
-## [CF Plot files (plot.\*.CF.2d.hdf5 files)](#plotcf)
+## [CF Plot files (plot. *.CF.2d.hdf5 files)](#plotcf)
 
 CF plot files are alternative (or complement) to the [standard plot file
 format](#plot) that are designed to produce [Climate and Forecast
@@ -130,7 +130,7 @@ standard files in several respects:
 The files produced are not themselves CF-compliant, because they are
 hdf5 rather than netcdf files, but the flatten [file
 tool](filetools.md) can create CF compliant netcdf files from the a
-plot.\*.CF.2d.hdf5 file. To convert plot.X.CF.2d.hdf5, run (for example)
+plot. *.CF.2d.hdf5 file. To convert plot.X.CF.2d.hdf5, run (for example)
 
       $BISICLES_HOME/BISICLES/code/filetools/flatten2d.Linux.64.g++.gfortran.DEBUG.OPT.ex plot.X.CF.2d.hdf5 plot.X.nc 0
 
@@ -164,7 +164,7 @@ typical data:
     CFIO.checkpoint_strict = true # default true. rause error on restarts without a cf checkpoint
     #if false, ignore missing checkpointt data but time integration lower limit will be the restart time   
 
-## [Checkpoints (chk.\*.2d.hdf5 files) and restarts](#restart)
+## [Checkpoints (chk. *.2d.hdf5 files) and restarts](#restart)
 
 BISICLES will periodically write a checkpoint file. Although these are
 hdf5 files, they cannot be viewed in visit etc and are intended only
@@ -210,12 +210,12 @@ options to the input file. Make sure you also append
     amr_restart_set_time = false
 
 The following script template was designed for ARCHER. The script is
-submitted from a given directory (which will set \$PBS_O_WORKDIR). When
+submitted from a given directory (which will set  $PBS_O_WORKDIR). When
 it runs, each job creates its own numbered working sub-directory, so
 that log output is separated. plot and checkpoint files are written to
-../ - which will be \$PBS_O_WORKDIR. Subsequent runs of the same script
+../ - which will be  $PBS_O_WORKDIR. Subsequent runs of the same script
 will be restarted from the last checkpoint. If you copy this script,
-make sure you replace all the \<variables\>
+make sure you replace all the  <variables >
 
     #!/bin/bash                                                                                
     #PBS -l walltime=08:00:00                                                                  

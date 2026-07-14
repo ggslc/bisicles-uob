@@ -20,13 +20,13 @@ works (assuming that Chombo, etc are all set up already), try the
 following test:
 
 1.  cd BISICLES/code/benchmark
-2.  type \"make regression\". This causes the following to happen:
+2.  type  "make regression ". This causes the following to happen:
     1.  If necessary, the driver code in BISICLES/exec2D is compiled
     2.  the driver executable is run with
         BISICLES/benchmark/inputs.regression as the inputs file. In the
         process, a plotfile named
-        \"stream.regression.preSolve.000000.2d.hdf5\" is written out.
-        \"preSolve\" means that it\'s written immediately before
+         "stream.regression.preSolve.000000.2d.hdf5 " is written out.
+         "preSolve " means that it 's written immediately before
         conducting a velocity solve
     3.  the solverBenchmark executable is then run using the same inputs
         file

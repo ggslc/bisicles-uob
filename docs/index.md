@@ -47,9 +47,9 @@ airborne observations.
     7.  [LevelData interface](leveldatainterface.md), used to load
         meshed data, for example thickness and topography
     8.  [Python interface](pythoninterface.md), used to compute data
-        \'on the fly\' with simple formulae
+         'on the fly ' with simple formulae
 4.  Example applications
-    1.  Frank Pattyn\'s [MISMIP3D](readme.md#example)
+    1.  Frank Pattyn 's [MISMIP3D](readme.md#example)
     2.  A [Pine Island Glacier](pineisland.md) example which uses real
         topography and thickness data. Includes an example [inverse
         problem](pineislandinverse.md) which estimate model

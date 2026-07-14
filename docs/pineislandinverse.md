@@ -6,7 +6,7 @@ including driver and nctoamr. If that is not the case, there are some
 us with the data for this application - thanks Anne. You also need to
 have followed at least the preprocessing step of the first [Pine Island
 Glacier example](pineisland.md), up to the point where you create the
-file \"pig-bisicles-1km.2d.hdf5\"
+file  "pig-bisicles-1km.2d.hdf5 "
 
 The basal traction field used in the [Pine Island Glacier
 example](pineisland.md) does not result in a model velocity that is a
@@ -113,7 +113,7 @@ e.g
      
 
 As before, log output is directed to stdout in serial and to files
-called pout.0, pout.1, \... when run in parallel. Most of the
+called pout.0, pout.1,  ... when run in parallel. Most of the
 computational effort is spent solving the stress-balance equations and
 adjoint stress-balance equations.
 
@@ -138,16 +138,16 @@ all but a few lines from the log output, e.g
     CGOptimize iteration 13 ||f'(x)||^2 = 1.15635e+19 ||fm(x)||^2 = 1.43323e+14 ||fp(x)||^2 = 2.43446e+13 ||fm(x)||^2 + ||fp(x)||^ = 1.67667e+14 ||fm(x)||^2/||fm_old(x)||^2 = 0.908685
     CGOptimize iteration 14 ||f'(x)||^2 = 1.47344e+19 ||fm(x)||^2 = 1.37475e+14 ||fp(x)||^2 = 2.37304e+13 ||fm(x)||^2 + ||fp(x)||^ = 1.61206e+14 ||fm(x)||^2/||fm_old(x)||^2 = 0.959203
 
-The quantity \|\|fm(x)\|\|\^2 is the main part of the objective
-function, and \|\|fp(x)\|\|\^2 is the penalty function. At first,
-\|\|fm(x)\|\|\^2 is reduced quickly, then its rate of improvement slows
-down - this stage usually corresponds to \"overfitting\", where higher
+The quantity  | |fm(x) | | ^2 is the main part of the objective
+function, and  | |fp(x) | | ^2 is the penalty function. At first,
+ | |fm(x) | | ^2 is reduced quickly, then its rate of improvement slows
+down - this stage usually corresponds to  "overfitting ", where higher
 frequency components creep into the solution. The parameter
 control.CGhang determines the relevant ratio
-(\|\|fm(x)\|\|\^2/\|\|fm_old(x)\|\|\^2) between the current and previous
+( | |fm(x) | | ^2/ | |fm_old(x) | | ^2) between the current and previous
 CG iteration - here we have picked 0.95, which is rather low for time
 independent problems. The default is 0.999. Once
-\|\|fm(x)\|\|\^2/\|\|fm_old(x)\|\|\^2 exceeds CGhang the inverse problem
+ | |fm(x) | | ^2/ | |fm_old(x) | | ^2 exceeds CGhang the inverse problem
 solver judges the problem to be solved well enough, and returns the
 resulting fields to the main program. The main program (assuming it is
 not complete) then refines the mesh according to whatever criteria are
@@ -170,7 +170,7 @@ are quite close after 24 CG iterations
 
 ![](piginverse.png){width="100%/"}
 
-Note that you can\'t just solve the inverse problem and get the right
+Note that you can 't just solve the inverse problem and get the right
 answer. It is ill-posed, both in that there are more parameters than
 data, and that some parameter vectors (short-wavelength variations) are
 likely to be spurious (overfitting). The Tikhonov regularization
@@ -185,7 +185,7 @@ not a model issue in particular, but a discrepancy between the observed
 velocity and thickness. There is a tall ridge under the grounding line,
 which would mean either (1) the ice must be stretching as it moves
 downstream - in which case the observed velocity cannot be correct, or
-(2) PIG should have seen thickening and GL advance in the 2000\'s -
+(2) PIG should have seen thickening and GL advance in the 2000 's -
 which observations of thinning and GL retreat tend to refute, or (3),
 the ridge is much lower. (3) seems most likely, see e.g Rignot et al
 2014.

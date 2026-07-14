@@ -38,7 +38,7 @@ BISICLES has been used before.
 Since this readme file lives in the source code repository, you might
 have already checked the source code out. There are two source trees,
 Chombo, and BISICLES, and the rest of this guide assumes that you have a
-directory called \$BISICLES_HOME which contains the two.
+directory called  $BISICLES_HOME which contains the two.
 
 Create a root directory for both source trees
 
@@ -95,7 +95,7 @@ other layout, note the following
 -   **petsc:** Chombo 3.2 also contains an optional interface to the
     [PETSc](http://www.mcs.anl.gov/petsc/) solver library. We have found
     that using the Chombo AMR interface to the petsc algebraic multigrid
-    solvers (either GAMG or Hypre\'s BoomerAMG) can substantially
+    solvers (either GAMG or Hypre 's BoomerAMG) can substantially
     improve the performance of the nonlinear ice velocity solve for
     problems where the native Chombo geometric multigrid (GMG) solvers
     struggle.
@@ -108,13 +108,13 @@ other layout, note the following
 -   **gdal:** used by the complentary flatten tool to add projcetion
     data to output files
 
-If you\'re working on a system which is maintained by somebody else
-(like, for example, the supercomputers at NERSC), it\'s likely that
+If you 're working on a system which is maintained by somebody else
+(like, for example, the supercomputers at NERSC), it 's likely that
 most, if not all, of these dependencies have been built and installed
-already, which can save you some effort. So, check to see what\'s
+already, which can save you some effort. So, check to see what 's
 already installed, with an eye open to the possibility that things have
 been configured in some odd way which makes them unusable for us, in
-which case you you\'re back to where you were anyway). See the [site
+which case you you 're back to where you were anyway). See the [site
 specific notes](sites.md), because certain common environments, such
 as the Cray XC30/40, and recent versions of Debian and Ubuntu GNU/Linux,
 have well designed systems for satisfying some of these dependencies,
@@ -123,10 +123,10 @@ for hdf5 and netcdf on those machines, instead follow the much simpler
 instructions in the [site specific notes](sites.md)**
 
 There should be a script, download_dependencies.sh (in the same
-directory as this file, \$BISICLES_HOME/BISICLES/docs) that will get the
+directory as this file,  $BISICLES_HOME/BISICLES/docs) that will get the
 (version 1.10.10) hdf5 sources and unpack them, twice : once into
 hdf5/serial/src and once into hdf5/parallel/src. It assumes
-\$BISICLES_HOME is set. It should contain the following
+ $BISICLES_HOME is set. It should contain the following
 
     cd $BISICLES_HOME
     echo `pwd`
@@ -177,7 +177,7 @@ experimental [libamrfile](libamrfile.md) shared library that can be
 used to manipulate Chombo (and BISICLES) output with languages that
 support a plain C function calling convention, like FORTRAN 90, GNU R,
 Python and MATLAB. Configure will spit out a long list of tests, and
-hopefully pass them all. Don\'t worry that the C++ and Fortran languages
+hopefully pass them all. Don 't worry that the C++ and Fortran languages
 are not enabled : Chombo uses the C interface, and (when we come to
 compile that too), so does netcdf. Assuming this is all OK, type
 
@@ -185,7 +185,7 @@ compile that too), so does netcdf. Assuming this is all OK, type
 
 and you, after a round of compiling and copying, you should see that the
 hdf5 libraries bin,doc,include and src have appeared in
-\$BISICLES_HOME/hdf5/serial/.
+ $BISICLES_HOME/hdf5/serial/.
 
 ### Building parallel hdf5
 
@@ -199,13 +199,13 @@ place of gcc
 
     > CC=mpicc ./configure --prefix=$BISICLES_HOME/hdf5/parallel/ --enable-parallel=yes
 
-This time, configure\'s final report should the line \'Parallel HDF5:
-mpicc \' Assuming this is all OK, type
+This time, configure 's final report should the line  'Parallel HDF5:
+mpicc  ' Assuming this is all OK, type
 
     > make install
 
 this time, the bin,doc,include and src directories should end up in
-\$BISICLES_HOME/hdf5/parallel/.
+ $BISICLES_HOME/hdf5/parallel/.
 
 ### [Building serial netcdf](#cdf)
 
@@ -218,7 +218,7 @@ gfortran. Enter the appropriate source directory
         > cd $BISICLES_HOME/netcdf/serial/src/netcdf-c-4.9.2/
       
 
-Now, netcdf needs to link hdf5 : it doesn\'t really matter which version
+Now, netcdf needs to link hdf5 : it doesn 't really matter which version
 but we might as well use the one we have. So, we have a custom configure
 line
 
@@ -229,7 +229,7 @@ Next, compile, test, and install netcdf
     > make check install
 
 and assuming all goes well, the C API netcdf 4.9.2 will now be installed
-in \$BISICLES_HOME/netcdf/serial.
+in  $BISICLES_HOME/netcdf/serial.
 
 Recent versions of netcdf (inclusing 4.9.2) do not include a Fortran
 API. BISICLES does not require this, but related programs might.
@@ -249,9 +249,9 @@ otherwise it can be skipped**.
 
 ### [Installing PETSc](#petsc)
 
-If we\'re planning to use the PETSc solver interface, it\'s a good idea
-to install PETSc before building Chombo. It\'s likely that some version
-of petsc may be pre-installed on your system \-- we need petsc version
+If we 're planning to use the PETSc solver interface, it 's a good idea
+to install PETSc before building Chombo. It 's likely that some version
+of petsc may be pre-installed on your system  -- we need petsc version
 3.3.4 or later, configured with hypre. If that is not available, you
 will need to build it.
 
@@ -261,7 +261,7 @@ will need to build it.
         > git clone -b release https://gitlab.com/petsc/petsc.git petsc-src
 
 2.  Configure petsc. To build a parallel version and install it in
-    \$BISICLES_HOME/petsc,
+     $BISICLES_HOME/petsc,
 
         > mkdir -p $BISICLES_HOME/petsc
         > cd $BISICLES_HOME/petsc-src
@@ -284,11 +284,11 @@ will need to build it.
 
 ## [Chombo configuration](#chombo)
 
-Next we need to set up Combo\'s configuration (which BISICLES will
+Next we need to set up Combo 's configuration (which BISICLES will
 inherit automatically). The main task here is create a file called
-\$BISICLES_HOME/Chombo/lib/mk/Make.defs.local, and there is version
+ $BISICLES_HOME/Chombo/lib/mk/Make.defs.local, and there is version
 stored in this directory that should be easy enough to edit. First, copy
-it into \$BISICLES_HOME
+it into  $BISICLES_HOME
 
     > cp $BISICLES_HOME/BISICLES/docs/Make.defs.local $BISICLES_HOME
 
@@ -297,7 +297,7 @@ At the very least, you will need to edit the line that reads
      
     BISICLES_HOME=..., 
 
-to give the correct value. If you don\'t have MPI, there are a few lines
+to give the correct value. If you don 't have MPI, there are a few lines
 to comment out. You might also want to tinker with the optimization
 flags and so on. Then create a link so that Chombo sees Make.defs.local
 in the place it expects
@@ -318,8 +318,8 @@ is located at
     $BISICLES_HOME/BISICLES/code/mk/Make.defs
 
 You do not usually need to edit that file, but instead, add a file named
-for your machine to that directory. Run \'uname -n\' to find out the
-name of you machine, e.g on a host called \'mymachine\'
+for your machine to that directory. Run  'uname -n ' to find out the
+name of you machine, e.g on a host called  'mymachine '
 
     > cd $BISICLES_HOME/BISICLES/code/mk/
     > uname -n
@@ -341,7 +341,7 @@ set these variables by running
     python3-config --libs
 
 which works on many workstations but may not be what you want. In that
-case, you need to find out where the header file \"Python.h\" lives, and
+case, you need to find out where the header file  "Python.h " lives, and
 what linker flags you need. For example, edit Make.defs.mymachine to set
 
     PYTHON_INC=/usr/include/python3.10
@@ -409,7 +409,7 @@ Finally, should you feel the urge, you can have a non-optimized parallel
 version, which can be used for hunting down low-level bugs that crop up
 in parallel operation but not in serial operation.
 
-To build with PETSc support, add \"USE_PETSC=TRUE\" to your build line,
+To build with PETSc support, add  "USE_PETSC=TRUE " to your build line,
 e.g.
 
     > cd $BISICLES_HOME/BISICLES/code/exec2D
@@ -438,14 +438,14 @@ for optimized parallel builds
 
 ### [Make realclean](#makerealclean)
 
-In the event even more houscleaning is desired, the \"realclean\" target
-does everything the \"clean\" target does, and additionally removes many
-other user-generated files, including all files with the \".hdf5\"
+In the event even more houscleaning is desired, the  "realclean " target
+does everything the  "clean " target does, and additionally removes many
+other user-generated files, including all files with the  ".hdf5 "
 suffix (including checkpoint and plot files).
 
 ## [Running BISICLES on a simple problem](#example)
 
-All the data to run [Frank Pattyn\'s MISMIP3D P075
+All the data to run [Frank Pattyn 's MISMIP3D P075
 experiment](http://homepages.ulb.ac.be/~fpattyn/mismip3d/welcome.md)
 is already present. Change to the MISMIP3D subdirectory, and generate
 some input files from a template.
@@ -466,7 +466,7 @@ You can watch progress by typing
 
     > tail -f sout.0
 
-and eventually, you will get a series of plot\*2d.hdf5 files that you
+and eventually, you will get a series of plot *2d.hdf5 files that you
 can view in visit
 
 ### Running on a parallel Workstation
@@ -495,7 +495,7 @@ You can watch progress by typing
 
     > tail -f pout.0
 
-and eventually, you will get a series of plot\*2d.hdf5 files that you
+and eventually, you will get a series of plot *2d.hdf5 files that you
 can view in visit
 
 ### Running on a cluster

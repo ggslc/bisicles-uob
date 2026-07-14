@@ -14,8 +14,8 @@ cliffs. The option
 
       velocity_rhs.max_rhs_dx = 1.0e+10 #(Pa m) :any floating point number > 1
 
-is disabled by default but will ensure that rho \* g \* h \* \|grad(s)\|
-\* dx \< velocity_rhs.max_rhs_dx 1.0e+10 Pa m: roughly speaking a value
+is disabled by default but will ensure that rho  * g  * h  *  |grad(s) |
+ * dx  < velocity_rhs.max_rhs_dx 1.0e+10 Pa m: roughly speaking a value
 of1.0e+10 Pa m: corresponds to a 1 km high ice grounded cliff.
 
 Driving stresses are modified immediately upstream and downstream of the
@@ -29,12 +29,12 @@ It can be disabled with.
 ## [Basal stresses](#basal)
 
 The basal stress model is broken down into a spatially varying basal
-friction [coefficient](#btrc) beta\^2(x,y) and temperature dependent
+friction [coefficient](#btrc) beta ^2(x,y) and temperature dependent
 [rate factor](#bratefac) A(T), which do not depend on velocity and a
-basal friction [relation](#btrr) f ( C, u), where C = \\beta\^2/A(T),
+basal friction [relation](#btrr) f ( C, u), where C =   beta ^2/A(T),
 which does. A (T) = 1.0 by default. The simplest model is the linear
 viscous sliding law tau_b = C u, more complex rules include the usual
-power law tau_b = \\beta\^2 \|u\|\^(-2/3) u , and rules that depend on
+power law tau_b =   beta ^2  |u | ^(-2/3) u , and rules that depend on
 the effective pressure. The code also include an additional linear basal
 traction term, so that the final rule applied is tau_b = f( C, u) + C_0
 u with C_0 used to impose, for example, drag from rocky fjord walls.
@@ -51,7 +51,7 @@ hierarchy underlying the basal friction coefficient is described at
 
 #### Floating and grounded ice
 
-By default, BISICLES sets beta\^2 = 0 for every cell whose center is
+By default, BISICLES sets beta ^2 = 0 for every cell whose center is
 grounded. Setting
 
       basal_friction.grounding_line_subdivision = 4 # (any integer > 0, but 4 is recommended)
@@ -59,8 +59,8 @@ grounded. Setting
 selects a sub-grid interpolation scheme, which proves useful in some
 circumstances (see e.g Cornford et at, Ann, Glac. 2016). The thickness
 above flotation is interpolated between cell centers to compute a
-grounded-ice fraction w, with \< w \< 1, which is used to weight
-beta\^2. At some point we may make this the default.
+grounded-ice fraction w, with  < w  < 1, which is used to weight
+beta ^2. At some point we may make this the default.
 
 The subgrid scheme typically means that a factor of two coarser mesh can
 be used. Note that BISICLES does not suffer from the much more severe
@@ -95,8 +95,8 @@ parameter - it can easily slow down ice shelves.
 
 #### Constant Friction
 
-The simplest meaningful beta\^2 is constant in space and time. E.g to
-set beta\^2 = 1000 on all grounded ice:
+The simplest meaningful beta ^2 is constant in space and time. E.g to
+set beta ^2 = 1000 on all grounded ice:
 
     geometry.beta_type = constantBeta
     geometry.betaValue = 1.0e+3
@@ -106,7 +106,7 @@ set beta\^2 = 1000 on all grounded ice:
 See also the description of the [python
 interface](pythoninterface.md).
 
-If beta\^2 can be expressed as a simple function of **local** thickness
+If beta ^2 can be expressed as a simple function of **local** thickness
 and topography, the python interface can compute it. The major advantage
 of this method is that the python expression can be readily evaluated on
 whatever meshes the AMR scheme throws up without the need for
@@ -132,9 +132,9 @@ in the configuration file.
 See also the description of the [LevelData
 interface](leveldatainterface.md).
 
-If beta\^2 cannot be expressed as a simple function, it might be
+If beta ^2 cannot be expressed as a simple function, it might be
 represented as data on a uniform mesh. Typically, this will be the case
-if beta\^2 was computed from observations in some way. BISICLES will
+if beta ^2 was computed from observations in some way. BISICLES will
 average or interpolate the data as needed as meshes are generated, with
 one caveat: the data mesh spacing must be compatible with the AMR
 scheme. Typically, the **data level grid** will usually have a
@@ -146,7 +146,7 @@ read the field btrc from a file basal.2d.hdf5:
     inputLevelData.frictionName = btrc
 
 It is also possible to use a number of files to make a time-dependent
-beta\^2. E.g,
+beta ^2. E.g,
 
     geometry.beta_type = LevelData
     inputLevelData.frictionFileFormat = basal%4d.2d.hdf5
@@ -155,7 +155,7 @@ beta\^2. E.g,
     inputLevelData.frictionName = btrc
 
 will interpolate data in time between the files
-basal0000.2d.hdf5,basal0001.2d.hdf5,\...
+basal0000.2d.hdf5,basal0001.2d.hdf5, ...
 
 #### MultiLevelData Basal Friction
 
@@ -168,9 +168,9 @@ but with a non-uniform mesh. Tricky in practice, but, e.g
 
 #### Others
 
-Other beta\^2 options include sinusoidalBeta, sinusoidalBetay,
+Other beta ^2 options include sinusoidalBeta, sinusoidalBetay,
 twistyStreamx, singularStream, gaussianBump. These exist for testing to
-be carried out without the python interface: don\'t worry about them.
+be carried out without the python interface: don 't worry about them.
 
 ### [Basal rate factor](#bratefac)
 
@@ -187,10 +187,10 @@ hierarchy underlying the basal friction relation is described at
 #### [Power law basal friction relation](#btrrpwr)
 
 The power law basal friction relation covers rules of the form tau_b = C
-\|u\|\^(m-1) u, which includes linear viscous sliding (m=1), and hard
+ |u | ^(m-1) u, which includes linear viscous sliding (m=1), and hard
 bed sliding (m=1/3), and yield stress sliding (m=0.9999, though this
 will not work well). For example, specify the common third power law by
-setting tau_b = C \|u\|\^(-2/3) u
+setting tau_b = C  |u | ^(-2/3) u
 
     main.basalFrictionRelation = powerLaw
     BasalFrictionPowerLaw.m = 0.3333 # for m = 1/3
@@ -200,7 +200,7 @@ If
 
     BasalFrictionPowerLaw.includeEffectivePressure = true
 
-Then a factor hab\^m (where hab is the thickness above flotation) is
+Then a factor hab ^m (where hab is the thickness above flotation) is
 introduced.
 
 #### [Pressure limited basal friction relation](#btrrlim)
@@ -208,9 +208,9 @@ introduced.
 The pressure limited law modifies another basal friction relation f(C,u)
 to ensure that basal traction cannot exceed the Coulomb friction,
 proportional to the effective pressure N. Two forms are implemented, the
-version from Tsai 2015, where \|tau_b\| = min( a \* N, f(C,u) ), and the
+version from Tsai 2015, where  |tau_b | = min( a  * N, f(C,u) ), and the
 version from Leguy 2014 (also Schoof 2005 and Gagliardini 2007), where
-\|tau_b\| =
+ |tau_b | =
 
 To choose Tsai 2015, set
 
@@ -235,7 +235,7 @@ The englacial stress model is broken down into a spatially varying
 factor](#ratefac) A(T), which do not depend on velocity and a
 [relation](#mu) f ( A, grad u), which does, to provide an effective
 viscosity phi f (A, grad u). The simplest model is a linear rheology
-(constant f). Ice sheet models will usually need either Glen\'s flow law
+(constant f). Ice sheet models will usually need either Glen 's flow law
 or a rule based on it such as the L1L2 rule (Schoof and Hindmarsh 2010).
 There is also an experimental rule that combines any other relation with
 a continuum damage model.
@@ -256,9 +256,9 @@ hierarchy underlying the rate factor is described at
 
 The englacial constitutive relation has three roles. First, it computes
 the effective viscosity (mu) given the strain rate (e_ij) and rate
-factor (A), so that the stress components are given by t_ij = mu \*
-e_ij. Secondly, it computes the rate of strain heating (usually mu \*
-e_ij \* e_ji). Thirdly, it is currently responsible for reconstructing
+factor (A), so that the stress components are given by t_ij = mu  *
+e_ij. Secondly, it computes the rate of strain heating (usually mu  *
+e_ij  * e_ji). Thirdly, it is currently responsible for reconstructing
 the velocity field u(x,y,z) from the basal velocity u_b(x,y), though
 this is slated for change when non-vertically integrated stresses are
 supported.
@@ -267,9 +267,9 @@ If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the englacial constitutive relation is described at
 [classConstitutiveRelation.md](../code/doc/doxygen/html/classConstitutiveRelation.html)
 
-#### Glen\'s flow law
+#### Glen 's flow law
 
-To choose Glen\'s flow law, set
+To choose Glen 's flow law, set
 
     main.ConstitutiveRelation = GlensLaw 
     GlensLaw.n = 3.0 # 3.0 is the default
@@ -278,7 +278,7 @@ To choose Glen\'s flow law, set
 
 #### The LlL2 flow law
 
-The L1L2 law is a variant of Glen\'s flow law used to approximate
+The L1L2 law is a variant of Glen 's flow law used to approximate
 vertical shear strains in vertically integrated models.
 
     main.ConstitutiveRelation = L1L2

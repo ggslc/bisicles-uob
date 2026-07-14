@@ -4,10 +4,10 @@ BISICLES includes some tools used to perform miscellaneous actions on
 BISICLES/Chombo hdf5 files (amr files). They are located in the
 code/filetools directory. The most commonly used are described below.
 
-When built (e.g by typing \'make all\' in the code/filetools directory)
+When built (e.g by typing  'make all ' in the code/filetools directory)
 a number of executables, with names like e.g
 extract2d.Linux.64.g++.gfortran.DEBUG.ex are created. Here, we will use
-the base name (e.g) \'extract\' in examples; in practice, you would need
+the base name (e.g)  'extract ' in examples; in practice, you would need
 e.g extract2d.Linux.64.g++.gfortran.DEBUG.ex. All of the filetools will
 provide a usage string when executed with no (or the incorrect number)
 of command line arguments.
@@ -35,13 +35,13 @@ a new amr file.
 
 pythonf can be used to carry out a wide range of post- and
 pre-processing tasks. For example, imagine a file
-\'linear_traction.2d.hdf5\' that contains fields C (a drag coefficient),
+ 'linear_traction.2d.hdf5 ' that contains fields C (a drag coefficient),
 u (x-velocity), and v (y-velocity) that allowed the basal traction to be
-computed for a linear viscous law (T_x = C \* u, T_y = C \* v). This
+computed for a linear viscous law (T_x = C  * u, T_y = C  * v). This
 would be a typical result from the inverse problem. It is possible to
-create an hdf5 designed to work with a third-power law ( T_i = D \*
-\|u\|\^{-2/3} \* u_i) that should produce the same initial velocity by
-setting D = C \* \|u\|\^2/3. Create a python file \'ctransform.py\'
+create an hdf5 designed to work with a third-power law ( T_i = D  *
+ |u | ^{-2/3}  * u_i) that should produce the same initial velocity by
+setting D = C  *  |u | ^2/3. Create a python file  'ctransform.py '
 
     #ctransform.py
     def c_third(c_one,u,v,*etc):
@@ -63,7 +63,7 @@ prefer its more powerful alternative: [diagnostics](#diagnostics)
 
 The stats tool is primarily used to compute quantities like ice volume
 and volume above flotation. At minimum, supply a file name and
-\<ice_density\> \<water_density\> \<gravity\> arguments. e.g, for the
+ <ice_density >  <water_density >  <gravity > arguments. e.g, for the
 [Pine Island Glacier](pineisland.md) example:
 
     ../../code/filetools/stats2d.Linux.64.g++.gfortran.DEBUG.ex plot.pigv5.1km.l1l2.2lev.000000.2d.hdf5 918 1028 9.81 | grep time
@@ -72,7 +72,7 @@ and volume above flotation. At minimum, supply a file name and
 It is also possible to calculate the same statistics for a number of
 sub-regions. For that, you need an hdf5 (e.g mask.2d.hdf5) file (created
 with [nctoamr](#nctoamr), for example) including a single field (named
-e.g \'mask\') that identifies each area by a unique double precision
+e.g  'mask ') that identifies each area by a unique double precision
 representation of an integer. If the Pine Island Glacier domain was
 split into sub-regions 0-3 inclusive, stats for regions 1,2 could be
 computed by running
@@ -143,8 +143,8 @@ one mandatory argument (plot_file=???), the name of the plot file, e.g
 
   name          default             purpose                                                          
   ------------- ------------------- ------------------------------------------------- -- -- -- -- -- --
-  out_file      out_file=\"\"       specify output to a file rather than pout/stdio                  
-  ice_density   ice_density=918.0   ice density (kg / m\^3)                                          
+  out_file      out_file= " "       specify output to a file rather than pout/stdio                  
+  ice_density   ice_density=918.0   ice density (kg / m ^3)                                          
 
 Output is to stdio / pout.X by defauly, and comprises multiple lines of
 csv data. Each line includes one quantity, integrated over one of the
