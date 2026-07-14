@@ -1,0 +1,9 @@
+site_name: BISICLES user documents
+
+theme:
+  name: mkdocs
+  highlightjs: true
+  hljs_languages:
+    - bash
+    - python
+  nav-style: dark

@@ -1,0 +1,377 @@
+::: (#head)
+-   [Index page](index.md)
+-   [Top of page](#top)
+
+# Contents
+
+1.  [Flux quantities](#whatflux)
+2.  [Simple fluxes](#simple)
+3.  [Complex fluxes](#complex)
+:::
+
+::: (#main)
+# [BISICLES surface fluxes](#top)
+
+BISICLES has a number of configuration file options that let you specify
+the rate at which e.g volume and/or energy is added to the ice sheet.
+Usually, there will be a source of ice thickness at the upper surface,
+and one at the lower surface (or base), the same for heat, and a
+topography flux (bedrock uplift rate). In the code we often call upper
+surface fluxes \'surface flux\' and lower surface fluxes \'basal flux\'
+but this can be bit confusing because they are both, strictly speaking,
+\'surface fluxes\'.
+
+Each of the flux quantities can be specified as either a simple flux or
+a complex fluxes. Simple fluxes just specify a field of values (which
+might be loaded from a file, or computed in some way), while complex
+fluxes combine more than one simple flux. For example, complex fluxes
+can be used to apply one flux (which might itself be a complex flux ) to
+floating ice and another to grounded ice, or to add a number of them
+together.
+
+If you have built the doxygen code documentation, the C++ class
+hierarchy underlying all this is described at
+[classSurfaceFlux.md](../code/doc/doxygen/html/classSurfaceFlux.html)
+
+## [Flux quantities](#whatflux)
+
+### [Surface and basal thickness flux](#thicknessflux)
+
+Surface thickness flux (e.g meteoric accumulation) and basal thickness
+flux (e.g oceanic melting) are set through two sections in the
+configuration file, entries that begin
+
+     
+    surfaceFlux.
+      
+
+which select the thickness flux at the upper surface, and entries that
+begin
+
+     
+    basalFlux.
+      
+
+which select the thickness flux at the lower surface. If either is
+missing, we fall back to the older style (and you get the warning).
+
+### [Topography flux](#topographyflux)
+
+Bedrock uplift rate can be specified in entries beginning
+
+     
+    topographyFlux.
+      
+
+### [Surface and basal heat flux](#heatflux)
+
+Surface and basal heat fluxes are specified in entries that begin with:
+
+    SurfaceHeatBoundaryData.
+
+    BasalHeatBoundaryData.
+
+See the [thermodynamics](thermodynamics.md) documentation for more
+details.
+
+## [Simple fluxes](#simple)
+
+### zeroFlux
+
+If you want either flux to be zero, use this. e.g
+
+    basalFlux.type = zeroFlux 
+
+### constantFlux
+
+Another straightforward type, where the flux doesn\'t depend on time or
+space.
+
+    surfaceFlux.type = constantFlux
+    surfaceFlux.flux_value = 0.3
+
+specifies 0.3 m/a accumulation at the upper surface across the whole
+domain.
+
+### piecewiseLinearFlux
+
+This flux is used to construct a rate which depends, in a piecewise
+linear fashion, on the thickness
+
+    surfaceFlux.type = piecewiseLinearFlux
+    surfaceFlux.n = 2                       
+    surfaceFlux.abscissae = 50.0 500.0
+    surfaceFlux.ordinates = 0 -50.0
+
+would apply a rather odd flux to the upper surface. Between thickness of
+0 and 50 m, the flux is 0 m/a , while at 500 m and above it is -50 m/a.
+It grows linearly from 0 to -50 in between. This is used as part of a
+maskedFlux to provide melt rates in the Pine Island Glacier example
+
+### LevelData
+
+You use a LevelData surface flux (part of the [LevelData
+interface](leveldatainterface.md)) to load a field of accumulation or
+melt rates from one or more hdf5 files, in a similar fashion to
+topography and thickness. The data must be cell-centred and sit on a
+domain covering grid such that it can be refined or coarsened to any of
+BISICLES levels. For example, the data can sit on a grid that covers the
+whole domain at the coarsest level, or at some higher level. Much of the
+time it will sit on the same grid as the topography etc. Let\'s say you
+just have one field, acc, in one file, accfile.2d.hdf5, to be applied
+for the whole run. Then you add lines like
+
+    surfaceFlux.type = LevelData
+    surfaceFlux.n = 1
+    surfaceFlux.timeStep = 1.0e+10
+    surfaceFlux.startTime = 0.0
+    surfaceFlux.fileFormat = accfile.2d.hdf5
+    surfaceFlux.name = acc
+
+On the other hand, lets say you have file accfile0000.2d.hdf5 to
+accfile0100.2d.hdf5, which are to be applied from the start of year 0 to
+the start of year 100. Then you can have
+
+    surfaceFlux.type = LevelData
+    surfaceFlux.n = 100
+    surfaceFlux.timeStep = 1.0
+    surfaceFlux.startTime = 0.0
+    surfaceFlux.fileFormat = accfile%4d.2d.hdf5
+    surfaceFlux.name = acc
+
+You might have files accfile1980.2d.hdf5 to accfile2080.2d.hdf5, in
+which case you can add
+
+    surfaceFlux.offset = 1980
+
+which would see accfile1980.2d.hdf5 loaded at time t = 0. If you need
+accfile1980.2d.hdf5 to be used every year up till 1980, and only then to
+start loading new data, add
+
+    surfaceFlux.startTime = 1980
+
+You can use this in conjunction with the general option amr.offsetTime,
+which lets us add a constant to BISICLES internal time. Say, for
+example, that you had set
+
+    amr.offsetTime = 1926
+
+Then after only 54 years of calculation (say a spin up) the 1980 file
+would be loaded. This is useful if you ran some kind of spinup, starting
+at year 0, and decided to use the 54 year checkpoint file to initialize
+some production runs. However, all your files are named according to a
+real year, and you would like to see real years in the plot files.
+
+### PythonSurfaceFlux
+
+Provided that the [Python interface](pythoninterface.md) has be
+compiled, it is possible to specify a surface flux through a python
+function. You need to write a python function that takes five scalar
+arguments (x,y,t,thickness,topography). Let\'s say that you have created
+a file my.py
+
+    #file my.py
+    def myflux(x,y,t,thck,topg):
+        return 1.0e-3 * (thck + topg)
+
+then you would include lines like
+
+    surfaceFlux.type = pythonFlux
+    surfaceFlux.module = my
+    surfaceFlux.function = myflux
+
+in the input file.
+
+## [Complex fluxes](#complex)
+
+### maskedFlux
+
+maskedflux divides the domain into grounded ice, floating ice, open
+land, and open sea. It is most often used to apply melting to the
+underside of ice shelves. In effect, it expands the basalFlux. section
+(or surfaceFlux. section) to include basalFlux.grounded.,
+basalFlux.floating., basalFlux.openLand and basalFlux.openSea. Each
+section assumes a zeroFlux by default, so
+
+    basalFlux.type = maskedFlux
+    basalFlux.grounded.type  = zeroFlux
+    basalFlux.floating.type = constantFlux
+    basalFlux.floating.flux_value = -100.0
+
+gives zero flux everywhere except the shelf, where a melt rate of 100
+m/a is applied. Note the maskedFlux is **non-conservative** - it
+restricts flux to the masked. For exmaple, if the supplied floating flux
+is a gridded outout from an ocean model, melt/freeze in regions outside
+of the BISICLES ice shelf will be discarded. There is a specific option,
+conservedSumIceShelfFlux, for this case (see below).
+
+### conservedSumIceShelfFlux
+
+Designed for use with ocean models that supply an ice shelf freeze/melt
+rate over a region that does not correspond exactly to the BISICLES ice
+shelf. The regions should be reasonably close, such that the
+distribution of flux within the BISICLES ice shelf is representative of
+the supplied flux. The flux computed will be restriced to fully-floating
+cells, but amplified so that the total flux into the BISICLES ice shelf
+is equal to the total supplied flux. There are some pathological cases
+that are expected if the supplied flux is reasonably well represented in
+the BISICLES ice shelf. We regularize these and warn in the log
+(pout.\*) files.
+
+-   The amplication A \< 0, for example if all of the melt is
+    concentrated on BISICLES grounded ice. We set A = 0 in this case, so
+    no melt or freeze anywhere
+-   Total supplied flux \|F\| is much larger than the total restricted
+    to the BISICLES ice shelf \|F\'\|. We set A = min(A, 4.0).
+
+It is also possible to specify the total flux, for example when the melt
+rate has been computed by an ocean model and post-processed in some
+non-conservative way (e.g flood filling values).
+
+    basalFlux.type = conservedSumIceShelfFlux
+    basalFlux.flux.type = LevelData # the supplied flux
+    basalFlux.flux.n = 1
+    basalFlux.flux.fileFormat = coarse_bmb.2d.hdf5 #output from an ocean model
+    basalFlux.flux.name = bmb
+    geometry.compute_ocean_connection_iter = 4 # set this > 0 to avoid ocean melt applied in (e.g) subglacial lakes
+    basalFlux.check_ocean_conected = true # default true when geometry.compute_ocean_connection_iter > 0, else always false
+    basalFlux.conserve_sum = true # default
+    #basalFlux.known_sum = -9987654321 # specify this to specify the total flux to be applied rather than compute the total from the supplied flux
+
+Note: if `geometry.compute_ocean_connection_iter < 1`,
+`check_ocean_connected` is always `false`.
+
+### boxBoundedFlux
+
+Allows a flux to be restricted to the interior of a rectangular region
+
+    surfaceFlux.type = boxBoundedFlux
+    surfaceFlux.hi = 170.0e+3 500.0e+3 
+    surfaceFlux.lo = 100.0e+3 360.0e+3
+    surfaceFlux.flux.type = constantFlux
+    surfaceFlux.flux.flux_value = 1
+
+Would apply a flux of 1 m/a in the box whose corners are (170 km , 100
+km) and (500 km , 360 km)
+
+### axbyFlux
+
+Use axbyFlux to construct a flux F from two fluxes x and y, so that F =
+a \* x + b \* y; a and b are scalars. Below, we amplify a field loaded
+from a file and add a constant to it.
+
+    basalFlux.type = maskedFlux
+    basalFlux.grounded.type = zeroFlux
+
+    basalFlux.floating.type = axbyFlux
+    basalFlux.floating.a = 1.5
+
+    basalFlux.floating.x.type = LevelData
+    basalFlux.floating.x.n = 1
+    basalFlux.floating.x.timeStep = 1.0e+10
+    basalFlux.floating.x.startTime = 0.0
+    basalFlux.floating.x.fileFormat = melt-1km.2d.hdf5
+    basalFlux.floating.x.name = melt
+
+    basalFlux.floating.b = 1.0
+    basalFlux.floating.y.type = constantFlux
+    basalFlux.floating.y.flux_value = -10.0
+
+### productFlux
+
+Use productFlux to construct a flux F from two fluxes flux1 and flux2,
+so that F = flux1 \* flux2. For example, given a file maskfile.2d.hdf5
+that include a field asemask set to 0.0 everywhere but the Amundsen Sea
+Embayment, where it is 1.0. A productFlux can be used to set a meltrate
+in the ASE only, like so:
+
+    basalFlux.type = maskedFlux
+    basalFlux.grounded.type = zeroFlux
+
+    basalFlux.floating.type = productFlux
+
+    basalFlux.floating.flux1.type = constantFlux
+    basalFlux.floating.flux1.flux_value = -100.0
+
+    basalFlux.floating.flux2.type = LevelData
+    basalFlux.floating.flux2.n = 1
+    basalFlux.floating.flux2.timeStep = 1.0e+10
+    basalFlux.floating.flux2.startTime = 0.0
+    basalFlux.floating.flux2.fileFormat = maskfile.2d.hdf5
+    basalFlux.floating.flux2.name = asemask
+
+### normalizedFlux
+
+NormalizedFlux allow the \'amplitude\' of a flux to be set, so that the
+integral of the square of the flux over the whole domain is equal to the
+amplitude squared multiplied by the area. E.g.
+
+    surfaceFlux.type = normalizedFlux
+    surfaceFlux.direction.type = constantFlux
+    surfaceFlux.direction.flux_value = 1.0
+    surfaceFlux.amplitude = 0.1
+
+### compositeFlux
+
+Use compositeFlux to specify an arbitrary number of fluxes to be added
+together - useful in conjunction with boxBoundedFlux. The example below
+applies different piecewiseLinearFlux melt rates to different regions of
+an ice shelf
+
+
+    basalFlux.type = maskedFlux
+    basalFlux.grounded.type = constantFlux
+    basalFlux.grounded.flux_value = 0.0
+
+    basalFlux.floating.type = compositeFlux
+    basalFlux.floating.nElements = 2
+
+    #main shelf
+    basalFlux.floating.element0.type = boxBoundedFlux
+    basalFlux.floating.element0.hi = 170.0e+3 500.0e+3 
+    basalFlux.floating.element0.lo = 100.0e+3 360.0e+3
+    basalFlux.floating.element0.flux.type = piecewiseLinearFlux
+    basalFlux.floating.element0.flux.n = 2
+    basalFlux.floating.element0.flux.abscissae = 250.0 500.0
+    basalFlux.floating.element0.flux.ordinates = 0.0 -120
+
+    #slow shelf
+    basalFlux.floating.element1.type = boxBoundedFlux
+    basalFlux.floating.element1.hi = 100.0e+3 440.0e+3 
+    basalFlux.floating.element1.lo = 60.0e+3 360.0e+3
+    basalFlux.floating.element1.flux.type = piecewiseLinearFlux
+    basalFlux.floating.element1.flux.n = 2
+    basalFlux.floating.element1.flux.abscissae = 300.0 500.0
+    basalFlux.floating.element1.flux.ordinates = 0.0 -20
+
+### groundingLineLocalizedFlux
+
+**This flux is incomplete, more options will be added** Constructs a
+flux from two fields G (grounding) and A (ambient), using the formula
+H\^m ( p \* G + (1-p) \* A). p is a function which decays exponentially
+quickly away from grounded ice with a default scale length of 10 km and
+is equal to 1 on grounded ice. It is usually used within a masked flux
+to impose strong melting near the current grounding line and a smaller
+ambient flux in the rest of the shelf. m = 0 by default. In the example,
+we load two data fields from a file and combine them, with m
+(powerOfThickness) = 1.0
+
+    basalFlux.type = maskedFlux
+    basalFlux.grounded.type = zeroFlux
+
+    basalFlux.floating.type = groundingLineLocalizedFlux
+    basalFlux.floating.powerOfThickness = 1.0       
+    basalFlux.floating.groundingLine.type = LevelData
+    basalFlux.floating.groundingLine.n = 1
+    basalFlux.floating.groundingLine.timeStep = 1.0e+10
+    basalFlux.floating.groundingLine.startTime = 0.0
+    basalFlux.floating.groundingLine.fileFormat = melt.2d.hdf5
+    basalFlux.floating.groundingLine.name = glmelt
+
+    basalFlux.floating.ambient.type = LevelData
+    basalFlux.floating.ambient.n = 1
+    basalFlux.floating.ambient.timeStep = 1.0e+10
+    basalFlux.floating.ambient.startTime = 0.0
+    basalFlux.floating.ambient.fileFormat = melt.2d.hdf5
+    basalFlux.floating.ambient.name = ambmelt
+:::
