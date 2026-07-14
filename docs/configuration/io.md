@@ -144,21 +144,37 @@ The files produced are not themselves CF-compliant (because they are hdf5 rather
 $BISICLES_HOME/BISICLES/code/filetools/flatten2d.Linux.64.g++.gfortran.DEBUG.OPT.ex plot.X.CF.2d.hdf5 plot.X.nc 0
 ```
 
-To enable CF plot files:
+To enable CF plot files, disable the standard files and include some typical data:
 
 ```
 amr.plot_style_cf = true
 amr.plot_style_amr = false # omit to have both sorts of files
 CFIO.level = 1 # default is 0 (coarsest level)
+
 CFIO.lithk = true # for land_ice_thickness
+CFIO.lithk.time_integration = 1 # output time step final value for lithk. Default is 0 (means)
+
+CFIO.acabf = true # surface mass balance
+CFIO.acabf.time_integration = 0 # default is 0 (time mean)
+
 CFIO.velbase = true # for land_ice_basal_velocity
 CFIO.orog = true # for surface_altitude
 CFIO.topg = true # for bedrock_altitude
 
 # Specify coordinate system (optional for BISICLES, needed for CF compliance)
 CRS.EPSG = 3031 # EPSG is the only system supported for now
-CRS.origin_x = 1.234 # coordinates of point (0,0)
+CRS.origin_x = 1.234 # coordinates of the BISICLES domain point (0,0) in e.g EPSG 3031
 CRS.origin_y = 5.678 # in metres
+```
+
+CFIO requires additional data on restarts (see below for restarts in general). when ```plot_style_cf = true```, 
+a ```*.CF.2d.hdf5 file``` is written in addition to the usual ```*.2d.hdf5``` checkpoint
+```
+CFIO.imply_restart = true # default false. If true, imply a filename  (chk.*.CF.2d.hdf5) from amr.check_prefix (chk.*.2d.hdf5)  
+#amr.restart_file = choose a specific CF filename
+CFIO.checkpoint_strict = true # default true. rause error on restarts without a cf checkpoint
+#if false, ignore missing checkpointt data but time integration lower limit will be the restart time  
+
 ```
 
 ## Checkpoints and Restarts
