@@ -35,7 +35,8 @@ write a python function that takes five scalar arguments
 foo.py
 
     #file foo.py
-    def acab(x,y,t,thck,topg):
+    def acab(x,y,t,thck,topg,*etc):
+        #always include the *etc arg 
         return 1.0e-3 * (thck + topg)
 
 then you would include lines like
@@ -50,7 +51,7 @@ depends on distance from the grounding line, you could have
 
     #file foo.py
     import math
-    def melt(x,y,t,thck,topg,gl_proximity=0.0,gl_proximity_scale=1.0):
+    def melt(x,y,t,thck,topg,gl_proximity=0.0,gl_proximity_scale=1.0,*etc):
         d = - math.log(gl_proximity + 1.0e-10) * gl_proximity_scale
         return -  (d/1.0e+3)**2 * gl_proximity 
 
@@ -123,7 +124,7 @@ Alternatively, it is possible to maintain a calving front inside the
 domain by setting a large negative accumulation: Adding a function
 
     #file foo.py
-    def melt(x,y,t,thck,topg):
+    def melt(x,y,t,thck,topg,*etc):
         melt = 0.0
         if (x^2 + y^2 > 1.0e+12):
           melt = -1.0e+3
@@ -145,7 +146,7 @@ module containing a scalar function of (x,y,thickness,topography,sigma),
 e.g
 
     #file foo.py
-    def temperature(x,y,thck,topg,sigma):
+    def temperature(x,y,thck,topg,sigma,*etc):
         T = 263.0
         if (abs(y-64.0e+3) < 8.0e+3):
             T = T + sigma*10.0
@@ -165,7 +166,7 @@ surface flux, e.g add
     #file foo.py
     import math
 
-    def friction(x,y,t,thck,topg):
+    def friction(x,y,t,thck,topg,*etc):
         friction = 1.01e+3 + 1.0e+3 * math.sin(x * 1.0e+3)*math.sin(y * 1.0e+3)
         return friction   
 
