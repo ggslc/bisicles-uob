@@ -1,9 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-:::
-
-::: (#main)
 # Viewing BISICLES output with VisIt
 
 VisIt can be obtained from <https://wci.llnl.gov/codes/visit/>.
@@ -66,4 +60,3 @@ button below it, or the playback button in the image window (\"Window
 1;\") to watch the grounding line retreat merrily up Pine Island
 Glacier\'s trunk, and the mesh evolve with it so that high resolution is
 maintained at the grounding line. Feel free to add velocity vectors\...
-:::

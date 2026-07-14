@@ -1,16 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Creating input data](#preprocess)
-2.  [netcdf to hdf5 conversion](#convert)
-3.  [Configuration file](#configure)
-4.  [Running the simulation](#runpig)
-:::
-
-::: (#main)
 # BISICLES Pine Island Glacier application
 
 These instructions assume that you have working BISICLES executable,
@@ -444,4 +431,3 @@ should see that the rate of retreat grows as the finest mesh spacing
 decreases, with the difference between no refinement and one level of
 refinement being much larger than the difference between four and five
 levels of refinement.
-:::

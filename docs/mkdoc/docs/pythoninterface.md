@@ -1,16 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Surface fluxes](#flux)
-2.  [Initial geometry](#ibc)
-3.  [Initial temperature](#ibctemp)
-4.  [Basal traction coefficient](#btrc)
-:::
-
-::: (#main)
 # BISICLES Python Interface
 
 BISICLES\' python interface is intended to make some of less performance
@@ -189,4 +176,3 @@ in a python module and
     PythonBasalFriction.function = friction
 
 in the configuration file.
-:::

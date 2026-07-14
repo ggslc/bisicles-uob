@@ -1,18 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-0.  [JFNK Solver](#jfnk) ([PETSc option](#jfnk-petsc))
-1.  [Known Velocity](#known)
-2.  [Petsc Nonlinear Solver](#snes) \[EXPERIMENTAL\]
-3.  [FASMGAMR](#fas) \[EXPERIMENTAL\]
-4.  [Python](#python)
-5.  [Inverse Vertically Integrated Velocity Solver](#inversevi)
-:::
-
-::: (#main)
 # BISICLES ice velocity
 
 The ice velocity calculation depends at minimum on the [ice sheet
@@ -139,4 +124,3 @@ solvers,
 ## [Python](#pythin)
 
 ## [Inverse Vertically Integrated Velocity Solver](#inversevi)
-:::

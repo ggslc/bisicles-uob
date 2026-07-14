@@ -1,12 +1,6 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-:::
-
-::: (#main)
 # BISICLES driver executable
 
-BISICLES\' driver executable is used to run standalone time-dependent
+The BISICLES _driver_ executable is used to run standalone time-dependent
 ice sheet simulations. At the start of a simulation, it carries out the
 following operations
 
@@ -50,4 +44,3 @@ It then runs the following operations until the simulation has completed
 It is also possible to [restart](io.md#restart) a simulation from a
 checkpoint file, for example to create a number of simulation branches,
 having carried out some sort of relaxation
-:::

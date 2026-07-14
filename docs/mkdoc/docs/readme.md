@@ -1,25 +1,4 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [System requirements](#sysreq)
-2.  [Source code](#svnco)
-3.  [Dependencies](#deps)
-4.  [Chombo configuration](#chombo)
-5.  [BISICLES configuration](#bikeconf)
-6.  [Building basic BISICLES](#bisicles)
-7.  [MISMIP3d example](#example)
-8.  [Building all of BISICLES](#all)
-:::
-
-::: (#main)
 # [BISICLES build instructions](#top)
-
-These are the instructions to build BISICLES against the Chombo 3.2
-release. To build against the older 3.1 Chombo release, go
-[here](readme-3.1.md)
 
 To build (and run) BISICLES you need to
 
@@ -43,10 +22,10 @@ is optional but highly recommended - BISICLES has numerous optional
 python components. On the whole, life is easiest with gcc (including g++
 and gfortran), and we shall assume that is what will be used. To build
 the parallel version, you need an MPI environment, which provides the
-mpicc and mpicxx (or equivalents). You will also need
-[VisIt](https://wci.llnl.gov/codes/visit/home.md)
+mpicc and mpicxx (or equivalents). 
 
-to view the data BISICLES produces (other programs can be put to use,
+You will also need
+[VisIt](https://visit-dav.github.io/visit-website/index.html) to view the data BISICLES produces (other programs can be put to use,
 but VisIt is by far the most convenient)
 
 There are some [site specific notes](sites.md): look at these before

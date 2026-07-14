@@ -1,18 +1,6 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [GNU R](#gnur)
-2.  [Python](#python)
-3.  [MATLAB](#matlab)
-:::
-
-::: (#main)
 # libamrfile : analyzing data with R, MATLAB, Python, etc
 
-While [VisIt](https://wci.llnl.gov/codes/visit/home.md)
+While [VisIt](visit.md)
 
 is useful for plotting BISICLES output, it it often preferable to use
 popular tools such [GNU R](#gnur), [Python](#python), or
@@ -389,4 +377,3 @@ If you need to build these libraries, then something like
 should provide libhdf5.so.7 and libhdf5_hl.so.7. Alternatively, work out
 which version of hdf5 MATLAB has included, and compile Chombo and
 BISICLES against that version
-:::

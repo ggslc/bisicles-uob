@@ -1,17 +1,12 @@
-::: 
--   [Index page](index.md)
--   [Top of page](#top)
 
 # Contents
 
 1.  [User documentation](#user)
 2.  [Developer documentation](#dev)
-:::
 
-::: 
 # [BISICLES documentation](#top)
 
-## [User documentation](#user)
+## User documentation(#user)
 
 There is a modest collection of documentation which aims to show how to
 build and run BISICLES, and to select run-time options. Most of it will

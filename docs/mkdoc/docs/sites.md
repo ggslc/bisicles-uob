@@ -1,19 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Debian based systems (e.g Ubuntu and Ubuntu on WSL)](#debian)
-2.  [Rocky Linux 8](#rocky8)
-3.  [University of Bristol](#uob)
-4.  Isambard 3 (Cray, ARM)
-5.  [NERSC](#nersc)
-6.  ARCHER (Cray XC30)
-7.  [UKMO Monsoon (Cray XC40)](#monsoon)
-:::
-
-::: (#main)
 # [BISICLES site specific notes](#top)
 
 ## [Debian based systems (e.g Ubuntu and Ubuntu on WSL)](#debian)
@@ -116,7 +100,7 @@ configuration, used the file
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.bc4 Make.defs.none
 
-## [Isambard 3](#isambard3)
+### [Isambard 3](#isambard3)
 
 The Isambard systems are UK HPC facilities managed by the Bristol Centre
 for Supercomputing. See the [BriCS Isambard
@@ -520,4 +504,3 @@ Or, with the PETSC interface
 
 The binary will be called
 driver2d.Linux.64.CC.ftn.OPT.MPI.PETSC.INTEL.ex
-:::

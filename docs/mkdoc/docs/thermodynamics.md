@@ -1,18 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Temperature and water fraction](#Tw)
-2.  [Till water](#till)
-3.  [Coupling with the stress model](#coupling)
-    1.  [Englacial Stress](#stress)
-    2.  [Basal Stress (Weertman)](#bstressW)
-    3.  [Basal Stress (Coulomb)](#bstressC)
-:::
-
-::: (#main)
 # BISICLES Thermodynamics
 
 Temperature and water fraction

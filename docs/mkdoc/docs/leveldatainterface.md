@@ -1,18 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Initial geometry and boundary conditions](#ibc)
-2.  [Initial temperature](#tempibc),
-3.  [Basal traction coefficient](#btrc),
-4.  [Englacial stiffness coefficient](#mucoef),
-5.  [Surface fluxes](#sflux)
-6.  [Inputs to the inverse problem](#inverse)
-:::
-
-::: (#main)
 # BISICLES LevelData interface
 
 BISICLES LevelData interface can load various kinds of gridded data from
@@ -123,4 +108,3 @@ See also the the description of [surface fluxes](surfaceflux.md)
 
 See also the the description of [inverse
 problem](velocity.md#inversevi)
-:::

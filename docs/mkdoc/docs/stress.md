@@ -1,23 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Basal stresses](#basal)
-    1.  [Basal friction coefficient](#bfrc) - the xy-dependent part
-    2.  [Basal rate factor](#bratefac) - the temperature dependent part
-    3.  [Basal friction relation](#bfrr) - the velocity dependent part
-2.  [Englacial stresses](#englacial)
-    1.  [Englacial stiffness (mu) coefficient](#mucoef) - the
-        xy-dependent part
-    2.  [Englacial rate factor](#ratefac) - the temperature dependent
-        part
-    3.  [Englacial Constitutive relation](#mu) - the velocity dependent
-        part
-:::
-
-::: (#main)
 # BISICLES stresses
 
 Every BISICLES simulation requires both [basal](#basal) and
@@ -310,9 +290,3 @@ vertical shear strains in vertically integrated models.
     L1L2.additionalVelocitySIAGradSLimit = 1.0e+10 # limit grad(s) in the effective viscosity
     L1L2.additionalVelocitySIAOnly = false # default is true
     L1L2.startFromAnalyticMu = false       # can be true for n = 3
-    L1L2.layerCoarsening = 0               # (integer n, default =0) coarsen the vertical layers by 2^n times for the L1L2 calculation. 
-
-<div>
-
-</div>
-:::

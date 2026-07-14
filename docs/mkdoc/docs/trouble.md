@@ -1,9 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-:::
-
-::: (#main)
 # BISICLES common issues
 
 ## [The code does not compile](#nocompile)
@@ -43,4 +37,3 @@ cryptic error in one other other log.
 
 Arguably, all results are like this :). But there are some things to
 watch out for
-:::

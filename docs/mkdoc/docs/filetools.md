@@ -1,19 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [extract](#extract)
-2.  [merge](#merge)
-3.  [pythonf](#pythonf)
-4.  [stats](#stats)
-5.  [flatten](#flatten)
-6.  [nctoamr](#nctoamr)
-7.  [diagnostics](#diagnostics)
-:::
-
-::: (#main)
 # BISICLES file tools
 
 BISICLES includes some tools used to perform miscellaneous actions on
@@ -192,4 +176,3 @@ subdomains, at a given time. The data in each line are
       csvdata,1.451000000000e+03,0,grounded,flxDivReconstr,m3/a,3.121113211384e+11
       csvdata,1.451000000000e+03,0,grounded,discharge,m3/a,3.118966365235e+11
       ...
-:::

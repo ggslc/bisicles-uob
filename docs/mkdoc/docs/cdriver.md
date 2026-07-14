@@ -1,16 +1,3 @@
-[User documentation index](index.md)
-
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Overview](#over)
-2.  [FORTRAN 90 example](#fortran)
-:::
-
-::: (#main)
 # [BISICLES cdriver interface](#top)
 
 ## [Overview](#over)
@@ -82,4 +69,3 @@ FC=gfortan:
       > cd $BISICLES_HOME/code/cdriver
       > make ftestwrapper DEBUG=TRUE OPT=TRUE MPI=TRUE USE_PETSC=FALSE
       > mpirun -np 4 ftestwrapper.2d.Linux.64.mpiCC.gfortran.DEBUG.OPT.MPI.ex
-:::

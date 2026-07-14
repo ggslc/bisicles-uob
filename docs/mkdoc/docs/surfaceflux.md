@@ -1,15 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Flux quantities](#whatflux)
-2.  [Simple fluxes](#simple)
-3.  [Complex fluxes](#complex)
-:::
-
-::: (#main)
 # [BISICLES surface fluxes](#top)
 
 BISICLES has a number of configuration file options that let you specify
@@ -374,4 +362,3 @@ we load two data fields from a file and combine them, with m
     basalFlux.floating.ambient.startTime = 0.0
     basalFlux.floating.ambient.fileFormat = melt.2d.hdf5
     basalFlux.floating.ambient.name = ambmelt
-:::

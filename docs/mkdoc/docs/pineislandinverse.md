@@ -1,9 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-:::
-
-::: (#main)
 # BISICLES Pine Island Glacier inverse problem
 
 These instructions assume that you have working BISICLES executables,
@@ -208,4 +202,3 @@ to the config file. Every timestep, the bedrock will be updated, and
 then the inverse problem will be re-solved to keep C and muCoef in line.
 This is by no means the ultimate answer to this problem (and if it was,
 we would have published it :)
-:::

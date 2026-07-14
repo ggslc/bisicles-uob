@@ -1,9 +1,38 @@
 site_name: BISICLES user documents
 
 theme:
-  name: mkdocs
+  name: readthedocs
   highlightjs: true
   hljs_languages:
     - bash
     - python
-  nav-style: dark
+    - c++
+    - c
+
+nav:
+  - Home: index.md
+  - Building and running: 
+    - Generic instructions: readme.md
+    - Site notes: sites.md
+    - Common issues: trouble.md
+  - Executables:
+    - main program (driver): driver.md
+    - file tools: filetools.md
+    - C/Fortran API: cdriver.md
+  - Run time options:
+    - input/output: io.md
+    - ice sheet geometry: geometry.md
+    - stresses : stress.md
+    - thermodynamics: thermodynamics.md
+    - ice velocity: velocity.md
+    - surface fluxes: surfaceflux.md
+    - LevelData interface: leveldatainterface.md
+    - Python interface: pythoninterface.md
+  - Examples:
+    - MISMIP3D: readme.md#example
+    - Pine Island Glacier: pineisland.md
+    - PIG inverse problem: pineislandinverse.md
+  - Data viz / analysis: 
+    - Python/R/MATLAB (libamrfile): libamrfile.md
+    - VisIt: visit.md
+  

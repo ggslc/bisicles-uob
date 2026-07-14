@@ -1,18 +1,4 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-
-# Contents
-
-1.  [Run-time configuration (inputs.\* files)](#config)
-2.  [Log output (pout.\* files)](#pout)
-3.  [Plot files (plot.\*.2d.hdf5 files)](#plot)
-4.  [CF Plot files (plot.\*.CF.2d.hdf5 files)](#plotcf)
-5.  [Checkpoints (chk.\*.2d.hdf5 files) and restarts](#restart)
-:::
-
-::: (#main)
-# [BISICLES Run-time configuration, input, output, and checkpoints](#title)
+# BISICLES Run-time configuration, input, output, and checkpoints
 
 ## [Run-time configuration (inputs.\* files)](#config)
 
@@ -266,4 +252,3 @@ make sure you replace all the \<variables\>
     fi
 
     aprun -n <number of cores> $DRIVER $INFILE
-:::
