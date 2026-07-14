@@ -129,4 +129,4 @@ See also [](stress.md#basal)
 ### [Basal stress (Coulomb)](#bstressC)
 
 See also [](stress.md#basal)
-:::
+

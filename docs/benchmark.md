@@ -1,9 +1,3 @@
-::: (#head)
--   [Index page](index.md)
--   [Top of page](#top)
-:::
-
-::: (#main)
 # BISICLES solver benchmark executable
 
 Since the vast majority of the CPU time in a typical BISICLES run is
@@ -40,7 +34,3 @@ following test:
         what should be an identical velocity solve to the one which was
         performed in the driver.
 
-<div>
-
-</div>
-:::

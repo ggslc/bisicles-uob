@@ -1,4 +1,3 @@
-
 # Contents
 
 1.  [User documentation](#user)
@@ -86,4 +85,4 @@ There are also some tests that developers need to be aware of:
 [Unit tests](tests.md): a few tests of individual components.
 
 [Regression tests](regression.md): tests of the code as a whole
-:::
+
