@@ -1861,6 +1861,34 @@ AmrIce::run2(Real a_max_time, int a_max_step)
 	}
       timeStep2(dt);
     }
+
+#ifdef CH_USE_HDF5
+  
+  // dump out final plotfile, if appropriate
+  if (m_plot_interval >= 0)
+    {  
+      if (m_verbosity > 2)
+        {
+          pout() << "AmrIce::run2 final plot" << endl;
+        }  
+
+      writePlotFile();
+    }
+
+
+  // dump out final checkpoint file, if appropriate
+  if (m_check_interval >= 0)
+    {
+      if (m_verbosity > 2)
+       {
+         pout() << "AmrIce::run2 final checkpoint" << endl;
+       }
+
+      writeCheckpointFile();
+    }
+#endif    
+ 
+
 }
 
 /// set H += (source terms - div(u H ) ) * a_dt  
@@ -2344,11 +2372,16 @@ AmrIce::run(Real a_max_time, int a_max_step)
 #endif
     } // end timestepping loop
  
-  // dump out final plotfile, if appropriate
 #ifdef CH_USE_HDF5
   
+  // dump out final plotfile, if appropriate
   if (m_plot_interval >= 0)
-    {
+    {  
+      if (m_verbosity > 2)
+        {
+          pout() << "AmrIce::run final plot" << endl;
+        }  
+
       writePlotFile();
     }
 
@@ -2356,6 +2389,11 @@ AmrIce::run(Real a_max_time, int a_max_step)
   // dump out final checkpoint file, if appropriate
   if (m_check_interval >= 0)
     {
+      if (m_verbosity > 2)
+       {
+         pout() << "AmrIce::run final checkpoint" << endl;
+       }
+
       writeCheckpointFile();
     }
 #endif    
