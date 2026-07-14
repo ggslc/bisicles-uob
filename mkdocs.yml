@@ -16,16 +16,16 @@ nav:
     - Site notes: sites.md
     - Common issues: trouble.md
   - Executables:
-    - main program (driver): driver.md
-    - file tools: filetools.md
+    - Main program (driver): driver.md
+    - File tools: filetools.md
     - C/Fortran API: cdriver.md
   - Run time options:
-    - input/output: io.md
-    - ice sheet geometry: geometry.md
-    - stresses : stress.md
-    - thermodynamics: thermodynamics.md
-    - ice velocity: velocity.md
-    - surface fluxes: surfaceflux.md
+    - Input and output: io.md
+    - Ice sheet geometry: geometry.md
+    - Stresses : stress.md
+    - Thermodynamics: thermodynamics.md
+    - Ice velocity: velocity.md
+    - Surface fluxes: surfaceflux.md
     - LevelData interface: leveldatainterface.md
     - Python interface: pythoninterface.md
   - Examples:
