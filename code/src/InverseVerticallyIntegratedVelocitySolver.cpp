@@ -1035,30 +1035,30 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     }
   
 
-  Real sumScaledX1Norm = 0;
+  Real sumScaledX1Norm = normX1*normX1;
   if ( m_config.m_fracInformedX1TimeReg )
     {
-    pout() << "ADDING SCALED X1 NORM TO PENALTY TERM" << std::endl;
-    for (int lev = 0; lev <= m_finest_level; lev++)
-      {
-      LevelData<FArrayBox>& scaledX1Norm = (*m_scaledX1Norm[lev]);
-      for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
-        {
-        scaledX1Norm[dit].setVal(0.0);
-        const FArrayBox& X = (*a_x[lev])[dit];
-        const FArrayBox& X1trc = (*m_X1TimeRegCoef[lev])[dit];
-
-        for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
-          const IntVect& iv = bit();
-          scaledX1Norm[dit](iv)+= X1trc(iv);
-          scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
-          scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
-        }
-      }
+      sumScaledX1Norm = 0.0;
+      pout() << "ADDING SCALED X1 NORM TO PENALTY TERM" << std::endl;
+      for (int lev = 0; lev <= m_finest_level; lev++)
+	{
+	  LevelData<FArrayBox>& scaledX1Norm = (*m_scaledX1Norm[lev]);
+	  for (DataIterator dit(m_grids[lev]);dit.ok();++dit)
+	    {
+	      scaledX1Norm[dit].setVal(0.0);
+	      const FArrayBox& X = (*a_x[lev])[dit];
+	      const FArrayBox& X1trc = (*m_X1TimeRegCoef[lev])[dit];
+	      
+	      for ( BoxIterator bit(m_grids[lev][dit]); bit.ok(); ++bit ){
+		const IntVect& iv = bit();
+		scaledX1Norm[dit](iv)+= X1trc(iv);
+		scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
+		scaledX1Norm[dit](iv)*= X(iv,MUCOMP);
+	      }
+	    }
+	}
+      sumScaledX1Norm += computeSum(m_scaledX1Norm, m_refRatio, m_dx[0][0]);
     }
-    sumScaledX1Norm += computeSum(m_scaledX1Norm, m_refRatio, m_dx[0][0]);
-  }
-
 
   a_fm = vobj ;
   a_fp =  m_config.m_gradCsqRegularization * sumGradCSq
@@ -1066,22 +1066,17 @@ InverseVerticallyIntegratedVelocitySolver::computeObjectiveAndGradient
     + m_config.m_gradX0sqRegularization * sumGradX0Sq
     + m_config.m_gradX1sqRegularization * sumGradX1Sq
     + X0Regularization() * normX0*normX0
-    + m_config.m_oneMinusMuSqRegularization * sumOneMinusMuSqBeta
-    ;
-  if (m_config.m_fracInformedX1TimeReg)
-    {
-      a_fp+= X1Regularization() * sumScaledX1Norm;
-    }
-  else
-    {
-      a_fp+= X1Regularization() * normX1*normX1;
-    }
+    + X1Regularization() * sumScaledX1Norm;
+    + m_config.m_oneMinusMuSqRegularization * sumOneMinusMuSqBeta;
  
-  pout() << ((a_inner)?"inner: ":"outer: ") << " ||velocity misfit||^2 = " << vobj 
+  pout() << ((a_inner)?"inner: ":"outer: ")
+	 << " ||velocity misfit||^2 = " << vobj 
 	 << " || grad C ||^2 = " << sumGradCSq
 	 << " || grad muCoef ||^2 = " << sumGradMuSq
 	 << " || X0 ||^2 = " << normX0*normX0
-	 << " || X1 ||^2 = " << X1Regularization() * sumScaledX1Norm;
+	 << " || X1 ||^2 = " << sumScaledX1Norm
+	 << " || grad X0 ||^2 = " << sumGradX0Sq
+	 << " || grad X1 ||^2 = " << sumGradX1Sq ;
 	if ( m_config.m_muRegularizationType == 2 ){
 		pout() << " || 1-Phi ||^2 * beta(x,y) = " << sumOneMinusMuSqBeta;
 	}
