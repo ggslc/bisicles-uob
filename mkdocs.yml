@@ -29,7 +29,7 @@ nav:
     - LevelData interface: leveldatainterface.md
     - Python interface: pythoninterface.md
   - Examples:
-    - MISMIP3D: readme.md#example
+    - MISMIP3D: readme.md#running-bisicles-on-a-simple-problem
     - Pine Island Glacier: pineisland.md
     - PIG inverse problem: pineislandinverse.md
   - Data viz / analysis: 

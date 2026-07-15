@@ -1,19 +1,20 @@
-# [BISICLES build instructions](#top)
+# BISICLES build instructions
 
 To build (and run) BISICLES you need to
 
-1.  Meet the [system requirements](#sysreq)
-2.  [Check out](#svnco) the source code
-3.  Set up some third party [dependencies](#deps)
-4.  [Configure Chombo](#chombo) by editing some definitions in a
+1.  Meet the [system requirements](#system-requirements)
+2.  [Check out](readme.md#check-out-the-source-code) the source code
+3.  Set up some third party [dependencies](#dependencies)
+4.  [Configure Chombo](#chombo-configuration) by editing some definitions in a
     makefile
-5.  [Configure BISICLES](#bikeconf) additional options by editing some
+5.  [Configure BISICLES](#bisicles-configuration) additional options by editing some
     definitions in another makefile
-6.  [Compile driver](#bisicles), the main standalone BISICLES
+6.  [Compile driver](#building-basic-bisicles), the main standalone BISICLES
     executable.
-7.  [Run driver on a simple problem](#example) to ensure that it works
+7.  [Run driver on a simple problem](mismip3d.md) to ensure that it works
+8.  [Build all of BISICLES](#build-all-of-bisicles): pre-processing and post processing tools, etc. 
 
-## [System requirements.](#sysreq)
+## System requirements
 
 BISICLES requires the GNU/Linux operating system (actually, it should
 compile and run elsewhere, but we never do that), plus both C++ and
@@ -33,7 +34,7 @@ proceeding if you are installing on an Ubuntu or Debian workstation, on
 a Cray (e.g ARCHER, NERSC), or on any of the other machines that
 BISICLES has been used before.
 
-## [Check out the source code.](#svnco)
+## Check out the source code
 
 Since this readme file lives in the source code repository, you might
 have already checked the source code out. There are two source trees,
@@ -85,7 +86,7 @@ other layout, note the following
     `/path/to/BISICLES/code/mk/Make.defs.$UNAMEN`, where `$UNAME` is the
     output from `uname -n` or `Make.defs.none` if there is no such file.
 
-## [Dependencies.](#deps)
+## Dependencies
 
 -   **fftw:** Some optional components (e.g the BuelerGIA module
     contributed by Sam Kachuck) require [fftw](https://fftw.org). Most
@@ -207,7 +208,7 @@ mpicc  ' Assuming this is all OK, type
 this time, the bin,doc,include and src directories should end up in
  $BISICLES_HOME/hdf5/parallel/.
 
-### [Building serial netcdf](#cdf)
+### Building serial netcdf
 
 **The main BISICLES program does not need netcdf: you only need it to
 convert between hdf5 (which BISICLES reads and write) and netcdf formats
@@ -247,7 +248,7 @@ otherwise it can be skipped**.
     > CC=mpicc CXX=mpiCC FC=mpif90  CPPFLAGS="-DgFortran -I$BISICLES_HOME/hdf5/parallel/include/" LDFLAGS=-L$BISICLES_HOME/hdf5/parallel/lib/  ./configure --prefix=$BISICLES_HOME/netcdf/parallel --enable-dap=no
     > make  check install
 
-### [Installing PETSc](#petsc)
+### Installing PETSc
 
 If we 're planning to use the PETSc solver interface, it 's a good idea
 to install PETSc before building Chombo. It 's likely that some version
@@ -282,7 +283,7 @@ will need to build it.
     them to .bash_profile or .bashrc or the startup script for your
     shell.
 
-## [Chombo configuration](#chombo)
+## Chombo configuration
 
 Next we need to set up Combo 's configuration (which BISICLES will
 inherit automatically). The main task here is create a file called
@@ -310,7 +311,7 @@ If you want the include compenents (e.g BuelerGIA) that require fftw set
     #make sure FFTWDIR is correct (contains e.g include/fftw3.h if you set USE_FFTW=TRUE
     FFTWDIR=/path/to/fftw # often /usr
 
-## [Configuring BISICLES](#bikeconf)
+## BISICLES configuration
 
 A makefile containing options specific to BISICLES (rather than Chombo)
 is located at
@@ -372,7 +373,7 @@ Make.defs.mymachine to set
     NETCDF_INC=-I$(shell $(NC_CONFIG) --includedir)
     NETCDF_LIBS=$(shell $(NC_CONFIG) --libs) -Wl,-rpath $(NETCDF_HOME)/lib -lhdf5_hl -lhdf5 -Wl,-rpath $(HDF_SER_DIR)/lib
 
-## [Building basic (standalone) BISICLES](#bisicles)
+## Building basic BISICLES
 
 Now we are ready to build one or more BISICLES executables. If you plan
 to do development work on the code itself, you will want to build an
@@ -415,7 +416,7 @@ e.g.
     > cd $BISICLES_HOME/BISICLES/code/exec2D
     > make all OPT=TRUE MPI=TRUE USE_PETSC=TRUE
 
-### [Make clean](#makeclean)
+### Make clean
 
 On occasion it might be necessary to rebuild BISICLES entirely, rather
 than just those parts where a file has changed. To do so, run
@@ -436,14 +437,14 @@ for optimized serial builds, and
 
 for optimized parallel builds
 
-### [Make realclean](#makerealclean)
+### Make realclean
 
 In the event even more houscleaning is desired, the  "realclean " target
 does everything the  "clean " target does, and additionally removes many
 other user-generated files, including all files with the  ".hdf5 "
 suffix (including checkpoint and plot files).
 
-## [Running BISICLES on a simple problem](#example)
+## Running BISICLES on a simple problem
 
 All the data to run [Frank Pattyn 's MISMIP3D P075
 experiment](http://homepages.ulb.ac.be/~fpattyn/mismip3d/welcome.md)
@@ -502,14 +503,14 @@ can view in visit
 
 See the [Site specific notes](sites.md)
 
-## [Building all of BISICLES](#all)
+## Build all of BISICLES
 
 Once BISICLES is working on a given machine, it might be convenient to
 build everything - standalone BISICLES, [the R/Python/MATLAB analysis
-tools](libamrfile.md)
+tools](libamrfile.md) , the programmable [cdriver interface](cdriver.md), the [file
+tools](filetools.md) for pre- and post-processing, and so on. 
 
-, the programmable [cdriver interface](cdriver.md), the [file
-tools](filetools.md), and so on. To build everything, run e.g
+To build everything, run e.g
 
     cd $BISICLES_HOME/BISICLES/code
     make all OPT=TRUE MPI=TRUE

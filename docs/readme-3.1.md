@@ -22,7 +22,7 @@ Optionally, you might also
 2.  [Compile control](#control), which can be used to solve an inverse
     problem (or control problem)
 
-## [System requirements.](#sysreq)
+## System requirements.
 
 BISICLES requires the GNU/Linux operating system (actually, it should
 compile and run elsewhere, but we never do that), plus both C++ and
@@ -39,7 +39,7 @@ but VisIt is by far the most convenient)
 
 There are some [site specific notes](sites.md)
 
-## [Check out the source code.](#svnco)
+## Check out the source code.
 
 Since this readme file lives in the source code repository, you might
 have already checked the source code out. There are two source trees,
@@ -56,7 +56,7 @@ root directory for both source trees
       > svn co https://anag-repo.lbl.gov/svn/Chombo/release/3.1 Chombo 
       > svn co https://anag-repo.lbl.gov/svn/BISICLES/public/trunk BISICLES 
 
-## [Dependencies.](#deps)
+## Dependencies.
 
 Chombo requires the hdf5 libraries. The current version of hdf5 is 1.8.
 However, Chombo was written to build against version 1.6, which has a
@@ -269,7 +269,7 @@ glimmer-CISM, otherwise it can be skipped.
     > CC=mpicc CXX=mpiCC FC=mpif90  CPPFLAGS="-DgFortran -I$BISICLES_HOME/hdf5/parallel/include/" LDFLAGS=-L$BISICLES_HOME/hdf5/parallel/lib/  ./configure --prefix=$BISICLES_HOME/netcdf/parallel  --enable-shared=no --enable-static=yes --enable-dap=no
     > make  check install
 
-## [Chombo configuration](#chombo)
+## Chombo configuration
 
 Next we need to set up Combo 's configuration (which BISICLES will
 inherit automatically). The main task here is create a file called
@@ -291,7 +291,7 @@ in the place it expects
 
     >ln -s $BISICLES_HOME/Make.defs.local $BISICLES_HOME/Chombo/lib/mk/Make.defs.local
 
-## [Configuring the Python interface](#python)
+## Configuring the Python interface
 
 To make use of the [python interface](pythoninterface.md), you need to
 ensure that you have a suitable python installation. This is usually
@@ -313,7 +313,7 @@ examples in the file already.
 when you come to compile BISICLES, you should see flags like
 -DHAVE_PYTHON included in the compilation
 
-## [Building stand-alone BISICLES](#bisicles)
+## Building stand-alone BISICLES
 
 Now we are ready to build one or more BISICLES executables. If you plan
 to do development work on the code itself, you will want to build an
@@ -350,7 +350,7 @@ Finally, should you feel the urge, you can have a non-optimized parallel
 version, which can be used for hunting down low-level bugs that crop up
 in parallel operation but not in serial operation.
 
-## [Make clean](#makeclean)
+## Make clean
 
 On occasion it might be necessary to rebuild BISICLES entirely, rather
 than just those parts where a file has changed. To do so, run
@@ -367,14 +367,14 @@ for optimized serial builds, and
 
 for optimized parallel builds
 
-## [Make realclean](#makerealclean)
+## Make realclean
 
 In the event even more houscleaning is desired, the  "realclean " target
 does everything the  "clean " target does, and additionally removes many
 other user-generated files, including all files with the  ".hdf5 "
 suffix (including checkpoint and plot files).
 
-## [Running BISICLES on a simple problem](#example)
+## Running BISICLES on a simple problem
 
 All the data to run [Frank Pattyn 's MISMIP3D P075
 experiment](http://homepages.ulb.ac.be/~fpattyn/mismip3d/welcome.md)
@@ -430,7 +430,7 @@ can view in visit
 
 See the [Site specific notes](sites.md)
 
-### [Compiling and using the file tools](#nctoamr)
+### Compiling and using the file tools
 
 To compile the file tools you might need to edit file
  $BISICLES_HOME/BISICLES/code/mk/Make.defs. If you have installed
@@ -453,7 +453,7 @@ thickness and topography data.
 
 There are a number of other [file tools](filetools.md).
 
-### [Compiling the control problem code](#control)
+### Compiling the control problem code
 
 The control problem code is used to solve an optimization problem
 (inverse problem, or ill-posed problem), using the optimal control

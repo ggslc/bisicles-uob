@@ -12,21 +12,21 @@ e.g extract2d.Linux.64.g++.gfortran.DEBUG.ex. All of the filetools will
 provide a usage string when executed with no (or the incorrect number)
 of command line arguments.
 
-## [extract](#extract)
+## extract
 
 Extract one or more fields from one amr file and write to a new amr
 file.
 
     usage: extract <input_file> <output_file> <var 1> [<var 2> [...]]
 
-## [merge](#merge)
+## merge
 
 combine fields from two amr files but on the same mesh into one amr
 file.
 
     usage: merge <input_file a> <input_file b> <output_file>
 
-## [pythonf](#pythonf)
+## pythonf
 
 Evaluate a python cell by cell over an amr file and save the results to
 a new amr file.
@@ -53,7 +53,7 @@ then run
 
     $BISICLES_HOME/BISICLES/code/filetools/pythonf2d.Linux.64.g++.gfortran.DEBUG.ex  linear_traction.2d.hdf5 third_traction.2d.hdf5 ctransform c_third C,u,v D,u,v
 
-## [stats](#stats)
+## stats
 
 Compute summary statistics (e.g volume) from a plot file. This tool has
 been around for a long time, and we will not remove it, but you might
@@ -81,7 +81,7 @@ computed by running
 
 Output would include one line per sub-region.
 
-## [flatten](#flatten)
+## flatten
 
 Produce a uniform mesh hdf5 or netcdf file by conservative
 averaging/interpolation data of from an amr file.
@@ -111,7 +111,7 @@ For data at 1 km resolution, run
 
     $BISICLES_HOME/BISICLES/code/filetools/flatten2d.Linux.64.g++.gfortran.DEBUG.ex plot.pigv5.1km.l1l2.2lev.000000.2d.hdf5 pig-epsg3031.nc 2 -1707000 -384000
 
-## [nctoamr](#nctoamr)
+## nctoamr
 
 Convert a uniform mesh netcdf file into a uniform mesh hdf5 file.
 
@@ -126,7 +126,7 @@ and must also contain a 1D field called x, you can run
 to obtain a file called data.2d.hdf5 that BISICLES can read as (say)
 thickness and topography data.
 
-## [diagnostics](#diagnostics)
+## diagnostics
 
 Compute summary statistics including discharge (e.g volume) from a plot
 file. Each statistic is a quantity integrated over one of several

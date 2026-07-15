@@ -27,7 +27,7 @@ and in parallel, assuming 4 processors,
 
     nohup mpirun -np 4 -x PYTHONPATH=`pwd` driver2d.Linux.64.mpic++.gfortran.DEBUG.OPT.MPI.ex inputs.file &
 
-## [Surface Fluxes](#flux)
+## Surface Fluxes
 
 To specify a [surface flux](surfaceflux.md) through a python function
 write a python function that takes five scalar arguments
@@ -70,7 +70,7 @@ So far the supported list is short
     0 (floating) with natural BCs
 2.  gl_proximity_scale : scale in the above
 
-## [Initial Geometry and boundary conditions](#ibc)
+## Initial Geometry and boundary conditions
 
 To set the initial thickness and topography using python functions,
 create a python module contain two scalar functions of (x,y), e.g
@@ -139,7 +139,7 @@ to a python module and the configuration lines
 would lead to a quarter-circular calving front centered on the bottom
 left corner with radius 1000 km
 
-## [Initial Geometry and temperature boundary conditions](#ibctemp)
+## Initial Geometry and temperature boundary conditions
 
 To set the initial temperature using python functions, create a python
 module containing a scalar function of (x,y,thickness,topography,sigma),
@@ -158,7 +158,7 @@ and specify it in the configuration file like so
     PythonIceTemperatureIBC.module = foo
     PythonIceTemperatureIBC.function = temperature
 
-## [Basal Friction Coefficient](#btrc)
+## Basal Friction Coefficient
 
 You can specify a basal friction coefficient in much the same way as a
 surface flux, e.g add

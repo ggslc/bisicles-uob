@@ -23,7 +23,7 @@ way to produce the correct kind of file is to create a netcdf file and
 convert it with the [nctoamr file tool](filetools.md#nctoamr), as in
 the [Pine Island Glacier example](pineisland.md).
 
-## [Initial geometry and boundary conditions](#ibc)
+## Initial geometry and boundary conditions
 
 One of the most common data sources in ice sheet problems is the digital
 elevation map (DEM). To load a DEM into BISICLES, determine the bedrock
@@ -65,7 +65,7 @@ force any regions of the domain that begin ice-free to remain ice free,
 and prevent the ice thickness from dropping below 1m in the rest of the
 domain.
 
-## [Initial temperature](#tempibc)
+## Initial temperature
 
 See also the description of [thermodynamics](thermodynamics.md)
 
@@ -92,15 +92,15 @@ Note the 11 values of sigma; these are the values at the layer faces.
 The temperature values are stored at the layer midpoint, so 10 are
 needed, with the first called  "temp000000 ".
 
-## [Basal traction coefficient](#btrc)
+## Basal traction coefficient
 
 See also the the description of [stresses](stress.md)
 
-## [Englacial stiffness coefficient](#mucoef),
+## Englacial stiffness coefficient,
 
 See also the the description of [stresses](stress.md)
 
-## [Surface fluxes](#sflux)
+## Surface fluxes
 
 See also the the description of [surface fluxes](surfaceflux.md)
 

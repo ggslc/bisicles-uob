@@ -1,6 +1,6 @@
-# [BISICLES cdriver interface](#top)
+# BISICLES cdriver interface
 
-## [Overview](#over)
+## Overview
 
 The BISICLES cdriver interface allows a C or FORTRAN (or indeed, any
 language that can call simple C functions) to control BISICLES without
@@ -49,7 +49,7 @@ A calling program will typically:
     (f _)bisicles_free_instance.
 11. Shut down MPI , if applicable.
 
-## [FORTRAN 90 example](#fortran)
+## FORTRAN 90 example
 
 An example FORTRAN 90 program which controls BISICLES via the cdriver
 interface is provided with the source code

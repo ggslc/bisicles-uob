@@ -1,6 +1,6 @@
 # BISICLES Run-time configuration, input, output, and checkpoints
 
-## [Run-time configuration (inputs. * files)](#config)
+## Run-time configuration (inputs. * files)
 
 The majority of BISICLES options are set in a configuration file which
 is specified at run time as the first command line argument of the
@@ -38,7 +38,7 @@ m/s (as opposed to m/a). Likewise, ensure that the rate factor (A in
 Glen 's law) and the basal traction coefficient are given in the correct
 units.
 
-## [Log output (pout. * files)](#pout)
+## Log output (pout. * files)
 
 Non-mpi executables write a log is to stdout, while mpi executables
 write to files called (by default) pout.0, pout.1, one for each
@@ -53,7 +53,7 @@ specify the file name (for mpi binaries) with
 to get pout.something.0, pout.something.1, etc. Either absolute or
 relative paths can be specified.
 
-## [Plot files (plot. *.2d.hdf5 files)](#plot)
+## Plot files (plot. *.2d.hdf5 files)
 
 Ice sheet snapshots, containing spatially varying fields such as ice
 thickness and velocity can be written either at regular time steps or
@@ -109,7 +109,7 @@ to have them numbered otherwise: the options are
       amr.output_file_numbering = time_years # a long integer time in years
       amr.output_file_numbering = time_seconds # a long integer time in seconds
 
-## [CF Plot files (plot. *.CF.2d.hdf5 files)](#plotcf)
+## CF Plot files (plot. *.CF.2d.hdf5 files)
 
 CF plot files are alternative (or complement) to the [standard plot file
 format](#plot) that are designed to produce [Climate and Forecast
@@ -164,7 +164,7 @@ typical data:
     CFIO.checkpoint_strict = true # default true. rause error on restarts without a cf checkpoint
     #if false, ignore missing checkpointt data but time integration lower limit will be the restart time   
 
-## [Checkpoints (chk. *.2d.hdf5 files) and restarts](#restart)
+## Checkpoints (chk. *.2d.hdf5 files) and restarts
 
 BISICLES will periodically write a checkpoint file. Although these are
 hdf5 files, they cannot be viewed in visit etc and are intended only

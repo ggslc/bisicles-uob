@@ -1,8 +1,8 @@
 # BISICLES common issues
 
-## [The code does not compile](#nocompile)
+## The code does not compile
 
-## [The code compiles but does not run](#norun)
+## The code compiles but does not run
 
 1.  **ImportError: No module named xyz**. For some reason the python
     interpreter was unable to read xyz.py, e.g
@@ -20,7 +20,7 @@
             export PYTHONPATH=$PWD:$PYTHONPATH
           
 
-## [The code compiles and runs but crashes or fails in some spectacular way](#crashes)
+## The code compiles and runs but crashes or fails in some spectacular way
 
 Sometimes the code starts, but then terminates, leaving a more or less
 cryptic error in one other other log.
@@ -33,7 +33,7 @@ cryptic error in one other other log.
     especially the [geometry](geometry.md) and the [basal
     traction](stress.md#basal).
 
-## [The code compiles and runs to completions but the results are drivel](#drivel)
+## The code compiles and runs to completions but the results are drivel
 
 Arguably, all results are like this :). But there are some things to
 watch out for

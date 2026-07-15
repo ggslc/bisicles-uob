@@ -36,7 +36,7 @@ Options for  < solver_type  > are
     Estimates the basal friction and stiffness coefficients in order to
     provide a velocity field that fits observations.
 
-## [JFNK Solver](#jfnk)
+## JFNK Solver
 
 BISICLES JFNK (Jacobian-free Newton-Krylov) solver solves the nonlinear
 vertically integrated (SSA, L1L2) stress equations using a matrix-free
@@ -59,7 +59,7 @@ and in those cases paying attention to the JFNKSolver options can be
 useful. The most useful course in such cases is to try the [PETSc linear
 solvers](#jfnk-petsc)
 
-### [Option: PETSc linear solvers](#jfnk-petsc)
+### Option: PETSc linear solvers
 
 By default, the JFNK solver uses the Chombo geometric multigrid (GMG)
 linear solvers to compute the Newton step. If you find that convergence
@@ -115,12 +115,12 @@ solvers,
           JFNKSolver.solverType = 4
           JNKKSolver.normType = 2
 
-## [Known Velocity](##known)
+## Known Velocity
 
-## [Petsc Nonlinear Solver](#snes)
+## Petsc Nonlinear Solver
 
-## [FASMGAMR](#fas)
+## FASMGAMR
 
-## [Python](#pythin)
+## Python
 
-## [Inverse Vertically Integrated Velocity Solver](#inversevi)
+## Inverse Vertically Integrated Velocity Solver

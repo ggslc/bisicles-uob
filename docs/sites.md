@@ -1,6 +1,6 @@
-# [BISICLES site specific notes](#top)
+# BISICLES site specific notes
 
-## [Debian based systems (e.g Ubuntu and Ubuntu on WSL)](#debian)
+## Debian based systems (e.g Ubuntu and Ubuntu on WSL)
 
 Debian GNU/Linux derivatives including Ubuntu 22.04 and 24.04 allow an
 mpi environment , hdf5, and netcdf to be installed in a way that works
@@ -49,7 +49,7 @@ or (for 24.04),
     NETCDF_HOME=$(shell nc-config --prefix)
     NETCDF_LIBS=-lnetcdff -lnetcdf -lhdf5_hl
 
-## [Rocky Linux 8](#rocky8)
+## Rocky Linux 8
 
       sudo dnf install git subversion csh wget make gcc-c++ gcc-gfortran openmpi-devel python3-devel fftw3-devel perl zlib-devel
       module load mpi
@@ -61,7 +61,7 @@ configuration, use the file
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.rocky8 Make.defs.none
 
-## [University of Bristol](#uob)
+## University of Bristol
 
 You might not need to compile BISICLES at UoB since a number of the
 developers work there.
@@ -100,7 +100,7 @@ configuration, used the file
       cd $BISICLES_HOME/BISICLES/code/mk
       ln -s Make.defs.bc4 Make.defs.none
 
-### [Isambard 3](#isambard3)
+### Isambard 3
 
 The Isambard systems are UK HPC facilities managed by the Bristol Centre
 for Supercomputing. See the [BriCS Isambard
@@ -145,7 +145,7 @@ The file  $BISICLES_HOME/Chombo/lib/mk/Make.defs.none should include
     #--ldflags does not include -lpython for reasons that escape me
     PYTHON_LIBS=-lpython3.11 $(shell python3-config --ldflags)
 
-## [NERSC](#nersc)
+## NERSC
 
 The US DOE-run National Energy Research Supercomputing Center (
 [NERSC](http://www.nersc.gov)) has several machines which BISICLES users
@@ -302,7 +302,7 @@ Your build should also automagically access the existing Make.defs.cori
 file in BISICLES/code/mk, which is being kept up to date for KNL builds
 and runs that we are constantly doing.
 
-## [ARCHER](#archer)
+## ARCHER
 
 The Cray XC30 at ARCHER (UK National HPC) offers Cray, GNU, and Intel
 compilers. Cray is the default (but doesn 't seem to work for now). All
@@ -459,7 +459,7 @@ script (run from somewhere in /work) would look something like
     EXE=/path/to/driver2d.Linux.64.CC.ftn.OPT.MPI.GNU.DY.ex 
     aprun -n 24 $EXE inputs.whatever
 
-## [The Monsoon Cray XC40 at the UK Met Office](#monsoon)
+## The Monsoon Cray XC40 at the UK Met Office
 
 The Monsoon Cray XC40 is much like ARCHER (and Edison and Cori at
 NERSC). So much so that the ARCHER makefile seems to work, ie

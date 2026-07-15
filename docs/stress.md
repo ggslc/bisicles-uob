@@ -5,7 +5,7 @@ Every BISICLES simulation requires both [basal](#basal) and
 englacial stresses to the velocity field. There are also options to
 modify the [driving](#driving) stress
 
-## [Driving stress](#driving)
+## Driving stress
 
 The driving stress is determined by the geometry, however there are some
 options that can be used to modify it. Input geometry may lead to
@@ -26,7 +26,7 @@ It can be disabled with.
 
       velocity_rhs.gl_correction = false # true is the default
 
-## [Basal stresses](#basal)
+## Basal stresses
 
 The basal stress model is broken down into a spatially varying basal
 friction [coefficient](#btrc) beta ^2(x,y) and temperature dependent
@@ -43,7 +43,7 @@ applied to grounded ice or floating ice immediately adjacent to an ice
 free region whose upper surface lies above the lower surface of the ice
 (a fjord wall).
 
-### [Basal friction coefficient](#btrc)
+### Basal friction coefficient
 
 If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the basal friction coefficient is described at
@@ -172,19 +172,19 @@ Other beta ^2 options include sinusoidalBeta, sinusoidalBetay,
 twistyStreamx, singularStream, gaussianBump. These exist for testing to
 be carried out without the python interface: don 't worry about them.
 
-### [Basal rate factor](#bratefac)
+### Basal rate factor
 
 If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the rate factor is described at
 [classRateFactor.md](../code/doc/doxygen/html/classRateFactor.html)
 
-### [Basal friction relation](#btrr)
+### Basal friction relation
 
 If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the basal friction relation is described at
 [classBasalFrictionRelation.md](../code/doc/doxygen/html/classBasalFrictionRelation.html)
 
-#### [Power law basal friction relation](#btrrpwr)
+#### Power law basal friction relation
 
 The power law basal friction relation covers rules of the form tau_b = C
  |u | ^(m-1) u, which includes linear viscous sliding (m=1), and hard
@@ -203,7 +203,7 @@ If
 Then a factor hab ^m (where hab is the thickness above flotation) is
 introduced.
 
-#### [Pressure limited basal friction relation](#btrrlim)
+#### Pressure limited basal friction relation
 
 The pressure limited law modifies another basal friction relation f(C,u)
 to ensure that basal traction cannot exceed the Coulomb friction,
@@ -228,7 +228,7 @@ To choose Leguy 2014, set
     BasalFrictionPressureLimitedLaw.basalFrictionRelation = powerLaw
     BasalFrictionPowerLaw.m = 0.3333
 
-## [Englacial stresses](#englacial)
+## Englacial stresses
 
 The englacial stress model is broken down into a spatially varying
 [stiffness factor](#mucoef) phi(x,y) and temperature dependent [rate
@@ -240,19 +240,19 @@ or a rule based on it such as the L1L2 rule (Schoof and Hindmarsh 2010).
 There is also an experimental rule that combines any other relation with
 a continuum damage model.
 
-### [Englacial stiffness (mu) coefficient](#mucoef)
+### Englacial stiffness (mu) coefficient
 
 If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the stiffness factor is described at
 [classMuCoefficient.md](../code/doc/doxygen/html/classMuCoefficient.html)
 
-### [Englacial rate factor](#ratefac)
+### Englacial rate factor
 
 If you have built the doxygen code documentation, the C++ class
 hierarchy underlying the rate factor is described at
 [classRateFactor.md](../code/doc/doxygen/html/classRateFactor.html)
 
-### [Englacial Constitutive relation](#mu)
+### Englacial Constitutive relation
 
 The englacial constitutive relation has three roles. First, it computes
 the effective viscosity (mu) given the strain rate (e_ij) and rate

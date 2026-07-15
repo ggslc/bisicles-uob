@@ -318,7 +318,7 @@ high resolution box
 ![ color-map of ice thickness produced in MATLAB with
 amr_read_box_2d()](libamrfile_matlab.png)
 
-### [MATLAB issues](#matlablibs)
+### MATLAB issues
 
 MATLAB carries around some system libraries in case the installed
 operating system lacks them. You may find that when you attempt to load

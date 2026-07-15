@@ -23,7 +23,7 @@ under the influence of sub-shelf melting. To that end we will
     file, but also parameters which affect the behavior of the solver.
 4.  [Run a simulation](#runpig)
 
-## [Pre-processing](#preprocess)
+## Pre-processing
 
 Pre-processing might involve a few steps : here we take a subset of the
 original elevation and topography data to cover a 256 x 384 grid -
@@ -119,7 +119,7 @@ topg, and beta (possibly a constant beta, though in Pine Island Glacier
 a spatially varying beta is required if the simulation is to look at all
 realistic).
 
-## [Conversion](#convert)
+## Conversion
 
 BISICLES cannot (yet) read netCDF data directly, instead we must use the
 nctoamr tool to convert it into a Chombo AMR hierarchy stored in an
@@ -135,7 +135,7 @@ Instead, copy the file to your workstation and open into
 [VisIt](visit.md) which has a special module for viewing Chombo AMR
 hierarchies.
 
-## [Configuration file](#configure)
+## Configuration file
 
 As in the MISMIP3D example, we can generate a bunch of configuration
 files by running a script
@@ -410,7 +410,7 @@ indicating the indices of the corners of the box. For now, follow this
 format exactly (if amr.tagSubsetBoxesFile exists at all) . We 'll
 improve this soon to allow comments and so on.
 
-## [Running a simulation](#runpig)
+## Running a simulation
 
 If you have a parallel workstation, run a simulation with 4 or 5 levels
 of refinement, e.g

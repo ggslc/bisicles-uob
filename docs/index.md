@@ -1,11 +1,6 @@
-# Contents
+# BISICLES Documentation
 
-1.  [User documentation](#user)
-2.  [Developer documentation](#dev)
-
-# [BISICLES documentation](#top)
-
-## User documentation(#user)
+## User documentation
 
 There is a modest collection of documentation which aims to show how to
 build and run BISICLES, and to select run-time options. Most of it will
@@ -58,7 +53,7 @@ airborne observations.
     1.  [Viewing data with visit](visit.md)
     2.  [Analyzing data with R, MATLAB, Python, etc](libamrfile.md)
 
-## [Developer documentation](#dev)
+## Developer documentation
 
 Developer documentation is included with the source distribution, and it
 makes sense to read [Cornford, Martin et al, J. Comp. Phys, 232,

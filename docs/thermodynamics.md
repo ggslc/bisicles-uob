@@ -109,7 +109,7 @@ water from accumulating there.
 
 A more sophisticated basal hydrology model is in development.
 
-## [](#coupling)Coupling with the stress model
+## Coupling with the stress model
 
 The thermodynamics model is coupled with the stress balance model
 through an (optional) temperature dependence of the rate factor that
@@ -122,11 +122,11 @@ Englacial stress
 
 See also [](stress.md#englacial)
 
-### [Basal stress (Weertman)](#bstressW)
+### Basal stress (Weertman)
 
 See also [](stress.md#basal)
 
-### [Basal stress (Coulomb)](#bstressC)
+### Basal stress (Coulomb)
 
 See also [](stress.md#basal)
 

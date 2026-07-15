@@ -1,4 +1,4 @@
-# [BISICLES surface fluxes](#top)
+# BISICLES surface fluxes
 
 BISICLES has a number of configuration file options that let you specify
 the rate at which e.g volume and/or energy is added to the ice sheet.
@@ -21,9 +21,9 @@ If you have built the doxygen code documentation, the C++ class
 hierarchy underlying all this is described at
 [classSurfaceFlux.md](../code/doc/doxygen/html/classSurfaceFlux.html)
 
-## [Flux quantities](#whatflux)
+## Flux quantities
 
-### [Surface and basal thickness flux](#thicknessflux)
+### Surface and basal thickness flux
 
 Surface thickness flux (e.g meteoric accumulation) and basal thickness
 flux (e.g oceanic melting) are set through two sections in the
@@ -43,7 +43,7 @@ begin
 which select the thickness flux at the lower surface. If either is
 missing, we fall back to the older style (and you get the warning).
 
-### [Topography flux](#topographyflux)
+### Topography flux
 
 Bedrock uplift rate can be specified in entries beginning
 
@@ -51,7 +51,7 @@ Bedrock uplift rate can be specified in entries beginning
     topographyFlux.
       
 
-### [Surface and basal heat flux](#heatflux)
+### Surface and basal heat flux
 
 Surface and basal heat fluxes are specified in entries that begin with:
 
@@ -62,7 +62,7 @@ Surface and basal heat fluxes are specified in entries that begin with:
 See the [thermodynamics](thermodynamics.md) documentation for more
 details.
 
-## [Simple fluxes](#simple)
+## Simple fluxes
 
 ### zeroFlux
 
@@ -170,7 +170,7 @@ then you would include lines like
 
 in the input file.
 
-## [Complex fluxes](#complex)
+## Complex fluxes
 
 ### maskedFlux
 
