@@ -1,9 +1,7 @@
 # libamrfile : analyzing data with R, MATLAB, Python, etc
 
-While [VisIt](visit.md)
-
-is useful for plotting BISICLES output, it it often preferable to use
-popular tools such [GNU R](#gnur), [Python](#python), or
+While [VisIt](visit.md) is useful for plotting BISICLES output, it it often preferable to use
+popular tools such [GNU R](#gnu-r), [Python](#python), or
 [MATLAB](#matlab) to analyze BISICLES output. libamrfile is distributed
 with BISICLES and provides a C-compatible interface to Chombo AMR data
 that can be accessed through these common tools, and through various
@@ -36,7 +34,7 @@ Then you need to set these flags, and remove older object files
     > cd $BISICLES_HOME/Chombo/lib
     > make clean
 
-GNU R
+## GNU R
 
 ### Installation
 
@@ -128,7 +126,7 @@ thickness, with a high resolution box
 ![ color-map and contour plot of ice thickness produced in R
 amr.read.box()](libamrfile_amr_read_box.png)
 
-Python
+## Python
 
 Python access is through a collection of modules that interface with the
 shared library (libamrfile.so). So, before using the python functions,
@@ -236,7 +234,9 @@ thickness, with a high resolution box
 ![ color-map and contour plot of ice thickness produced in python with
 readBox2D()](libamrfile_python.png)
 
-MATLAB
+## MATLAB
+
+**MATLAB is not supported since ages ago: YMMV**
 
 MATLAB access is through a collection of functions that interface with
 the shared library (libamrfile.so). First, the library needs to be built
@@ -347,8 +347,7 @@ in LD_LIBRARY_PATH, MATLAB loads its own.
 
 One way to be compatible with MATLAB might be to compile Chombo and
 BISICLES and libamrfile with the same tool chain (gcc-4.4.6 in this
-case, and hdf5 v 1.8.6). That might not be realistic, for example at UoB
-we have gcc-4.7.2 and no desire to switch back to gcc-4.4.6. Forcing
+case, and hdf5 v 1.8.6). Alternatively Forcing
 MATLAB to load the newer libstdc++ by unlinking the symlinks in
 / <path-to-MATLAB >/sys/os/glnxa64/ seems to work
 

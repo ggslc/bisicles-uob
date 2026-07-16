@@ -15,7 +15,10 @@ cliffs. The option
       velocity_rhs.max_rhs_dx = 1.0e+10 #(Pa m) :any floating point number > 1
 
 is disabled by default but will ensure that rho  * g  * h  *  |grad(s) |
- * dx  < velocity_rhs.max_rhs_dx 1.0e+10 Pa m: roughly speaking a value
+ * dx  < velocity_rhs.max_rhs_dx 1.0e+10 Pa m: 
+$\rho g h \nabla s$
+
+roughly speaking a value
 of1.0e+10 Pa m: corresponds to a 1 km high ice grounded cliff.
 
 Driving stresses are modified immediately upstream and downstream of the

@@ -168,7 +168,8 @@ and e.g written to a flat file, and can then be read (through the
 runs. As we can see in the figures below, the model and observed speed
 are quite close after 24 CG iterations
 
-![](piginverse.png){width="100%/"}
+![](piginverse.png)
+
 
 Note that you can 't just solve the inverse problem and get the right
 answer. It is ill-posed, both in that there are more parameters than

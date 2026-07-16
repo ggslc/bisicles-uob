@@ -1,13 +1,13 @@
 # BISICLES Python Interface
-
 BISICLES ' python interface is intended to make some of less performance
 intensive parts of BISICLES easier to program. It is fairly crude : at
 certain points during a run BISICLES will use an embedded python
-interpreter to evaluate various fields. At the moment, it is possible to
-specify [surface fluxes](#flux) (that is, accumulation and melting), the
-[initial geometry](#ibc) (topography and thickness), the [initial
-temperature](#ibctemp) and the [basal traction coefficient](#btrc). The
-most likely application of the Python interface is in defining idealized
+interpreter to evaluate various fields. 
+
+[TOC]
+
+The most likely application of the 
+Python interface is in defining idealized
 problems, where the use of the [LevelData
 interface](leveldatainterface.md) would lead to undesirable numerical
 error
@@ -139,7 +139,7 @@ to a python module and the configuration lines
 would lead to a quarter-circular calving front centered on the bottom
 left corner with radius 1000 km
 
-## Initial Geometry and temperature boundary conditions
+## Initial temperature
 
 To set the initial temperature using python functions, create a python
 module containing a scalar function of (x,y,thickness,topography,sigma),

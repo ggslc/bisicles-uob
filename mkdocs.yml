@@ -1,5 +1,10 @@
 site_name: BISICLES user documents
 
+markdown_extensions:
+  - toc:
+      toc_depth: 1-2
+
+
 theme:
   name: readthedocs
   highlightjs: true

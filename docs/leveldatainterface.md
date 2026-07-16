@@ -4,13 +4,7 @@ BISICLES LevelData interface can load various kinds of gridded data from
 files in order to specify some of 2D and 3D fields. Currently, these
 are:
 
-1.  the [initial geometry and boundary conditions](#ibc) (topography and
-    thickness),
-2.  the [initial temperature](#tempibc),
-3.  the [basal traction coefficient](#btrc),
-4.  the [englacial stiffness coefficient](#mucoef),
-5.  [surface fluxes](#sflux), that is, accumulation and melting, and
-6.  all inputs to the [inverse problem](#inverse)
+[TOC]
 
 All of these require the same kind of input file, namely a Chombo amr
 file stored as hdf5, with a single level of data covering the whole

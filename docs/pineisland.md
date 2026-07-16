@@ -9,7 +9,7 @@ We will run through the steps needed to run BISICLES on a fairly
 realistic problem, namely a simulation of Pine Island Glacier retreating
 under the influence of sub-shelf melting. To that end we will
 
-1.  [preprocess some data](#preprocess), that is, pull together data
+1.  [preprocess some data](#pre-processing), that is, pull together data
     from a few sources, do a few simple calculations, and create a
     single netCDF file that contains just the data that BISICLES needs.
     Note however that we will **not** get an especially realistic
@@ -17,11 +17,11 @@ under the influence of sub-shelf melting. To that end we will
     initial values of the basal friction coefficient (beta) and the
     damage coefficient (phi, or muCoef) by solving an [inverse
     problem](pineislandinverse.md).
-2.  [Convert](#convert) the data from the netCDF file into the hdf5
+2.  [Convert](#conversion) the data from the netCDF file into the hdf5
     based format that BISICLES can read
-3.  Create a BISICLES [input](#configure) file, which specifies the data
+3.  Create a BISICLES [input](#configuration-file) file, which specifies the data
     file, but also parameters which affect the behavior of the solver.
-4.  [Run a simulation](#runpig)
+4.  [Run a simulation](#running-a-simulation)
 
 ## Pre-processing
 

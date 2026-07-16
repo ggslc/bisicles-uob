@@ -252,3 +252,33 @@ make sure you replace all the  <variables >
     fi
 
     aprun -n <number of cores> $DRIVER $INFILE
+
+## Inverse problem outputs (ctrl.\*.2d.hdf5)
+
+The [inverse problem](#inverse.md) replaces the
+[velocity solve](#velocity.md) with a Conjugate Gradient (CG) optimization. This involves many 
+recalculations of the ice velocity, basal traction coefficient at. Extra outputs are
+created:
+
+ - an hdf5 file for every complete CG 'outer' iteration
+ - optionally, an hdf5 file for each complete line search 'inner' iteration. 
+ - optionally, produce a compact versions of the current CG state to allow restarts 
+
+Filenames are genetared from a base name and a 12-digit integer, which combines the timestep
+and the CG iteration number within each timestep    
+
+### Parameter examples
+    control.outerStepFileNameBase = ctrl.z.  # 'outer' outputs will be named ctrl.z.%012d.hdf5 
+
+    control.writeInnerSteps = false # false by default. true might be useful for debugging
+
+    # load CG state from a file
+    control.CGreadStateFile = cg-state-z-000000000008.2d.hdf5 # restart CG 
+    control.CGrearStateIter = 8 # restarts numbered from 8 - need to set this on CG restarts
+
+    # save the CG state every 8 iterations
+    control.CGsaveStateInterval = 8 
+    control.CGsaveStateFileNameBase = cg-state-z. # 'state' outputs are named cg-state-z%012d.hdf5 
+
+### Inverse problem checkpoints
+
