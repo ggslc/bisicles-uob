@@ -98,8 +98,8 @@ def remove_islands(thk,mask):
     print ('removing islands')
     eps = 1.0
     ice_free = thk < eps
-    small_area = 128*128
-    ice_free = morphology.remove_small_holes(ice_free, small_area, in_place = True) 
+    small_area = 1280*1280
+    ice_free = morphology.remove_small_holes(ice_free, small_area) 
 
     thk = np.where(ice_free, 0, thk)
     
@@ -112,15 +112,27 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     C_MIN = 1.0e+1 # minimum value for C
 
     #desired dimensions
-    nx = 5120*2
-    ny = 9216*2
-    
+    nx, ny = 10240, 18432
     ncbm = Dataset(bedmachine_nc, 'r')
     xbm = ncbm.variables["x"][:]
     ybm = np.flipud(ncbm.variables["y"][:])
     
-    nxbm,nybm = len(xbm),len(ybm)
-    topg = np.zeros((ny, nx))
+    nx_bm,ny_bm = len(xbm),len(ybm)
+
+    if nx_bm > nx:
+        raise ValueError('need nx > nx_bm')
+    if ny_bm > ny:
+        raise ValueError('need ny > ny_bm')
+    
+    #padding to match earlier (vicky) domains
+    lox = int(0.5*(nx - nx_bm))
+    loy = int(0.5*(ny - ny_bm)) 
+    hix = lox + nx_bm
+    hiy = loy + ny_bm
+
+    print( (nx_bm,ny_bm), (lox, loy), (hix, hiy))
+    
+    topg = np.zeros((ny, nx)) - 4000.0
     thk = np.zeros((ny, nx))
     usrf_bm = np.zeros((ny, nx))
     mask = np.zeros((ny, nx))
@@ -133,21 +145,37 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     
     #desired data dimensions
     tol = 1.0e-10
-    x = np.arange(xbm[0],xbm[0]+nx*dx+tol,dx)
-    y = np.arange(ybm[0],ybm[0]+ny*dx+tol,dx)
+    #x = np.arange(xbm[0],xbm[0]+nx*dx+tol,dx)
+    #y = np.arange(ybm[0],ybm[0]+ny*dx+tol,dx)
 
+    #offset to match earlier (vicky) domains
+    x = xbm[0] + dx*(np.linspace(0,nx-1,nx) - lox)
+    y = ybm[0] + dx*(np.linspace(0,ny-1,ny) - loy)
+    print (f'{x[0]} < x < {x[-1]}, {y[0]} < y {y[-1]}')
+    nxb = x.shape[0]
+    nyb = y.shape[0]
+    print (f'grid {x.shape[0]} x {y.shape[0]}')
+    
 
+    
+    
     #bedmachine data
-    topg[0:nybm,0:nxbm] =  np.flipud(ncbm.variables["bed"][:,:])
-    thk[0:nybm,0:nxbm]  =  np.flipud(ncbm.variables["thickness"][:,:])
-    usrf_bm[0:nybm,0:nxbm]  =  np.flipud(ncbm.variables["surface"][:,:])
-    mask[0:nybm,0:nxbm]  = np.flipud(ncbm.variables["mask"][:,:])
+    topg[loy:hiy,lox:hix] =  np.flipud(ncbm.variables["bed"][:,:])
+
+
+   
+    thk[loy:hiy,lox:hix]  =  np.flipud(ncbm.variables["thickness"][:,:])
+    usrf_bm[loy:hiy,lox:hix]  =  np.flipud(ncbm.variables["surface"][:,:])
+    mask[loy:hiy,lox:hix]  = np.flipud(ncbm.variables["mask"][:,:])
 
     #speed data
-    umod[0:nybm,0:nxbm]  = read_umod_mouginot(xbm,ybm,measures_nc)
+    umod[loy:hiy,lox:hix]  = read_umod_mouginot(xbm,ybm,measures_nc)
 
     #thickness/bedrock mods 
-    thk = remove_islands(thk,mask)
+    thk = np.where(mask == 4, 0.0 ,thk) # remove non-greenland stuff
+    thk = remove_islands(thk,mask) # remove peripheral ice not connected to the main ice sheet
+
+    umod = np.where(thk > 0.0, umod, 0.0)
     
     #thk,topg = patch_holes(x,y,thk, topg, usrf_bm, mask)
 
@@ -176,7 +204,9 @@ def preprocess(output_nc, bedmachine_nc, measures_nc):
     grads[1:ny-1,1:nx-1] = 0.5 / dx *  np.sqrt(
         (usrf[1:ny-1,0:nx-2] - usrf[1:ny-1,2:nx])**2 + 
         (usrf[0:ny-2,1:nx-1] - usrf[2:ny,1:nx-1])**2 )
- 
+
+
+    
     #initial guess for C
     print ('btrc...')
     u_sia, u_tol = 2.0, 1.0e-5 # typical SIA speed?

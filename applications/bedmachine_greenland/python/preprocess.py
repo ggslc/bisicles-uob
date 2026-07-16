@@ -87,8 +87,9 @@ for i in range(1,len(suffix)):
     create_new_only(coarse, f)
 
 
+NCTOAMR='/home/ggslc/Development/bisicles-uob/code/filetools/nctoamr2d.Linux.64.g++.gfortran.DEBUG.OPT.ex'   
 def nctoamr(nc_file, hdf5_file, var_string):
-    _system('nctoamr {} {} {}'.format(nc_file, hdf5_file, var_string))
+    _system('{} {} {} {}'.format(NCTOAMR, nc_file, hdf5_file, var_string))
 
 def _system(cmd):
     print(cmd)
