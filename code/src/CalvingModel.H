@@ -558,8 +558,9 @@ class RateAuBuhatCalvingModel : public CalvingModel
   DomainEdgeCalvingModel* m_domainEdgeCalvingModel;
   SurfaceFlux* m_independent; // b 
   SurfaceFlux* m_proportion; // a
-  bool m_vector; // face-centred vector or cell-centred scalar?
-
+  bool m_vector; // cell-centred vector or scalar?
+  bool m_independent_normal; // apply the independent component normal (or anti-parallel to velocity) 
+  
 public:
 
   virtual void applyCriterion(LevelData<FArrayBox>& a_thickness, 
@@ -576,13 +577,6 @@ public:
   virtual ~RateAuBuhatCalvingModel();
   
   virtual CalvingModel* new_CalvingModel();
-
-  ///frontal ablation vector.
-  virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
-			      const LevelData<FluxBox>& a_faceIceVel,
-			      const LevelData<FArrayBox>& a_centreIceVel,
-			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level);
 
   ///cell centred frontal ablation vector
   virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,
@@ -636,12 +630,6 @@ public:
   
   virtual CalvingModel* new_CalvingModel();
 
-  ///face-frontal ablation vector.
-  virtual bool getCalvingVel (LevelData<FluxBox>& a_faceCalvingVel,
-			      const LevelData<FluxBox>& a_faceIceVel,
-			      const LevelData<FArrayBox>& a_centreIceVel,
-			      const DisjointBoxLayout& a_grids,
-			      const AmrIce& a_amrIce,int a_level);
 
   ///cell centred frontal ablation vector
   virtual bool getCalvingVel (LevelData<FArrayBox>& a_centreCalvingVel,

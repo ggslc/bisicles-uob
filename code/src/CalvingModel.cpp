@@ -1051,8 +1051,10 @@ RateAuBuhatCalvingModel::RateAuBuhatCalvingModel(ParmParse& a_pp)
       m_proportion = SurfaceFlux::parse( (prefix + ".proportion").c_str());
       if (!m_proportion) m_proportion = new zeroFlux(); 
       m_independent = SurfaceFlux::parse( (prefix + ".independent").c_str());
-      if (!m_independent) m_independent  = new zeroFlux(); 
-      m_vector = false;
+      if (!m_independent) m_independent  = new zeroFlux();
+      m_independent_normal = false;
+      a_pp.query("independent_normal",m_independent_normal); 
+      m_vector = true; // this is essentially required
       a_pp.query("vector", m_vector);
 
       
@@ -1142,17 +1144,30 @@ RateAuBuhatCalvingModel::getCalvingVel
       ccrate.exchange();
      
       for (DataIterator dit(a_grids); dit.ok(); ++dit)
-      	{
+        {
 	  const FArrayBox& u = a_centreIceVel[dit];
+	  const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
 	  FArrayBox& u_c = a_centreCalvingVel[dit];
+	  
 	  Box gbox = a_grids[dit];
 	  gbox.grow(1);
 	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
 	    {
 	      const IntVect& iv = bit();
-	      Real umod = 1.0e-10 + std::sqrt(u(iv,0)*u(iv,0) + u(iv,1)*u(iv,1));
-	      u_c(iv,0) -=  ccrate[dit](iv)*u(iv,0) / umod;
-	      u_c(iv,1) -=  ccrate[dit](iv)*u(iv,1) / umod;
+	      if (m_independent_normal)
+	      {
+		Real dfdx = frac(iv + BASISV(0)) - frac(iv - BASISV(0));
+		Real dfdy = frac(iv + BASISV(1)) - frac(iv - BASISV(1));
+		Real df = 1.0e-10 + std::sqrt(dfdx*dfdx + dfdy*dfdy);
+		u_c(iv,0) += ccrate[dit](iv)*dfdx/df;
+		u_c(iv,1) += ccrate[dit](iv)*dfdy/df;
+	      }
+	      else
+	      {	      
+	      	Real umod = 1.0e-10 + std::sqrt(u(iv,0)*u(iv,0) + u(iv,1)*u(iv,1));
+	      	u_c(iv,0) -=  ccrate[dit](iv)*u(iv,0) / umod;
+	      	u_c(iv,1) -=  ccrate[dit](iv)*u(iv,1) / umod;
+	      } // normal vs anti-parallel
 	    } // bit
 	} // dit
     } // m_independent
@@ -1161,152 +1176,6 @@ RateAuBuhatCalvingModel::getCalvingVel
 }
 
 
-
-bool 
-RateAuBuhatCalvingModel::getCalvingVel
-(LevelData<FluxBox>& a_faceCalvingVel,
- const LevelData<FluxBox>& a_faceIceVel,
- const LevelData<FArrayBox>& a_centreIceVel,
- const DisjointBoxLayout& a_grids,
- const AmrIce& a_amrIce,int a_level)
-{
-  if (!m_vector) return false;
-  
-  // cell-centered proportion
-  LevelData<FArrayBox> prop(a_grids, 1, 2*IntVect::Unit);
-  m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
-  prop.exchange();
-  //interpolate to faces
- 
-  //CellToEdge(prop, a_faceCalvingVel);
-  LevelData<FluxBox>& faceProp = a_faceCalvingVel;
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
-      for (int dir = 0; dir < SpaceDim; dir++)
-  	{
-  	  Box faceBox = frac.box();
-  	  faceBox.grow(-1);
-  	  faceBox.surroundingNodes(dir);
-  	  faceBox &= faceProp[dit][dir].box();
-
-  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
-  	    {
-  	      const IntVect& iv = bit();
-  	      // cell-centre indices on the - and + sides of the face
-  	      IntVect ivm = iv - BASISV(dir); 
-  	      IntVect ivp = iv;
-	      // one-sided...
-  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
-  		{
-  		  faceProp[dit][dir](iv) = prop[dit](ivm);
-  		}
-  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
-  		{
-  		  faceProp[dit][dir](iv) = prop[dit](ivp);
-  		}
-  	      else
-  		{
-  		  // normal linear interpolation
-  		  faceProp[dit][dir](iv) = 0.5 * (prop[dit](ivm) + prop[dit](ivp));
-  		}
-  	    }
-  	}
-    }
-    
-
-  // multiply by -velocity
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      for (int dir = 0; dir < SpaceDim; dir++)
-	{
-	  a_faceCalvingVel[dit][dir] *= -1.0;
-	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
-	}
-    }
-
-  if (m_independent)
-    {
-      // cell-centered independent part 
-      LevelData<FArrayBox> ccrate(a_grids, 1, 2*IntVect::Unit);
-     
-      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
-      ccrate.exchange();
-     
-      LevelData<FArrayBox> ccvel(a_grids, SpaceDim, 2*IntVect::Unit);
-     
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-      	{
-      	  const FArrayBox& vel = a_centreIceVel[dit];
-      	  const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
-      	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
-      	  Box gbox = a_grids[dit];
-      	  gbox.grow(2);
-      	  for (BoxIterator bit(gbox); bit.ok(); ++bit)
-      	    {
-      	      const IntVect& iv = bit();
-      	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
-      	      if (norm > 1.0)
-      		{
-      		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm);
-      		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm);
-      		}
-      	      
-      	    } // end bit	
-      	} // end dit
-
-      // interpolate independent part to centers
-      ccvel.exchange();
-      LevelData<FluxBox> flux(a_grids, 1, IntVect::Unit);
-
-      //CellToEdge(ccvel, flux); 
-      // one-sided / upstream interpolation - avoids mixing in undefined values.
-      // Assumes that velocity is directed outward across faces.
-      // this is copy-paste code from above, so refactor
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-      	{
-      	  const FArrayBox& v = ccvel[dit]; // cell centred calving vector
-      	  for (int dir = 0; dir < SpaceDim; dir++)
-      	    {
-      	      Box faceBox = flux[dit][dir].box();
-	      const FArrayBox& u = a_faceIceVel[dit][dir]; // face centered ice velocity
-      	      for (BoxIterator bit(faceBox); bit.ok(); ++bit)
-      		{
-      		  const IntVect& iv = bit();
-
-		  //cell-centre indices on the - and + sides of the face
-      		  IntVect ivm = iv - BASISV(dir); 
-      		  IntVect ivp = iv;
-		  Real utol = 1.0;
-		  if ( u(iv) > utol ) // upstream -
-		    {
-		      flux[dit][dir](iv) = v(ivm,dir);
-		    }
-		  else if (u(iv) < - utol) // upstream +
-		    {
-		      flux[dit][dir](iv) = v(ivp,dir); 
-		    }
-		  else
-		    {
-		      flux[dit][dir](iv) = 0.0;
-		    }
-      		}
-      	    }
-      	}
-
-     
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-	{
-	  for (int dir = 0; dir < SpaceDim; dir++)
-	    {	      
-	      a_faceCalvingVel[dit][dir] += flux[dit][dir];
-	    }
-	}
-    }
-
-  return true;
-  
-}
 
 void
 RateAuBuhatCalvingModel::getCalvingRate
@@ -1362,70 +1231,11 @@ VonMisesCalvingModel::VonMisesCalvingModel(ParmParse& a_pp)
       if (!m_scale) m_scale = new zeroFlux(); 
       m_independent = SurfaceFlux::parse( (prefix + ".independent").c_str());
       if (!m_independent) m_independent  = new zeroFlux(); 
-      m_vector = false;
+      m_vector = true;
       a_pp.query("vector", m_vector);
 
       
 }
-
-/** Von Mises building blocks **/
-void VonMisesCalvingModel::applyCriterion
-(LevelData<FArrayBox>& a_thickness,
- LevelData<FArrayBox>& a_calvedIce,
- LevelData<FArrayBox>& a_addedIce,
- LevelData<FArrayBox>& a_removedIce,  
- LevelData<FArrayBox>& a_iceFrac, 
- const AmrIce& a_amrIce,
- int a_level,
- Stage a_stage)
-{
-
-  (*m_domainEdgeCalvingModel).applyCriterion( a_thickness, a_calvedIce, a_addedIce, a_removedIce, a_iceFrac,a_amrIce, a_level, a_stage);
-
-  const LevelSigmaCS& levelCoords = *a_amrIce.geometry(a_level);
-  for (DataIterator dit(levelCoords.grids()); dit.ok(); ++dit)
-    {
-      FArrayBox& thck = a_thickness[dit];
-      FArrayBox& calved = a_calvedIce[dit];
-      FArrayBox& added = a_addedIce[dit];
-      FArrayBox& removed = a_removedIce[dit];
-      FArrayBox& frac = a_iceFrac[dit];
-      const BaseFab<int>& mask = levelCoords.getFloatingMask()[dit];
-      Real frac_eps = TINY_FRAC;
-      const Box& b = levelCoords.grids()[dit];
-      for (BoxIterator bit(b); bit.ok(); ++bit)
-	{
-	  const IntVect& iv = bit();
-	  Real prevThck = thck(iv);
-
-	  // if (frac(iv) < frac_eps * frac_eps)
-	  //   {
-	  //     frac(iv) = 0.0;
-	  //   }
-	  
-	  // if (frac(iv) < frac_eps)
-	  //   {
-	  //     thck(iv) = 0.0;
-	  //   }
-
-	  //  // if (frac(iv) < 0.5)
-	  //  //   {
-	  //  //     thck(iv) *= frac(iv);
-	  //  //   }
-
-		  
-	  // // Record gain/loss of ice
-	  if (calved.box().contains(iv))
-	    {
-	      updateCalvedIce(thck(iv),prevThck,mask(iv),added(iv),calved(iv),removed(iv));
-	    }
-
-	}
-    }
-
-}
-
-
 
 CalvingModel* VonMisesCalvingModel::new_CalvingModel()
   {
@@ -1461,6 +1271,22 @@ VonMisesCalvingModel::~VonMisesCalvingModel()
 
   
 }
+
+	
+void VonMisesCalvingModel::applyCriterion
+(LevelData<FArrayBox>& a_thickness,
+ LevelData<FArrayBox>& a_calvedIce,
+ LevelData<FArrayBox>& a_addedIce,
+ LevelData<FArrayBox>& a_removedIce,  
+ LevelData<FArrayBox>& a_iceFrac, 
+ const AmrIce& a_amrIce,
+ int a_level,
+ Stage a_stage)
+{
+  // No explicit criterion in this case, but m_domainEdgeCalvingModel applies.
+  (*m_domainEdgeCalvingModel).applyCriterion( a_thickness, a_calvedIce, a_addedIce, a_removedIce, a_iceFrac,a_amrIce, a_level, a_stage);
+}
+
 
 bool 
 VonMisesCalvingModel::getCalvingVel
@@ -1523,174 +1349,6 @@ VonMisesCalvingModel::getCalvingVel
 	}
     }
   
-  return true;
-  
-}
-
-
-bool 
-VonMisesCalvingModel::getCalvingVel
-(LevelData<FluxBox>& a_faceCalvingVel,
- const LevelData<FluxBox>& a_faceIceVel,
- const LevelData<FArrayBox>& a_centreIceVel,
- const DisjointBoxLayout& a_grids,
- const AmrIce& a_amrIce,int a_level)
-{
-
-  if (!m_vector) return false; 
-
-  // cell-centered scale
-  LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
-  m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());
-  scale.exchange();
-
-  // cell-centered Von Mises stress
-  LevelData<FArrayBox> vonmises(a_grids, 1, 2*IntVect::Unit);
-  // Access the (cell-centered) viscous tensor (vertically integrated stress)
-  // SHOULD USE FACE VISCOUS TENSOR!
-  const LevelData<FArrayBox>& a_viscousTensor = *a_amrIce.viscousTensor(a_level);
-  //const LevelData<FArrayBox> &a_thickness = (*a_amrIce.geometry(a_level)).a_coordSys.getH();
-  const LevelSigmaCS& a_geometry = *a_amrIce.geometry(a_level);
-  const LevelData<FArrayBox>& a_thickness = a_geometry.getH();
-
-  // locate specific components of the viscous tensor the multicomponent arrays.
-  // the derivComponent function is in LevelMappedDerivatives.
-  int xxComp = derivComponent(0,0);
-  int xyComp = derivComponent(1,0);
-  int yxComp = derivComponent(0,1);
-  int yyComp = derivComponent(1,1);
-
-  Real eps = 1.0e-10;
-
-  // Loop over individual boxes on a single processor
-  DataIterator dit=a_grids.dataIterator();
-  for (dit.begin(); dit.ok(); ++dit)
-    {
-      // valid region box for this patch
-      const Box& thisBox = a_grids[dit];
-
- 
-  // Compute the Von Mises Stress (cell-centered)
-  FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
-          CHF_CONST_FRA(a_viscousTensor[dit]),
-          CHF_CONST_FRA1(a_thickness[dit],0),
-          CHF_INT(xxComp),
-          CHF_INT(xyComp),
-          CHF_INT(yxComp),
-          CHF_INT(yyComp),
-          CHF_CONST_REAL(eps),
-          CHF_BOX(thisBox));
-
-    } // End loop over boxes on a single processor
-  // End Von Mises calculation
-/*  CURRENTLY BROKEN AT BOX EDGES, USE ONLY IN vector = false MODE
-  //interpolate to faces
-  // NOTE (SBK 20240620) CAN'T GROW THE VON MISES STRESS, AS NOT WELL DEFINED
-  // AT BOX EDGES CURRENTLY
-  //CellToEdge(scale, a_faceCalvingVel);
-  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
-      for (int dir = 0; dir < SpaceDim; dir++)
-  	{
-  	  Box faceBox = frac.box();
-  	  faceBox.grow(-1);
-  	  faceBox.surroundingNodes(dir);
-  	  faceBox &= faceScaleVM[dit][dir].box();
-
-  	  for (BoxIterator bit(faceBox); bit.ok(); ++bit)
-  	    {
-  	      const IntVect& iv = bit();
-  	      // cell-centre indices on the - and + sides of the face
-  	      IntVect ivm = iv - BASISV(dir); 
-  	      IntVect ivp = iv;
-	      // one-sided...
-  	      if ( (frac(ivm) > TINY_FRAC) && (frac(ivp) <= TINY_FRAC) )
-  		{
-  		  faceScaleVM[dit][dir](iv) = scale[dit](ivm)*vonmises[dit](iv);
-  		}
-  	      else if ( (frac(ivm) <= TINY_FRAC) && (frac(ivp) > TINY_FRAC) )
-  		{
-  		  faceScaleVM[dit][dir](iv) = scale[dit](ivp)*vonmises[dit](iv);
-  		}
-  	      else
-  		{
-  		  // normal linear interpolation
-  		  faceScaleVM[dit][dir](iv) = 0.5 * (scale[dit](ivm)*vonmises[dit](iv) + scale[dit](ivp)*vonmises[dit](iv));
-  		}
-  	    }
-  	}
-    }
-    // end interpolate to faces
-*/
-
-
-  LevelData<FluxBox>& faceScaleVM = a_faceCalvingVel;
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      const FArrayBox& frac = (*a_amrIce.iceFraction(a_level))[dit];
-      for (int dir = 0; dir < SpaceDim; dir++)
-  	  {
-
-  	    for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
-        { 
-  	      const IntVect& iv = bit();
-          faceScaleVM[dit][dir](iv) = scale[dit](iv)*vonmises[dit](iv);
-        }
-      }
-    }
-
-    // multiply by -velocity
-  for (DataIterator dit(a_grids); dit.ok(); ++dit)
-    {
-      for (int dir = 0; dir < SpaceDim; dir++)
-	{
-	  a_faceCalvingVel[dit][dir] *= -1.0;
-	  a_faceCalvingVel[dit][dir] *= a_faceIceVel[dit][dir];
-	}
-    }
-
-  if (m_independent)
-    {
-      // cell-centered independent part 
-      LevelData<FArrayBox> ccrate(a_grids, 1, 2*IntVect::Unit);
-     
-      m_independent->evaluate(ccrate, a_amrIce, a_level, a_amrIce.dt());
-      ccrate.exchange();
-      LevelData<FArrayBox> ccvel(a_grids, SpaceDim, 2*IntVect::Unit);
-     
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-	{
-	  const FArrayBox& vel = a_centreIceVel[dit];
-	  ccvel[dit].setVal(0.0);//for the ghost cells outside the domain
-	  Box gbox = a_grids[dit];
-	  gbox.grow(1);
-	  for (BoxIterator bit(a_grids[dit]); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-	      Real norm = std::sqrt(vel(iv,0)*vel(iv,0) + vel(iv,1)*vel(iv,1));
-	      //if (norm > 1.0e-10)
-		{
-		  ccvel[dit](iv,0) = - ccrate[dit](iv)*vel(iv,0) / (norm + TINY_NORM);
-		  ccvel[dit](iv,1) = - ccrate[dit](iv)*vel(iv,1) / (norm + TINY_NORM);
-		}
-	    }
-	}
-      // interpolate to centers and add to a_faceCalvingVel
-
-      ccvel.exchange();
-      LevelData<FluxBox> flux(a_grids, 1, IntVect::Unit);
-      CellToEdge(ccvel, flux);
-      
-      for (DataIterator dit(a_grids); dit.ok(); ++dit)
-	{
-	  for (int dir = 0; dir < SpaceDim; dir++)
-	    {	      
-	      a_faceCalvingVel[dit][dir] += flux[dit][dir];
-	    }
-	}
-    }
   return true;
   
 }
