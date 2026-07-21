@@ -451,7 +451,13 @@ AmrIce::~AmrIce()
 	  delete m_calvedIceArea[lev];
 	  m_calvedIceArea[lev] = NULL;
 	}
-      
+  
+      if (m_fluxGL[lev] != NULL)
+	{
+	  delete m_fluxGL[lev];
+	  m_fluxGL[lev] = NULL;
+	}
+     
       if (m_calvedIceThickness[lev] != NULL)
 	{
 	  delete m_calvedIceThickness[lev];
@@ -911,6 +917,8 @@ AmrIce::initialize()
   //but allow the user to modify that anyway
   ppAmr.query("evolve_ice_frac",m_evolve_ice_frac);
   ppAmr.query("evolve_ice_frac_2",m_evolve_ice_frac_2);
+  m_evolve_ice_frac = m_evolve_ice_frac | m_evolve_ice_frac_2;	// m_evolve_ice_frac_2 => m_evolve_ice_frac
+  
   
   // MJT - 2022/07/28 - Demonstration of change for UKESM to allow masking of stable sources
   ppAmr.query("mask_stable_sources",  m_mask_stable_sources);
@@ -1478,6 +1486,7 @@ AmrIce::initialize()
       m_basalThicknessSource.resize(m_max_level+1, NULL);
       m_calvedIceArea.resize(m_max_level+1, NULL);
       m_calvedIceThickness.resize(m_max_level+1, NULL);
+      m_fluxGL.resize(m_max_level+1, NULL);
       m_removedIceThickness.resize(m_max_level+1, NULL);
       m_addedIceThickness.resize(m_max_level+1, NULL);
       m_divThicknessFlux.resize(m_max_level+1, NULL);
@@ -1817,16 +1826,20 @@ AmrIce::defineSolver()
 //  Real p = a/b; int i(p);
 //  return std::min( p - i, p - 1 - i);
 //}
-
-void AmrIce::setToZero(Vector<LevelData<FArrayBox>*>& a_data)
+void setVal(LevelData<FArrayBox>& a_data, Real a_val)
 {
-  for (int lev=0; lev < std::min(int(a_data.size()),finestLevel()+1); lev++)
-    {
-      LevelData<FArrayBox>& data = *a_data[lev];
-      for (DataIterator dit(data.dataIterator()); dit.ok(); ++dit)
+  for (DataIterator dit(a_data.dataIterator()); dit.ok(); ++dit)
 	{
-	  data[dit].setVal(0.0);
+	  a_data[dit].setVal(a_val);
 	}
+}
+
+
+void setToZero(Vector<LevelData<FArrayBox>*>& a_data)
+{
+  for (int lev=0; lev < a_data.size(); lev++)
+    {
+      setVal(*a_data[lev], 0.0);
     }
 }
 
@@ -2283,7 +2296,7 @@ AmrIce::run(Real a_max_time, int a_max_step)
       pout() << "AmrIce::run -- max_time= " << a_max_time 
              << ", max_step = " << a_max_step << endl;
     }
-
+  	  
   Real dt;
   // only call computeInitialDt if we're not doing restart
   if (!m_do_restart)
@@ -2362,8 +2375,8 @@ AmrIce::run(Real a_max_time, int a_max_step)
 	  timeStep(dt);
 
 	  //update CF data time-means and diagnostics
-	  if (m_plot_style_cf) accumulateCFData(dt);	  
 	  
+	  if (m_plot_style_cf) accumulateCFData(dt);	  
 	} // end of plot_time_interval
 #ifdef CH_USE_HDF5
       if (m_plot_interval >= 0 && abs(next_plot_time - a_max_time) > TIME_EPS)
@@ -2768,7 +2781,36 @@ AmrIce::computeThicknessFluxes(Vector<LevelData<FluxBox>* >& a_vectFluxes,
                                      1, m_refinement_ratios[lev-1]);
       faceAverager.averageToCoarse(*a_vectFluxes[lev-1], *a_vectFluxes[lev]);
     }
-  
+
+  //store the flux across the GL - needed only for output
+  for (int lev = 0; lev <= finestTimestepLevel(); lev++)
+  {
+	for (DataIterator dit(m_amrGrids[lev]); dit.ok(); ++dit)
+	{
+		FArrayBox& fluxGL = (*m_fluxGL[lev])[dit];
+		fluxGL.setVal(0.0);
+		FluxBox& flux = (*a_vectFluxes[lev])[dit];
+		const BaseFab<int>& mask = m_vect_coordSys[lev]->getFloatingMask()[dit];
+		Box b = m_amrGrids[lev][dit];
+	 	for (BoxIterator bit(b); bit.ok(); ++bit)
+		{
+		  const IntVect& iv = bit();
+		  if (mask(iv) == GROUNDEDMASKVAL)
+		  {
+		     for (int dir = 0; dir < SpaceDim; dir++)
+			{
+			  IntVect ivp = iv + BASISV(dir);
+		          if (mask(ivp) == FLOATINGMASKVAL || mask(ivp) == OPENSEAMASKVAL)
+				 fluxGL(iv) -= Abs(flux[dir](ivp));
+			  IntVect ivm = iv - BASISV(dir);
+			  if (mask(ivm) == FLOATINGMASKVAL || mask(ivm) == OPENSEAMASKVAL)
+				 fluxGL(iv) -= Abs(flux[dir](iv));
+			}
+		  }
+		}
+	}
+  }
+
 }
 
 
@@ -2973,11 +3015,10 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 	      for (BoxIterator bit(gridBox); bit.ok(); ++bit)
 	      	{
 	      	  const IntVect& iv = bit();
-		  if (newH(iv) > 0.0)
+		  if (newH(iv) > TINY_THICKNESS)
 		    {
 		      Real remove(0.0);
-		      if (frac(iv) > frac_tol)
-			
+		      if (frac(iv) > frac_tol)	
 			{
 			  if (calved_frac(iv) > frac_tol)
 			    {
@@ -2993,47 +3034,8 @@ AmrIce::updateGeometry(Vector<RefCountedPtr<LevelSigmaCS> >& a_vect_coordSys_new
 		      newH(iv) -= remove;
 		      (*m_calvedIceThickness[lev])[dit](iv) += remove;
 		    }
-
-		  /// BODGE - just trying 
-		  //Real tol = 1.0e-3;
-		  //if ((newH(iv) < tol) && (newH(iv) < oldH(iv)))
-		  //  {
-		  //    frac(iv) = 0.0;
-		  //  }
-		  
-	      	}
-	    }
-	  
-	  
-	  for (BoxIterator bit(gridBox); bit.ok(); ++bit)
-	    {
-	      const IntVect& iv = bit();
-
-	      Real H=newH(iv);
-	      // Remove negative thickness by limiting low bmb and/or smb
-	      // Calculate the effective basal and surface mass fluxes
-	      if (H < 0.0)
-		{
-		  Real excessSource=0.0;
-		  if (a_dt > 0.0)
-		    {
-		      excessSource=H/a_dt;
-		    }
-		  Real bts = (*m_basalThicknessSource[lev])[dit](iv);
-		  Real sts = (*m_surfaceThicknessSource[lev])[dit](iv);
-		  Real oldBTS=bts;
-		  if (bts < 0.0)
-		    {
-		      bts = std::min(bts-excessSource,0.0);
-		    }
-		  sts = sts+oldBTS - excessSource - bts;
-//		  (*m_basalThicknessSource[lev])[dit](iv) = bts;
-//		  (*m_surfaceThicknessSource[lev])[dit](iv) = sts;
-		  
-                  newH(iv)=0.0;
-		}
-	    }
-
+		} // end loop over cells
+	    } // end if (m_evolve_ice_frac)
           
         } // end loop over grids 
     } // end loop over levels
@@ -3299,11 +3301,12 @@ AmrIce::levelSetup(int a_level, const DisjointBoxLayout& a_grids)
   levelAllocate(&m_velBasalC[a_level],a_grids, 1, ghostVect);
   levelAllocate(&m_cellMuCoef[a_level],a_grids, 1, ghostVect);
   levelAllocate(&m_velRHS[a_level],a_grids, SpaceDim,  IntVect::Zero);
-  levelAllocate(&m_surfaceThicknessSource[a_level], a_grids,   1, IntVect::Unit) ;
-  levelAllocate(&m_basalThicknessSource[a_level], a_grids,  1, IntVect::Unit) ;
+  levelAllocate(&m_surfaceThicknessSource[a_level], a_grids,   1, IntVect::Unit) ; setVal(*m_surfaceThicknessSource[a_level],0.0);
+  levelAllocate(&m_basalThicknessSource[a_level], a_grids,  1, IntVect::Unit) ; setVal(*m_basalThicknessSource[a_level],0.0); 
   levelAllocate(&m_calvedIceArea[a_level], a_grids,  1, IntVect::Unit) ;
   levelAllocate(&m_divThicknessFlux[a_level],a_grids,   1, IntVect::Zero) ;
-  levelAllocate(&m_calvedIceThickness[a_level],a_grids, 1, IntVect::Unit);
+  levelAllocate(&m_calvedIceThickness[a_level],a_grids, 1, IntVect::Unit);setVal(*m_calvedIceThickness[a_level],0.0);
+  levelAllocate(&m_fluxGL[a_level],a_grids, 1, IntVect::Unit); setVal(*m_fluxGL[a_level],0.0);
   levelAllocate(&m_removedIceThickness[a_level],a_grids, 1, IntVect::Unit);
   levelAllocate(&m_addedIceThickness[a_level],a_grids, 1, IntVect::Unit);
   levelAllocate(&m_deltaTopography[a_level],a_grids, 1, IntVect::Zero);
@@ -4395,7 +4398,6 @@ class NCAdvectPhysics : public AdvectPhysics
 
 
 void AmrIce::PGAdvectFrac(Vector<LevelData<FArrayBox>* >& a_f,
-			  //FC const Vector<LevelData<FluxBox>* >& a_u,
 			  const Vector<LevelData<FArrayBox>* >&a_u,
 			  Real a_dt, Real a_tol)
 {
@@ -4617,36 +4619,66 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
     }
 
   // non-conservative (because div u != 0) advection
-  // FC PGAdvectFrac(frac_a, a_faceVelAdvection, a_dt, TINY_FRAC);
   PGAdvectFrac(frac_a, m_velocity, a_dt, TINY_FRAC);
   updateInvalidIceFrac(frac_a);
   
-  // u - uc
-  //FC Vector<LevelData<FluxBox>* > unet(m_finest_level+1, NULL);
+  // u + uc (ice velocity + calving velocity = - rate * calving dir)
   Vector<LevelData<FArrayBox>* > unet(m_finest_level+1, NULL);
   for (int lev=0; lev<= m_finest_level; lev++)
     {
       LevelData<FArrayBox>& levelF = *a_iceFrac[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
-      //FC unet[lev] = new LevelData<FluxBox>(grids, 1 , IntVect::Unit);
-      //FC computeFaceCalvingVel(*unet[lev], *a_faceVelAdvection[lev], grids, lev);
       unet[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
       bool success = m_calvingModelPtr->getCalvingVel(*unet[lev],*m_velocity[lev],
-						      grids, *this, lev);
+						  grids, *this, lev);
       CH_assert(success);
-      
+  
       for (DataIterator dit(grids); dit.ok(); ++dit)
 	{
-	  // u + uc
-	  //FC (*unet[lev])[dit] += ( (*a_faceVelAdvection[lev])[dit]);
-
 	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
-	}     
+	}
     }
 
-  // non-conservative (because div u != 0) advection
-  PGAdvectFrac(a_iceFrac, unet, a_dt, TINY_FRAC);
+  {
+      // non-conservative (because div u != 0) advection
+      // sub-cycles needed when |unet|_max > |u|_max
+      Real uu = computeNorm(unet, m_refinement_ratios, m_amrDx[0], Interval(0,0), 0) +
+	  computeNorm(unet, m_refinement_ratios, m_amrDx[0], Interval(1,1), 0);			
 
+      Real frac_cfl = m_amrDx[m_finest_level] / (uu + 1.0e-10);
+      int n_sub = int(a_dt/frac_cfl) + 1;
+      Real dt_sub = a_dt/Real(n_sub);
+      for (int sub = 0; sub < n_sub; sub++)
+	PGAdvectFrac(a_iceFrac, unet, dt_sub, TINY_FRAC);
+  }
+    
+  {
+    // enforce a_iceFrac <= frac_a : violated if v.u > u.u
+      int violations = 0;
+      for (int lev = 0; lev <= m_finest_level; lev++)
+	  {	
+	    for (DataIterator dit(a_iceFrac[lev]->disjointBoxLayout()); dit.ok(); ++dit)
+		{
+		    FArrayBox& f = (*a_iceFrac[lev])[dit];
+		    const FArrayBox& f_a = (*frac_a[lev])[dit];	
+		    for (BoxIterator bit(f.box()); bit.ok(); ++bit)
+			{
+			    const IntVect& iv = bit();
+			    if (f(iv) > f_a(iv))
+				{
+				    violations++;
+				    f(iv) = f_a(iv);
+				}
+			}
+		}
+	  }
+
+      if (m_verbosity > 0)
+	  {
+	      pout() << "AmrIce::AdvectIceFrac2 : corrected " <<  violations << " cells where frac > frac_c (invalid calving rate)" << endl; 
+	  }
+  
+    }
 
   // enforce 0 <= frac <=1 0
   for (int lev=0; lev<= m_finest_level; lev++)

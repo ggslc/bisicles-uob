@@ -101,13 +101,14 @@ amr.cf_restart_file = chk.cf_regression.000005.CF.2d.H5
 
 CFIO.level = 1
 CFIO.lithk = true
-CFIO.lithk.time_integration = 0
+CFIO.lithk.time_integration = 1
 CFIO.orog = true
 CFIO.acabf = true
 CFIO.libmassbf = true
 CFIO.libmassbffl = true
 CFIO.libmassbfgr = true
 CFIO.licalvf = true
+CFIO.ligroundf = true
 CFIO.dlithkdt = true
 CFIO.sftgif = true
 CFIO.sftgrf = true

@@ -1882,6 +1882,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
   m_velRHS.resize(m_max_level+1);
   m_surfaceThicknessSource.resize(m_max_level+1,NULL);
   m_calvedIceArea.resize(m_max_level+1,NULL);
+  m_fluxGL.resize(m_max_level+1,NULL);
   m_basalThicknessSource.resize(m_max_level+1,NULL);
   m_calvedIceThickness.resize(m_max_level+1, NULL);
   m_removedIceThickness.resize(m_max_level+1, NULL);
@@ -2033,6 +2034,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	  m_calvedIceArea[lev] = new LevelData<FArrayBox>(levelDBL, 1, IntVect::Unit);
 	  m_basalThicknessSource[lev] = new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_calvedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
+	  m_fluxGL[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_removedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_addedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_deltaTopography[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Zero) ;
@@ -3289,7 +3291,34 @@ void AmrIce::initCFData()
 	   for (DataIterator dit=a_buf.dataIterator(); dit.ok(); ++dit)
 	     {
 	       a_buf[dit].copy((*m_calvedIceThickness[a_lev])[dit]);
-	       a_buf[dit] *= rhoi/m_dt;
+	       a_buf[dit] *= -rhoi/m_dt;
+	     }
+	   return &a_buf;
+	} );
+
+      m_cf_field_interval.push_back( Interval(0,0));
+    }
+
+ 
+ // grounding line flux
+  if (test(CFIO_FIELD_LAND_ICE_GL_FLUX_SHORT_NAME,ppf,false) || m_write_ismip6)
+    {
+      pout() << "AmrIceIO:: CF GL flux" << endl;
+      m_uniform_cf_data_name.push_back(CFIO_FIELD_LAND_ICE_GL_FLUX_SHORT_NAME);
+      m_uniform_cf_time_integration.push_back(time_integration(CFIO_FIELD_LAND_ICE_GL_FLUX_SHORT_NAME));
+      m_uniform_cf_standard_name.push_back(CFIO_FIELD_LAND_ICE_GL_FLUX_CF_NAME);
+      m_uniform_cf_long_name.push_back(CFIO_FIELD_LAND_ICE_GL_FLUX_LONG_NAME);
+      m_uniform_cf_units.push_back("kg m^-2 yr^-1");
+      m_cf_field_function.push_back
+	([this](int a_lev, LevelData<FArrayBox>& a_buf)
+	 {
+	   LevelSigmaCS& levelCS = *m_vect_coordSys[a_lev];
+	   Real rhoi = levelCS.iceDensity();
+
+	   for (DataIterator dit=a_buf.dataIterator(); dit.ok(); ++dit)
+	     {
+	       a_buf[dit].copy((*m_fluxGL[a_lev])[dit]);
+	       a_buf[dit] *= rhoi;
 	     }
 	   return &a_buf;
 	} );
@@ -3378,6 +3407,7 @@ void AmrIce::accumulateCFData(Real a_dt, bool a_reset)
   if (! m_uniform_cf_data.isDefined())
     {
       initCFData();
+      reset = true;
     }
 
   if (reset)
@@ -3390,7 +3420,7 @@ void AmrIce::accumulateCFData(Real a_dt, bool a_reset)
 	}
     }
 
-  if (a_reset)
+  if (reset)
     {
       m_cf_domain_diagnostic_data.reset();
     }

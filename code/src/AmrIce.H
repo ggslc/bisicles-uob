@@ -761,7 +761,7 @@ protected:
   Real computeInitialDt();
 
   //set an entire amr hierarchy to zero
-  void setToZero(Vector<LevelData<FArrayBox>*>& a_data);
+  //void setToZero(Vector<LevelData<FArrayBox>*>& a_data);
 
   /// Advect thickness and mask over time a_dt given the current ice velocity
   void advectH(Vector<LevelData<FArrayBox>*>& a_H, Vector<LevelData<FArrayBox>*>& a_frac,  Real a_dt);
@@ -1290,6 +1290,7 @@ protected:
   Vector<LevelData<FArrayBox>* > m_removedIceThickness;
   Vector<LevelData<FArrayBox>* > m_addedIceThickness;
 
+  Vector<LevelData<FArrayBox>* > m_fluxGL;
 
   //cell centered storage for the stress-balance equation coefficients
   mutable Vector<LevelData<FArrayBox>* > m_dragCoef;
