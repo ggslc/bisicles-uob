@@ -1339,14 +1339,16 @@ VonMisesCalvingModel::getCalvingVel
   // -velocity * sigma_vm * scale
   for (DataIterator dit(a_grids); dit.ok(); ++dit)
     {
-
-      a_centreCalvingVel[dit].copy(a_centreIceVel[dit]);
+      const FArrayBox& u = a_centreIceVel[dit];
+      FArrayBox& v = a_centreCalvingVel[dit];
+      v.copy(u);
       for (int dir = 0; dir < SpaceDim; ++dir)
 	{
-	  a_centreCalvingVel[dit].mult(vonmises[dit], 0, dir, 1);
-	  a_centreCalvingVel[dit].mult(scale[dit], 0, dir, 1);
-	  a_centreCalvingVel[dit] *= -1.0; // opposing direction
-	}
+	  v.mult(vonmises[dit], 0, dir, 1);
+	  v.mult(scale[dit], 0, dir, 1);
+	}	
+	v *= -1; // opposing direction
+				
     }
   
   return true;
