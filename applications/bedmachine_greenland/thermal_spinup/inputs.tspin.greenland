@@ -1,4 +1,4 @@
-main.poutBaseName = pout.tspin.greenland
+main.poutBaseName = pout.tspin.greenland.
 #domain details
 main.domain_size = 1536e+3 2764.8e+3 1.0e+3
 amr.num_cells = 320 576 24 # 4.8km 
@@ -239,7 +239,7 @@ control.xVel.offset = 0
 control.xVel.linearInterp = false
 #Tikhonov regularization coefficients
 control.gradCsqRegularization = 1.0e+2
-control.gradMuCoefsqRegularization = 1.0e+9
+control.gradMuCoefsqRegularization = 1.0e+8
 #some box constraints. 
 control.boundMethod = Projection
 control.lowerX0 = -5
@@ -250,13 +250,13 @@ control.writeInnerSteps = false
 control.CGmaxIter = 16 # a low number - the intention is to restart every 16 iterations, advancing a timestep and gaining a checkpoint
 control.CGhang = 0.995
 control.CGsecantMaxIter = 20
-control.CGsecantParameter = 1.0e-7
+control.CGsecantParameter = 1.0e-6
 control.initialLowerC = 1.0
 control.initialUpperC = 1.0e+5
 control.initialLowerMuCoef = 0.01
 control.initialUpperMuCoef = 1.01
 control.minLevelForOptimization = 0
-
+control.CGlineSearchMethod = 20 # new secant
 #output
 amr.plot_interval = 4096
 amr.check_interval = 8192

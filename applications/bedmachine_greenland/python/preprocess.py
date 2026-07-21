@@ -95,7 +95,7 @@ def _system(cmd):
     print(cmd)
     os.system(cmd)
 #convert netcdf to hdf5
-for s in suffix[2:]:
+for s in suffix[0:]:
     nctoamr(name(s), name(s,'2d.hdf5'), 'thk topg umod umodc btrc')
 
 #coarsest only for now 

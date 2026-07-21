@@ -68,9 +68,13 @@ amr.grounding_line_proximity_calc_type = 1
 #steady shelves
 amr.floating_ice_basal_flux_is_dhdt = true
 basalFlux.type = maskedFlux
-basalFlux.grounded.type = constantFlux
-basalFlux.grounded.flux_value = 0.0
-basalFlux.floating.flux_value = 0
+#default for each region is ZeroFlux
+#no growth of ice sheet 
+basalFlux.openSea.type = constantFlux
+basalFlux.openSea.flux_value = -1.0e+4
+basalFlux.openLand.type = constantFlux
+basalFlux.openLand.flux_value = -1.0e+4
+
 
 #calving model - don't let the front advance
 CalvingModel.type = FixedFrontCalvingModel
@@ -89,7 +93,8 @@ amr.initial_velocity_guess_solver_type = 1 #JFNK
 #JFNK parameters
 JFNKSolver.vtopSafety = 0.95
 JFNKSolver.minPicardIterations = 20	#3
-JFNKSolver.maxIter = 20
+JFNKSolver.maxIter_init = 20
+JFNKSolver.maxIter = 4
 JFNKSolver.absTol = 1.0
 JFNKSolver.relTol = 1.0e-4
 JFNKSolver.solverType = 0 #Relax solver
@@ -143,7 +148,7 @@ amr.write_solver_rhs = 1
 amr.write_viscous_tensor = true
 amr.write_thickness_sources = true
 #check points
-amr.check_interval = 1
+amr.check_interval = 100
 amr.check_prefix = chk.bm5_gris_ls.
 amr.check_overwrite = 0
 #
@@ -295,5 +300,6 @@ amr.evolve_thickness = true
 amr.velocity_solve_interval = 1
 amr.isothermal = false
 
-
-
+#amr.restart_file = chk.bm5_gris_ls.000900.2d.hdf5
+amr.evolve_ice_frac_2 = true
+amr.frac_sources = true
