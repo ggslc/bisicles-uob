@@ -4637,6 +4637,15 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 	{
 	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
 	}
+     
+      // populate ghosts: don't rely on Calving Model to do this 
+      if (lev > 0)
+	{
+	  PiecewiseLinearFillPatch pwl(m_amrGrids[lev], m_amrGrids[lev-1], SpaceDim, 
+			  m_amrDomains[lev-1], m_refinement_ratios[lev-1],1);
+	  pwl.fillInterp(*unet[lev],*unet[lev-1],*unet[lev-1],0.0,0,0,SpaceDim);  
+	}
+      unet[lev]->exchange();      
     }
 
   {
@@ -4671,6 +4680,7 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
 				}
 			}
 		}
+	    a_iceFrac[lev]->exchange();
 	  }
 
       if (m_verbosity > 0)
