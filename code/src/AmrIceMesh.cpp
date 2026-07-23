@@ -322,7 +322,8 @@ AmrIce::regrid()
 	    
 	    //GL flux regrid
 	    m_fluxGL[lev] = destructiveRegrid(m_fluxGL[lev], newDBL, m_fluxGL[lev-1],  m_refinement_ratios[lev-1]);
-	    
+	    // calving velocity regrid 
+	    m_calvingVelocity[lev] = destructiveRegrid(m_calvingVelocity[lev], newDBL, m_calvingVelocity[lev-1],  m_refinement_ratios[lev-1]);
 	    //internal energy regrid
 	    m_internalEnergy[lev] = destructiveRegrid( m_internalEnergy[lev], newDBL, m_internalEnergy[lev-1], m_refinement_ratios[lev-1]);
 	    m_tillWaterDepth[lev] = destructiveRegrid(m_tillWaterDepth[lev], newDBL, m_tillWaterDepth[lev-1], m_refinement_ratios[lev-1]);

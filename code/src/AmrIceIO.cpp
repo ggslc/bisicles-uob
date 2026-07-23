@@ -311,7 +311,7 @@ AmrIce::writeAMRPlotFile()
       numPlotComps += 2;  // active surface and basal sources
       if (!m_reduced_plot)
 	{
-	  numPlotComps += 4; // divThicknessFlux, supplied surface and basal sources, calving flux
+	  numPlotComps += 5 + SpaceDim; // divThicknessFlux, supplied surface and basal sources, calving flux, gl flux, calving vector (x2)
 	}
     }
     
@@ -382,6 +382,9 @@ AmrIce::writeAMRPlotFile()
   string surfaceThicknessSourceName("surfaceThicknessSource");
   string divergenceThicknessFluxName("divergenceThicknessFlux");
   string calvingFluxName("calvingFlux");
+  string xCalvingVelName("xCalvingVel");
+  string yCalvingVelName("yCalvingVel");
+  string fluxGLName("fluxGL");
 
   Vector<string> vectName(numPlotComps);
   //int dThicknessComp;
@@ -575,6 +578,10 @@ AmrIce::writeAMRPlotFile()
 	  vectName[comp] = basalThicknessSourceName; comp++;
 	  vectName[comp] = surfaceThicknessSourceName; comp++;
 	  vectName[comp] = calvingFluxName; comp++;
+	  vectName[comp] = fluxGLName; comp++;
+          vectName[comp] = xCalvingVelName; comp++;
+	  if (SpaceDim > 1){ 
+		  vectName[comp] = yCalvingVelName; comp++;}
 	}
     }
 
@@ -995,7 +1002,15 @@ AmrIce::writeAMRPlotFile()
 		    {
 		      thisPlotData.divide(m_dt, comp, 1);
 		    }              
+		  comp++;
+
+		  thisPlotData.copy((*m_fluxGL[lev])[dit], 0, comp, 1);
 		  comp++;		  
+	
+		 
+		  thisPlotData.copy((*m_calvingVelocity[lev])[dit], 0, comp, SpaceDim);
+		  comp += SpaceDim;
+	
 		}
 	    }
 
@@ -1883,6 +1898,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
   m_surfaceThicknessSource.resize(m_max_level+1,NULL);
   m_calvedIceArea.resize(m_max_level+1,NULL);
   m_fluxGL.resize(m_max_level+1,NULL);
+  m_calvingVelocity.resize(m_max_level+1,NULL);
   m_basalThicknessSource.resize(m_max_level+1,NULL);
   m_calvedIceThickness.resize(m_max_level+1, NULL);
   m_removedIceThickness.resize(m_max_level+1, NULL);
@@ -2035,6 +2051,7 @@ AmrIce::readCheckpointFile(HDF5Handle& a_handle)
 	  m_basalThicknessSource[lev] = new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_calvedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_fluxGL[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
+          m_calvingVelocity[lev] =  new LevelData<FArrayBox>(levelDBL,   SpaceDim, IntVect::Unit) ;
 	  m_removedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_addedIceThickness[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Unit) ;
 	  m_deltaTopography[lev] =  new LevelData<FArrayBox>(levelDBL,   1, IntVect::Zero) ;
