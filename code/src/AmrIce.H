@@ -1289,7 +1289,7 @@ protected:
   Vector<LevelData<FArrayBox>* > m_calvedIceThickness;
   Vector<LevelData<FArrayBox>* > m_removedIceThickness;
   Vector<LevelData<FArrayBox>* > m_addedIceThickness;
-
+  Vector<LevelData<FArrayBox>* > m_calvingVelocity; 
   Vector<LevelData<FArrayBox>* > m_fluxGL;
 
   //cell centered storage for the stress-balance equation coefficients

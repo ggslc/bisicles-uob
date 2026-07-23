@@ -457,6 +457,12 @@ AmrIce::~AmrIce()
 	  delete m_fluxGL[lev];
 	  m_fluxGL[lev] = NULL;
 	}
+   
+      if (m_calvingVelocity[lev] != NULL)
+	{
+	  delete m_calvingVelocity[lev];
+	  m_calvingVelocity[lev] = NULL;
+	}
      
       if (m_calvedIceThickness[lev] != NULL)
 	{
@@ -1487,6 +1493,7 @@ AmrIce::initialize()
       m_calvedIceArea.resize(m_max_level+1, NULL);
       m_calvedIceThickness.resize(m_max_level+1, NULL);
       m_fluxGL.resize(m_max_level+1, NULL);
+      m_calvingVelocity.resize(m_max_level+1, NULL);
       m_removedIceThickness.resize(m_max_level+1, NULL);
       m_addedIceThickness.resize(m_max_level+1, NULL);
       m_divThicknessFlux.resize(m_max_level+1, NULL);
@@ -3307,6 +3314,7 @@ AmrIce::levelSetup(int a_level, const DisjointBoxLayout& a_grids)
   levelAllocate(&m_divThicknessFlux[a_level],a_grids,   1, IntVect::Zero) ;
   levelAllocate(&m_calvedIceThickness[a_level],a_grids, 1, IntVect::Unit);setVal(*m_calvedIceThickness[a_level],0.0);
   levelAllocate(&m_fluxGL[a_level],a_grids, 1, IntVect::Unit); setVal(*m_fluxGL[a_level],0.0);
+  levelAllocate(&m_calvingVelocity[a_level],a_grids, SpaceDim, IntVect::Unit); setVal(*m_calvingVelocity[a_level],0.0);
   levelAllocate(&m_removedIceThickness[a_level],a_grids, 1, IntVect::Unit);
   levelAllocate(&m_addedIceThickness[a_level],a_grids, 1, IntVect::Unit);
   levelAllocate(&m_deltaTopography[a_level],a_grids, 1, IntVect::Zero);
@@ -4629,23 +4637,28 @@ void AmrIce::advectIceFrac2(Vector<LevelData<FArrayBox>* >& a_iceFrac,
       LevelData<FArrayBox>& levelF = *a_iceFrac[lev]; 
       const DisjointBoxLayout& grids = levelF.getBoxes();
       unet[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
-      bool success = m_calvingModelPtr->getCalvingVel(*unet[lev],*m_velocity[lev],
+      bool success = m_calvingModelPtr->getCalvingVel(*m_calvingVelocity[lev],*m_velocity[lev],
 						  grids, *this, lev);
-      CH_assert(success);
-  
-      for (DataIterator dit(grids); dit.ok(); ++dit)
-	{
-	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
-	}
-     
+      CH_assert(success); // only support Calving Models that provide a vector (rather than a simple rate)
+			  
       // populate ghosts: don't rely on Calving Model to do this 
       if (lev > 0)
 	{
 	  PiecewiseLinearFillPatch pwl(m_amrGrids[lev], m_amrGrids[lev-1], SpaceDim, 
 			  m_amrDomains[lev-1], m_refinement_ratios[lev-1],1);
-	  pwl.fillInterp(*unet[lev],*unet[lev-1],*unet[lev-1],0.0,0,0,SpaceDim);  
+	  pwl.fillInterp(*m_calvingVelocity[lev], *m_calvingVelocity[lev-1], *m_calvingVelocity[lev-1], 0.0, 0, 0, SpaceDim);  
 	}
-      unet[lev]->exchange();      
+       //assume the same BCs apply to the calving vector as to the ice velocity
+       m_thicknessIBCPtr->velocityGhostBC
+		(*m_calvingVelocity[lev],*m_vect_coordSys[lev], m_amrDomains[lev], m_time);
+	   
+      m_calvingVelocity[lev]->exchange();
+		
+      for (DataIterator dit(grids); dit.ok(); ++dit)
+	{
+	  (*unet[lev])[dit].copy((*m_calvingVelocity[lev])[dit]);	
+	  (*unet[lev])[dit] += (*m_velocity[lev])[dit];
+	}
     }
 
   {

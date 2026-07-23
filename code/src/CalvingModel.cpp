@@ -1322,6 +1322,7 @@ VonMisesCalvingModel::getCalvingVel
     {
       // valid region box for this patch
       const Box& thisBox = a_grids[dit];
+      //vonmises[dit].setVal(0.0); 
       // Compute the Von Mises Stress (cell-centered)
       FORT_VONMISES(CHF_FRA1(vonmises[dit],0),
 		    CHF_CONST_FRA(viscousTensor[dit]),
