@@ -1216,7 +1216,7 @@ void IceUtility::setFloatingBasalFriction
     {
       bool anyFloating = a_coords.anyFloating()[dit]; 
       // set friction on open land and open sea to 100. Set friction on floating ice to 0
-      if(anyFloating)
+      if(true)
 	{
 	  FArrayBox& thisC = a_C[dit];
 	  const BaseFab<int>& mask = a_coords.getFloatingMask()[dit];
