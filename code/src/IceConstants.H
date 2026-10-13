@@ -46,8 +46,8 @@
 #define HUGE_THICKNESS (1.0e+4)
 #define HUGE_VEL (1.0e+6)
 #define huge_vel (1.0e+6)
-#define TINY_VEL (1.0e-3)
-#define tiny_vel (1.0e-3)
+#define TINY_VEL (1.0e-2)
+#define tiny_vel (1.0e-2)
 #define ICE_DENSITY 918.0
 #define SEA_WATER_DENSITY 1028.0
 #define GRAVITY 9.81
@@ -63,9 +63,9 @@
 #define tiny_thickness (1.0d-2)
 #define TINY_THICKNESS (1.0d-2)
 #define tiny_frac (1.0d-7)
-#define TINY_FRAC (1.de-7)
-#define huge_thickness (1.0e+4)
-#define HUGE_THICKNESS (1.0e+4)
+#define TINY_FRAC (1.0d-7)
+#define huge_thickness (1.0d+4)
+#define HUGE_THICKNESS (1.0d+4)
 #define HUGE_VEL (1.0d+6)
 #define huge_vel (1.0d+6)
 #define TINY_VEL (1.0d-2)
