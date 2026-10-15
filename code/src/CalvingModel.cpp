@@ -42,11 +42,60 @@ CalvingModel::getCalvingVel(LevelData<FArrayBox>& a_centreCalvingVel,
 			      const DisjointBoxLayout& a_grids,
 			      const AmrIce& a_amrIce,int a_level)
 {
-  DataIterator dit = a_centreCalvingVel.dataIterator();
-  for (dit.begin(); dit.ok(); ++dit)
+  // Default fallback for calving models that only provide a scalar rate:
+  // u_c = -rate * grad(f)/|grad f|, with a velocity-direction fallback
+  // where the ice-fraction gradient vanishes.
+  DataIterator _dit = a_centreCalvingVel.dataIterator();
+  for (_dit.begin(); _dit.ok(); ++_dit)
     {
-      a_centreCalvingVel[dit].setVal(0.0);
+      a_centreCalvingVel[_dit].setVal(0.0);
     }
+
+  LevelData<FArrayBox> calvingRate(a_grids, 1, 2*IntVect::Unit);
+  getCalvingRate(calvingRate, a_amrIce, a_level);
+  calvingRate.exchange();
+
+  const LevelData<FArrayBox>& fracLevel = *a_amrIce.iceFraction(a_level);
+  const LevelData<FArrayBox>& velLevel = *a_amrIce.velocity(a_level);
+
+  for (DataIterator dit(a_grids); dit.ok(); ++dit)
+    {
+      const FArrayBox& frac = fracLevel[dit];
+      const FArrayBox& u = velLevel[dit];
+      FArrayBox& uc = a_centreCalvingVel[dit];
+      Box gbox = a_grids[dit];
+      gbox.grow(1);
+      for (BoxIterator bit(gbox); bit.ok(); ++bit)
+        {
+          const IntVect& iv = bit();
+          Real gx = frac(iv + BASISV(0), 0) - frac(iv - BASISV(0), 0);
+          Real gy = frac(iv + BASISV(1), 0) - frac(iv - BASISV(1), 0);
+          Real g  = std::sqrt(gx*gx + gy*gy);
+          Real rate = calvingRate[dit](iv, 0);
+          if (g > TINY_NORM)
+            {
+              uc(iv, 0) = -rate * gx / (g + TINY_NORM);
+              uc(iv, 1) = -rate * gy / (g + TINY_NORM);
+            }
+          else
+            {
+              Real nu = std::sqrt(u(iv, 0)*u(iv, 0) +
+                                  u(iv, 1)*u(iv, 1));
+              if (nu > TINY_NORM)
+                {
+                  uc(iv, 0) = -rate * u(iv, 0) / (nu + TINY_NORM);
+                  uc(iv, 1) = -rate * u(iv, 1) / (nu + TINY_NORM);
+                }
+              else
+                {
+                  uc(iv, 0) = 0.0;
+                  uc(iv, 1) = 0.0;
+                }
+            }
+        }
+    }
+
+  a_centreCalvingVel.exchange();
   return true;
 }
 
@@ -324,9 +373,14 @@ CompositeCalvingModel::getCalvingVel
       }
     n++;
   }
+  if (!s)
+    {
+      return CalvingModel::getCalvingVel(a_centreCalvingVel, a_centreIceVel,
+                                        a_grids, a_amrIce, a_level);
+    }
   return s;
 }
- 
+  
 CompositeCalvingModel::~CompositeCalvingModel()
 {
   for (int n=0; n<m_vectModels.size(); n++)
@@ -496,8 +550,11 @@ RateAuBuhatCalvingModel::getCalvingVel
  const DisjointBoxLayout& a_grids,
  const AmrIce& a_amrIce,int a_level)
 {
-  if (!m_vector) return false;
-  
+  if (!m_vector)
+    {
+      return CalvingModel::getCalvingVel(a_centreCalvingVel, a_centreIceVel,
+                                        a_grids, a_amrIce, a_level);
+    }  
   // cell-centered proportion
   LevelData<FArrayBox> prop(a_grids, 1, 2*IntVect::Unit);
   m_proportion->evaluate(prop, a_amrIce, a_level, a_amrIce.dt());
@@ -649,8 +706,11 @@ VonMisesCalvingModel::getCalvingVel
  const DisjointBoxLayout& a_grids,
  const AmrIce& a_amrIce,int a_level)
 {
-  if (!m_vector) return false;
-  
+  if (!m_vector)
+    {
+      return CalvingModel::getCalvingVel(a_centreCalvingVel, a_centreIceVel,
+                                        a_grids, a_amrIce, a_level);
+    }  
   // cell-centered scale
   LevelData<FArrayBox> scale(a_grids, 1, 2*IntVect::Unit);
   m_scale->evaluate(scale, a_amrIce, a_level, a_amrIce.dt());

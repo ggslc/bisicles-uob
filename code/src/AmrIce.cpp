@@ -4474,54 +4474,7 @@ void AmrIce::advectIceFrac(Vector<LevelData<FArrayBox>* >& a_iceFrac,
       unet[lev] = new LevelData<FArrayBox>(grids, SpaceDim, IntVect::Unit);
       bool success = m_calvingModelPtr->getCalvingVel(*m_calvingVelocity[lev],*m_velocity[lev],
 						  grids, *this, lev);
-      // Some CalvingModels provide only a criterion or scalar rate. Convert
-      // those scalar rates to a cell-centred vector using the ice-fraction
-      // front normal: u_c = -rate * grad(f)/|grad f| (falling back to
-      // -rate * u/|u| where the gradient vanishes).
-      if (!success)
-        {
-          LevelData<FArrayBox> calvingRate(grids, 1, 2*IntVect::Unit);
-          m_calvingModelPtr->getCalvingRate(calvingRate, *this, lev);
-          calvingRate.exchange();
-          const LevelData<FArrayBox>& fracLevel = *a_iceFrac[lev];
-          const LevelData<FArrayBox>& velLevel = *m_velocity[lev];
-          for (DataIterator dit(grids); dit.ok(); ++dit)
-            {
-              const FArrayBox& frac = fracLevel[dit];
-              const FArrayBox& u = velLevel[dit];
-              FArrayBox& uc = (*m_calvingVelocity[lev])[dit];
-              Box gbox = grids[dit];
-              gbox.grow(1);
-              for (BoxIterator bit(gbox); bit.ok(); ++bit)
-                {
-                  const IntVect& iv = bit();
-                  Real gx = frac(iv + BASISV(0), 0) - frac(iv - BASISV(0), 0);
-                  Real gy = frac(iv + BASISV(1), 0) - frac(iv - BASISV(1), 0);
-                  Real g  = std::sqrt(gx*gx + gy*gy);
-                  Real rate = calvingRate[dit](iv, 0);
-                  if (g > TINY_NORM)
-                    {
-                      uc(iv, 0) = -rate * gx / (g + TINY_NORM);
-                      uc(iv, 1) = -rate * gy / (g + TINY_NORM);
-                    }
-                  else
-                    {
-                      Real nu = std::sqrt(u(iv, 0)*u(iv, 0) +
-                                          u(iv, 1)*u(iv, 1));
-                      if (nu > TINY_NORM)
-                        {
-                          uc(iv, 0) = -rate * u(iv, 0) / (nu + TINY_NORM);
-                          uc(iv, 1) = -rate * u(iv, 1) / (nu + TINY_NORM);
-                        }
-                      else
-                        {
-                          uc(iv, 0) = 0.0;
-                          uc(iv, 1) = 0.0;
-                        }
-                    }
-                }
-            }
-        }
+      CH_assert(success); // all CalvingModels should now provide a vector
 
       // populate ghosts: don't rely on Calving Model to do this 
       if (lev > 0)
