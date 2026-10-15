@@ -75,9 +75,9 @@ CalvingModel::getCalvingVel(LevelData<FArrayBox>& a_centreCalvingVel,
           Real rate = calvingRate[dit](iv, 0);
           if (g > TINY_NORM)
             {
-              D_TERM(uc(iv, 0) = -rate * gx / (g + TINY_NORM);,
-                     uc(iv, 1) = -rate * gy / (g + TINY_NORM);,
-                     uc(iv, 2) = -rate * gz / (g + TINY_NORM);)
+              D_TERM(uc(iv, 0) = rate * gx / (g + TINY_NORM);,
+                     uc(iv, 1) = rate * gy / (g + TINY_NORM);,
+                     uc(iv, 2) = rate * gz / (g + TINY_NORM);)
             }
           else
             {
