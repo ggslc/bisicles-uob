@@ -68,28 +68,31 @@ CalvingModel::getCalvingVel(LevelData<FArrayBox>& a_centreCalvingVel,
       for (BoxIterator bit(gbox); bit.ok(); ++bit)
         {
           const IntVect& iv = bit();
-          Real gx = frac(iv + BASISV(0), 0) - frac(iv - BASISV(0), 0);
-          Real gy = frac(iv + BASISV(1), 0) - frac(iv - BASISV(1), 0);
-          Real g  = std::sqrt(gx*gx + gy*gy);
+          D_TERM(Real gx = frac(iv + BASISV(0), 0) - frac(iv - BASISV(0), 0);,
+                 Real gy = frac(iv + BASISV(1), 0) - frac(iv - BASISV(1), 0);,
+                 Real gz = frac(iv + BASISV(2), 0) - frac(iv - BASISV(2), 0);)
+          Real g  = std::sqrt(D_TERM(gx*gx, + gy*gy, + gz*gz));
           Real rate = calvingRate[dit](iv, 0);
           if (g > TINY_NORM)
             {
-              uc(iv, 0) = -rate * gx / (g + TINY_NORM);
-              uc(iv, 1) = -rate * gy / (g + TINY_NORM);
+              D_TERM(uc(iv, 0) = -rate * gx / (g + TINY_NORM);,
+                     uc(iv, 1) = -rate * gy / (g + TINY_NORM);,
+                     uc(iv, 2) = -rate * gz / (g + TINY_NORM);)
             }
           else
             {
-              Real nu = std::sqrt(u(iv, 0)*u(iv, 0) +
-                                  u(iv, 1)*u(iv, 1));
+              Real nu = std::sqrt(D_TERM(u(iv, 0)*u(iv, 0), + u(iv, 1)*u(iv, 1), + u(iv, 2)*u(iv, 2)));
               if (nu > TINY_NORM)
                 {
-                  uc(iv, 0) = -rate * u(iv, 0) / (nu + TINY_NORM);
-                  uc(iv, 1) = -rate * u(iv, 1) / (nu + TINY_NORM);
+                  D_TERM(uc(iv, 0) = -rate * u(iv, 0) / (nu + TINY_NORM);,
+                         uc(iv, 1) = -rate * u(iv, 1) / (nu + TINY_NORM);,
+                         uc(iv, 2) = -rate * u(iv, 2) / (nu + TINY_NORM);)
                 }
               else
                 {
-                  uc(iv, 0) = 0.0;
-                  uc(iv, 1) = 0.0;
+                  D_TERM(uc(iv, 0) = 0.0;,
+                         uc(iv, 1) = 0.0;,
+                         uc(iv, 2) = 0.0;)
                 }
             }
         }
